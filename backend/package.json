@@ -1,0 +1,26 @@
+{
+  "name": "multi-agent-ai-assistant-backend",
+  "version": "0.1.0",
+  "description": "Express API gateway for the Multi-Agent AI Software Engineering Assistant",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "echo \"No backend tests yet\" && exit 0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "express",
+    "multi-agent",
+    "ai-assistant"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}

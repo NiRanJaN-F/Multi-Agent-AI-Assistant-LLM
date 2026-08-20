@@ -1,0 +1,70 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+frontend/dist/
+backend/dist/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+ai-engine/.venv/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Generated / temporary
+generated-projects/*
+!generated-projects/.gitkeep
+tmp/
+temp/
+*.tmp
+*.temp
+uploads/
+*.log
+logs/
+
+# IDE / editor
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker
+*.pid
+
+# OS
+ehthumbs.db
+[Dd]esktop.ini
+
+# Coverage & test artifacts
+coverage/
+.nyc_output/
+
+# Local MongoDB data (if using local volume mount)
+data/db/
+mongo-data/

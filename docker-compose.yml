@@ -1,0 +1,15 @@
+# Multi-Agent AI Software Engineering Assistant
+#
+# Initial Docker Compose scaffold only.
+# Full multi-service containerization will be implemented in a later phase.
+#
+# Planned services (later):
+#   - frontend  (React / Vite)
+#   - backend   (Node.js / Express)
+#   - ai-engine (Python / FastAPI or equivalent)
+#   - mongodb   (optional local DB for Docker-based demos)
+#
+# Setup now: file present as a placeholder for Phase 1+ DevOps work.
+# Implementation later: actual service definitions, networks, and volumes.
+
+services: {}
