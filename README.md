@@ -121,4 +121,4 @@ pip install -r requirements.txt
 
 ## License
 
-Recommended for academic projects: MIT (add `LICENSE` when you create the GitHub repository).
+Recommended for academic projects.
