@@ -28,3 +28,14 @@ pip install -r requirements.txt
 | `tests/` | Unit tests for the AI engine |
 
 Do not place Node.js or React code in this directory.
+
+## Run (Phase 1)
+
+```powershell
+cd ai-engine
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Health check: `http://127.0.0.1:8000/health`  
+API docs: `http://127.0.0.1:8000/docs`

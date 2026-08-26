@@ -1,122 +1,141 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useCallback, useEffect, useState } from "react";
+import {
+  getAiEngineHealth,
+  getBackendHealth,
+  getBackendStatus,
+} from "./services/api";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+const initialState = {
+  loading: true,
+  error: null,
+  backendHealth: null,
+  backendStatus: null,
+  aiHealth: null,
+};
 
+function StatusBadge({ label, value, tone = "neutral" }) {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <div className={`status-badge status-badge--${tone}`}>
+      <span className="status-badge__label">{label}</span>
+      <span className="status-badge__value">{value ?? "—"}</span>
+    </div>
+  );
 }
 
-export default App
+function App() {
+  const [state, setState] = useState(initialState);
+
+  const loadHealth = useCallback(async () => {
+    setState((prev) => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const [backendHealth, backendStatus, aiHealth] = await Promise.all([
+        getBackendHealth(),
+        getBackendStatus(),
+        getAiEngineHealth(),
+      ]);
+
+      setState({
+        loading: false,
+        error: null,
+        backendHealth,
+        backendStatus,
+        aiHealth,
+      });
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: error.message || "Failed to load health data",
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    loadHealth();
+  }, [loadHealth]);
+
+  const dbStatus = state.backendStatus?.data?.database?.status ?? "unknown";
+  const aiReachable = state.aiHealth?.data?.aiEngine?.reachable;
+  const aiStatus = aiReachable ? "connected" : "unreachable";
+
+  return (
+    <main className="app">
+      <header className="app__header">
+        <p className="app__eyebrow">Phase 1</p>
+        <h1>Multi-Agent AI Assistant</h1>
+        <p className="app__subtitle">
+          System health dashboard — backend, database, and AI engine connectivity.
+        </p>
+        <button
+          type="button"
+          className="app__refresh"
+          onClick={loadHealth}
+          disabled={state.loading}
+        >
+          {state.loading ? "Refreshing…" : "Refresh status"}
+        </button>
+      </header>
+
+      {state.error && <p className="app__error">{state.error}</p>}
+
+      <section className="cards">
+        <article className="card">
+          <h2>Backend API</h2>
+          <StatusBadge
+            label="Health"
+            value={state.backendHealth?.data?.status}
+            tone={state.backendHealth?.ok ? "ok" : "error"}
+          />
+          <StatusBadge
+            label="Environment"
+            value={state.backendStatus?.data?.environment}
+          />
+          <StatusBadge
+            label="Uptime (s)"
+            value={state.backendStatus?.data?.uptimeSeconds}
+          />
+        </article>
+
+        <article className="card">
+          <h2>MongoDB</h2>
+          <StatusBadge
+            label="Connection"
+            value={dbStatus}
+            tone={dbStatus === "connected" ? "ok" : "warn"}
+          />
+          <StatusBadge
+            label="Database"
+            value={state.backendStatus?.data?.database?.name}
+          />
+          <StatusBadge
+            label="Host"
+            value={state.backendStatus?.data?.database?.host}
+          />
+        </article>
+
+        <article className="card">
+          <h2>AI Engine</h2>
+          <StatusBadge
+            label="Proxy status"
+            value={state.aiHealth?.data?.status}
+            tone={aiReachable ? "ok" : "error"}
+          />
+          <StatusBadge label="Reachable" value={aiReachable ? "yes" : "no"} />
+          <StatusBadge
+            label="Engine service"
+            value={state.aiHealth?.data?.aiEngine?.data?.service}
+          />
+          <StatusBadge label="Connection" value={aiStatus} tone={aiReachable ? "ok" : "error"} />
+        </article>
+      </section>
+
+      <footer className="app__footer">
+        <code>{import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}</code>
+      </footer>
+    </main>
+  );
+}
+
+export default App;
