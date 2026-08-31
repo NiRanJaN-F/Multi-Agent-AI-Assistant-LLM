@@ -1,9 +1,9 @@
 """Planner Agent node for requirement analysis and task decomposition."""
 
 import logging
-from config.llm import get_llm
+from config.llm import invoke_with_retry
 from graph.state import AgentState
-from agents.utils import add_log, extract_json_from_llm
+from agents.utils import add_log, extract_json_from_llm, get_agent_llm, get_agent_llm_label
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +33,11 @@ def planner_agent(state: AgentState) -> dict:
     user_prompt = state.get("user_prompt", "Sample Application")
     existing_name = state.get("project_name", "").strip()
 
-    llm = get_llm(temperature=0.2)
+    llm = get_agent_llm(state, temperature=0.2)
     if llm is None:
-        # Fallback / Mock behavior when GEMINI_API_KEY / OPENAI_API_KEY is not set
         logger.info("No LLM key configured. Using default planning template.")
         slug = existing_name or ("".join(c if c.isalnum() else "-" for c in user_prompt.lower())[:25].strip("-") or "generated-app")
-        logs = add_log(logs, "PlannerAgent", "completed", "Generated mock execution plan (No API Key configured).")
+        logs = add_log(logs, "PlannerAgent", "completed", "Generated mock execution plan (no API key configured).")
         return {
             "project_name": slug,
             "tech_stack": "HTML / Vanilla CSS / JavaScript",
@@ -53,14 +52,19 @@ def planner_agent(state: AgentState) -> dict:
         }
 
     try:
-        response = llm.invoke(PLANNER_PROMPT_TEMPLATE.format(user_prompt=user_prompt))
-        parsed = extract_json_from_llm(response.content if hasattr(response, "content") else str(response))
+        raw = invoke_with_retry(llm, PLANNER_PROMPT_TEMPLATE.format(user_prompt=user_prompt))
+        parsed = extract_json_from_llm(raw)
 
         project_name = existing_name or (parsed.get("project_name") or "generated-app")
         tech_stack = parsed.get("tech_stack") or "Web Application Stack"
         tasks = parsed.get("tasks") or ["Project structure setup", "Feature implementation", "Documentation"]
 
-        logs = add_log(logs, "PlannerAgent", "completed", f"Plan created: {len(tasks)} sub-tasks scheduled for '{project_name}'.")
+        logs = add_log(
+            logs,
+            "PlannerAgent",
+            "completed",
+            f"Plan created via {get_agent_llm_label(state)}: {len(tasks)} tasks for '{project_name}'.",
+        )
         return {
             "project_name": project_name,
             "tech_stack": tech_stack,

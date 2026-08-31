@@ -9,6 +9,8 @@ Express API gateway for the Multi-Agent AI Software Engineering Assistant.
 | GET | `/api/health` | Backend liveness |
 | GET | `/api/status` | Backend + MongoDB status |
 | GET | `/api/ai/health` | Proxied AI engine health |
+| GET | `/api/ai/llm/status` | LLM configuration status |
+| GET | `/api/ai/llm/verify` | Live LLM connection test |
 
 ## Phase 2 endpoints
 

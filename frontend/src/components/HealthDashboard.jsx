@@ -3,6 +3,7 @@ import {
   getAiEngineHealth,
   getBackendHealth,
   getBackendStatus,
+  verifyLlmConnection,
 } from "../services/api";
 
 function StatusBadge({ label, value, tone = "neutral" }) {
@@ -20,10 +21,13 @@ export default function HealthDashboard() {
   const [backendHealth, setBackendHealth] = useState(null);
   const [backendStatus, setBackendStatus] = useState(null);
   const [aiHealth, setAiHealth] = useState(null);
+  const [llmVerify, setLlmVerify] = useState(null);
+  const [verifying, setVerifying] = useState(false);
 
   const loadHealth = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setLlmVerify(null);
 
     try {
       const [health, status, ai] = await Promise.all([
@@ -42,6 +46,21 @@ export default function HealthDashboard() {
     }
   }, []);
 
+  async function handleVerifyLlm() {
+    setVerifying(true);
+    setError(null);
+
+    try {
+      const result = await verifyLlmConnection();
+      setLlmVerify(result);
+    } catch (err) {
+      setError(err.message || "LLM verification failed");
+      setLlmVerify(null);
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   useEffect(() => {
     loadHealth();
   }, [loadHealth]);
@@ -49,6 +68,9 @@ export default function HealthDashboard() {
   const dbStatus = backendStatus?.data?.database?.status ?? "unknown";
   const aiReachable = aiHealth?.data?.aiEngine?.reachable;
   const aiStatus = aiReachable ? "connected" : "unreachable";
+  const llm = aiHealth?.data?.aiEngine?.data?.llm;
+  const llmMode = llm?.mode ?? "unknown";
+  const llmTone = llmMode === "live" ? "ok" : llmMode === "mock" ? "warn" : "neutral";
 
   return (
     <section className="panel">
@@ -118,6 +140,33 @@ export default function HealthDashboard() {
             value={aiStatus}
             tone={aiReachable ? "ok" : "error"}
           />
+        </article>
+
+        <article className="card">
+          <h3>LLM</h3>
+          <StatusBadge label="Mode" value={llmMode} tone={llmTone} />
+          <StatusBadge label="Provider" value={llm?.provider} />
+          <StatusBadge label="Model" value={llm?.model} />
+          <StatusBadge
+            label="Configured"
+            value={llm?.configured ? "yes" : "no"}
+            tone={llm?.configured ? "ok" : "warn"}
+          />
+          <button
+            type="button"
+            className="btn btn--secondary card__action"
+            onClick={handleVerifyLlm}
+            disabled={verifying || !llm?.configured}
+          >
+            {verifying ? "Verifying…" : "Verify LLM connection"}
+          </button>
+          {llmVerify?.reachable && (
+            <StatusBadge
+              label="Verified"
+              value={`${llmVerify.latency_ms}ms — ${llmVerify.sample}`}
+              tone="ok"
+            />
+          )}
         </article>
       </div>
     </section>

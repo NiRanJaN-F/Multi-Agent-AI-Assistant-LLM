@@ -25,6 +25,23 @@ export async function getAiEngineHealth() {
   return fetchJson("/ai/health");
 }
 
+export async function getLlmStatus() {
+  return fetchJson("/ai/llm/status");
+}
+
+export async function verifyLlmConnection() {
+  const response = await fetch(`${API_BASE_URL}/ai/llm/verify`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data.message || data.detail || "LLM verification failed");
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
+}
+
 export async function generateProject({ prompt, projectName, provider }) {
   const response = await fetch(`${API_BASE_URL}/agents/generate`, {
     method: "POST",

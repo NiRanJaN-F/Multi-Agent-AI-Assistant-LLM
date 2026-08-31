@@ -8,9 +8,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from graph.builder import create_agent_graph
 from graph.state import AgentState
+from tests.test_helpers import MockLLMTestCase
 
 
-class TestAgentGraph(unittest.TestCase):
+class TestAgentGraph(MockLLMTestCase):
 
     def test_agent_graph_compilation(self):
         graph = create_agent_graph()
@@ -31,6 +32,7 @@ class TestAgentGraph(unittest.TestCase):
             "current_step": "init",
             "retry_count": 0,
             "error": None,
+            "llm_provider": "gemini",
         }
 
         final_state = graph.invoke(initial_state)

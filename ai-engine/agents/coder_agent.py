@@ -1,9 +1,9 @@
 """Coder Agent node for generating source code implementations."""
 
 import logging
-from config.llm import get_llm
+from config.llm import invoke_with_retry
 from graph.state import AgentState
-from agents.utils import add_log, extract_json_from_llm
+from agents.utils import add_log, get_agent_llm, get_agent_llm_label, strip_code_fence
 
 logger = logging.getLogger(__name__)
 
@@ -141,36 +141,36 @@ def coder_agent(state: AgentState) -> dict:
     architecture = state.get("architecture", {})
     file_paths = architecture.get("file_paths", ["index.html", "styles.css", "app.js"])
 
-    llm = get_llm(temperature=0.2)
+    llm = get_agent_llm(state, temperature=0.2)
     generated_files = {}
+    used_live_llm = llm is not None
 
     for file_path in file_paths:
         if llm is None:
             generated_files[file_path] = _get_fallback_code(file_path, user_prompt)
         else:
             try:
-                response = llm.invoke(CODER_PROMPT_TEMPLATE.format(
-                    user_prompt=user_prompt,
-                    tech_stack=tech_stack,
-                    file_path=file_path,
-                    file_paths=file_paths,
-                ))
-                raw_code = response.content if hasattr(response, "content") else str(response)
-                # Strip ``` code fencing if present
-                cleaned_code = raw_code.strip()
-                if cleaned_code.startswith("```"):
-                    lines = cleaned_code.split("\n")
-                    if lines[0].startswith("```"):
-                        lines = lines[1:]
-                    if lines and lines[-1].startswith("```"):
-                        lines = lines[:-1]
-                    cleaned_code = "\n".join(lines)
-                generated_files[file_path] = cleaned_code
+                raw_code = invoke_with_retry(
+                    llm,
+                    CODER_PROMPT_TEMPLATE.format(
+                        user_prompt=user_prompt,
+                        tech_stack=tech_stack,
+                        file_path=file_path,
+                        file_paths=file_paths,
+                    ),
+                )
+                generated_files[file_path] = strip_code_fence(raw_code)
             except Exception as e:
                 logger.error(f"Error coding {file_path}: {e}")
                 generated_files[file_path] = _get_fallback_code(file_path, user_prompt)
 
-    logs = add_log(logs, "CoderAgent", "completed", f"Generated code for {len(generated_files)} files.")
+    mode_label = get_agent_llm_label(state) if used_live_llm else "mock templates"
+    logs = add_log(
+        logs,
+        "CoderAgent",
+        "completed",
+        f"Generated code for {len(generated_files)} files via {mode_label}.",
+    )
     return {
         "files": generated_files,
         "logs": logs,

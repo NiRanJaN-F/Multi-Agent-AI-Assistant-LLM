@@ -1,9 +1,9 @@
 """Test Generator Agent node for creating automated unit tests."""
 
 import logging
-from config.llm import get_llm
+from config.llm import invoke_with_retry
 from graph.state import AgentState
-from agents.utils import add_log
+from agents.utils import add_log, get_agent_llm, get_agent_llm_label, strip_code_fence
 
 logger = logging.getLogger(__name__)
 
@@ -50,35 +50,33 @@ def tester_agent(state: AgentState) -> dict:
     tech_stack = state.get("tech_stack", "HTML/CSS/JS")
     files = state.get("files", {})
 
-    llm = get_llm(temperature=0.2)
+    llm = get_agent_llm(state, temperature=0.2)
     updated_files = dict(files)
 
     if llm is None or not files:
         logger.info("Using default automated test suite template.")
         test_path, test_code = _get_fallback_test_code(project_name, tech_stack)
         updated_files[test_path] = test_code
-        logs = add_log(logs, "TesterAgent", "completed", f"Generated unit test file '{test_path}' (Default template).")
+        logs = add_log(logs, "TesterAgent", "completed", f"Generated unit test file '{test_path}' (mock template).")
     else:
         try:
             summary = "\n".join([f"--- {path} ---\n{content[:300]}..." for path, content in files.items() if not path.startswith("README")])
-            response = llm.invoke(TESTER_PROMPT_TEMPLATE.format(
-                tech_stack=tech_stack,
-                files_summary=summary,
-            ))
-            test_code = response.content if hasattr(response, "content") else str(response)
-            cleaned_code = test_code.strip()
-            if cleaned_code.startswith("```"):
-                lines = cleaned_code.split("\n")
-                if lines[0].startswith("```"):
-                    lines = lines[1:]
-                if lines and lines[-1].startswith("```"):
-                    lines = lines[:-1]
-                cleaned_code = "\n".join(lines)
-
-            # Determine test filename based on tech stack
+            raw = invoke_with_retry(
+                llm,
+                TESTER_PROMPT_TEMPLATE.format(
+                    tech_stack=tech_stack,
+                    files_summary=summary,
+                ),
+            )
+            cleaned_code = strip_code_fence(raw)
             test_path = "tests/test_main.py" if "python" in tech_stack.lower() else "tests/app.test.js"
             updated_files[test_path] = cleaned_code
-            logs = add_log(logs, "TesterAgent", "completed", f"Generated unit test suite '{test_path}'.")
+            logs = add_log(
+                logs,
+                "TesterAgent",
+                "completed",
+                f"Generated unit test suite '{test_path}' via {get_agent_llm_label(state)}.",
+            )
         except Exception as e:
             logger.error(f"Tester Agent error: {e}")
             test_path, test_code = _get_fallback_test_code(project_name, tech_stack)

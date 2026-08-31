@@ -1,9 +1,9 @@
 """Doc Agent node for generating project documentation and README."""
 
 import logging
-from config.llm import get_llm
+from config.llm import invoke_with_retry
 from graph.state import AgentState
-from agents.utils import add_log
+from agents.utils import add_log, get_agent_llm, get_agent_llm_label, strip_code_fence
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def doc_agent(state: AgentState) -> dict:
     files = state.get("files", {})
     file_paths = list(files.keys())
 
-    llm = get_llm(temperature=0.2)
+    llm = get_agent_llm(state, temperature=0.2)
     if llm is None:
         readme_content = f"""# {project_name.title()}
 
@@ -58,20 +58,16 @@ def doc_agent(state: AgentState) -> dict:
 """
     else:
         try:
-            response = llm.invoke(DOC_PROMPT_TEMPLATE.format(
-                project_name=project_name,
-                user_prompt=user_prompt,
-                tech_stack=tech_stack,
-                file_paths=file_paths,
-            ))
-            readme_content = response.content if hasattr(response, "content") else str(response)
-            if readme_content.startswith("```"):
-                lines = readme_content.split("\n")
-                if lines[0].startswith("```"):
-                    lines = lines[1:]
-                if lines and lines[-1].startswith("```"):
-                    lines = lines[:-1]
-                readme_content = "\n".join(lines)
+            raw = invoke_with_retry(
+                llm,
+                DOC_PROMPT_TEMPLATE.format(
+                    project_name=project_name,
+                    user_prompt=user_prompt,
+                    tech_stack=tech_stack,
+                    file_paths=file_paths,
+                ),
+            )
+            readme_content = strip_code_fence(raw)
         except Exception as e:
             logger.error(f"Doc agent error: {e}")
             readme_content = f"# {project_name}\n\n{user_prompt}\n"
@@ -80,7 +76,12 @@ def doc_agent(state: AgentState) -> dict:
     updated_files = dict(files)
     updated_files["README.md"] = readme_content
 
-    logs = add_log(logs, "DocAgent", "completed", "Documentation generated successfully.")
+    logs = add_log(
+        logs,
+        "DocAgent",
+        "completed",
+        f"Documentation generated via {get_agent_llm_label(state)}.",
+    )
     return {
         "documentation": readme_content,
         "files": updated_files,

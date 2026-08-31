@@ -2,7 +2,7 @@
 
 A final-year project that uses Large Language Models and agentic AI to assist with software engineering tasks such as requirement analysis, UI design, code generation, testing, documentation, and deployment support.
 
-> **Status:** Phase 2 — LangGraph multi-agent pipeline, project generation API, and frontend generator UI are implemented.
+> **Status:** Phase 3 — live LLM integration (Gemini/OpenAI) across all LangGraph agents, with LLM status/verify endpoints and frontend mode indicators.
 
 ## Technology Stack
 
@@ -114,7 +114,7 @@ Use three terminals — backend (`npm run dev`), AI engine (`uvicorn` above), fr
 
 Open the frontend URL and use the **Multi-Agent Generator** to submit a requirement and generate a project.
 
-See `docs/api/phase2-agents.md` for agent pipeline and API details.
+See `docs/api/phase3-llm.md` for LLM configuration and verification.
 
 ## Current Project Status
 
@@ -130,7 +130,10 @@ See `docs/api/phase2-agents.md` for agent pipeline and API details.
 - [x] LangGraph multi-agent workflow (Planner → Doc Writer)
 - [x] `POST /api/agents/generate` project generation
 - [x] Frontend agent generator UI
+- [x] Live LLM integration (Gemini / OpenAI)
+- [x] LLM status & verify endpoints
 - [ ] Chat-based workflow UI
+- [ ] MongoDB generation history
 - [ ] Full Docker multi-service setup
 - [ ] GitHub Actions CI/CD pipelines
 

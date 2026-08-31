@@ -90,3 +90,113 @@ export async function generateProject({ prompt, projectName, provider }) {
     clearTimeout(timeout);
   }
 }
+
+async function fetchAiEngineJson(path, timeoutMs = HEALTH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${env.aiEngineUrl}${path}`, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
+
+    const body = await response.json().catch(() => ({}));
+
+    return { ok: response.ok, httpStatus: response.status, body };
+  } catch (error) {
+    const message =
+      error.name === "AbortError"
+        ? "AI engine request timed out"
+        : error.message;
+
+    return { ok: false, httpStatus: null, body: { message }, unreachable: true };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function fetchLlmStatus(provider) {
+  const query = provider ? `?provider=${encodeURIComponent(provider)}` : "";
+  const result = await fetchAiEngineJson(`/api/llm/status${query}`);
+
+  if (result.unreachable) {
+    return { reachable: false, message: result.body.message };
+  }
+
+  return result.body;
+}
+
+export async function verifyLlmConnection(provider) {
+  const query = provider ? `?provider=${encodeURIComponent(provider)}` : "";
+  const result = await fetchAiEngineJson(`/api/llm/verify${query}`, 30_000);
+
+  if (result.unreachable) {
+    return { reachable: false, message: result.body.message };
+  }
+
+  if (!result.ok) {
+    return {
+      reachable: false,
+      message: result.body.detail || result.body.message || "LLM verification failed",
+      httpStatus: result.httpStatus,
+    };
+  }
+
+  return result.body;
+}
+
+async function fetchAiEngineJson(path, timeoutMs = HEALTH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${env.aiEngineUrl}${path}`, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
+
+    const body = await response.json().catch(() => ({}));
+
+    return { ok: response.ok, httpStatus: response.status, body };
+  } catch (error) {
+    const message =
+      error.name === "AbortError"
+        ? "AI engine request timed out"
+        : error.message;
+
+    return { ok: false, httpStatus: null, body: { message }, unreachable: true };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function fetchLlmStatus(provider) {
+  const query = provider ? `?provider=${encodeURIComponent(provider)}` : "";
+  const result = await fetchAiEngineJson(`/api/llm/status${query}`);
+
+  if (result.unreachable) {
+    return { reachable: false, message: result.body.message };
+  }
+
+  return result.body;
+}
+
+export async function verifyLlmConnection(provider) {
+  const query = provider ? `?provider=${encodeURIComponent(provider)}` : "";
+  const result = await fetchAiEngineJson(`/api/llm/verify${query}`, 30_000);
+
+  if (result.unreachable) {
+    return { reachable: false, message: result.body.message };
+  }
+
+  if (!result.ok) {
+    return {
+      reachable: false,
+      message: result.body.detail || result.body.message || "LLM verification failed",
+      httpStatus: result.httpStatus,
+    };
+  }
+
+  return result.body;
+}

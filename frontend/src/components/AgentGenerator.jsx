@@ -100,6 +100,15 @@ export default function AgentGenerator() {
             <StatusPill label="Project" value={result.project_name} />
             <StatusPill label="Tech stack" value={result.tech_stack} />
             <StatusPill label="Output" value={result.output_dir} />
+            <StatusPill
+              label="LLM mode"
+              value={result.llm?.mode}
+              tone={result.llm?.mode === "live" ? "ok" : "warn"}
+            />
+            <StatusPill
+              label="Model"
+              value={result.llm?.model ? `${result.llm.provider}/${result.llm.model}` : "—"}
+            />
           </div>
 
           {result.tasks?.length > 0 && (

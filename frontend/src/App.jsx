@@ -6,10 +6,10 @@ function App() {
   return (
     <main className="app">
       <header className="app__header">
-        <p className="app__eyebrow">Phase 2</p>
+        <p className="app__eyebrow">Phase 3</p>
         <h1>Multi-Agent AI Assistant</h1>
         <p className="app__subtitle">
-          LangGraph-powered software engineering assistant — generate projects from natural language requirements.
+          Live LLM-powered software engineering — generate projects from natural language using Gemini or OpenAI.
         </p>
       </header>
 

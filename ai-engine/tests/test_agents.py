@@ -15,7 +15,10 @@ from agents.doc_agent import doc_agent
 from graph.state import AgentState
 
 
-class TestAgentNodes(unittest.TestCase):
+from tests.test_helpers import MockLLMTestCase
+
+
+class TestAgentNodes(MockLLMTestCase):
 
     def get_base_state(self) -> AgentState:
         return {
@@ -31,6 +34,7 @@ class TestAgentNodes(unittest.TestCase):
             "current_step": "init",
             "retry_count": 0,
             "error": None,
+            "llm_provider": "gemini",
         }
 
     def test_planner_agent(self):

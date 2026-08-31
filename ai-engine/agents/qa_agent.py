@@ -1,9 +1,9 @@
 """QA / Code Reviewer Agent node for quality verification."""
 
 import logging
-from config.llm import get_llm
+from config.llm import invoke_with_retry
 from graph.state import AgentState
-from agents.utils import add_log, extract_json_from_llm
+from agents.utils import add_log, extract_json_from_llm, get_agent_llm, get_agent_llm_label
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +42,18 @@ def qa_agent(state: AgentState) -> dict:
             if not content or len(content.strip()) < 10:
                 issues.append(f"File '{path}' appears empty or incomplete.")
 
-    llm = get_llm(temperature=0.1)
+    llm = get_agent_llm(state, temperature=0.1)
     if llm is not None and files:
         try:
             summary = "\n".join([f"--- {path} ---\n{content[:300]}..." for path, content in files.items()])
-            response = llm.invoke(QA_PROMPT_TEMPLATE.format(
-                tech_stack=tech_stack,
-                files_summary=summary,
-            ))
-            parsed = extract_json_from_llm(response.content if hasattr(response, "content") else str(response))
+            raw = invoke_with_retry(
+                llm,
+                QA_PROMPT_TEMPLATE.format(
+                    tech_stack=tech_stack,
+                    files_summary=summary,
+                ),
+            )
+            parsed = extract_json_from_llm(raw)
 
             passed = parsed.get("passed", True) and len(issues) == 0
             issues.extend(parsed.get("issues", []))
@@ -58,10 +61,11 @@ def qa_agent(state: AgentState) -> dict:
         except Exception as e:
             logger.warning(f"QA LLM inspection failed: {e}")
             passed = len(issues) == 0
+            recommendations.append(f"LLM QA fallback used: {e}")
     else:
         passed = len(issues) == 0
         if passed:
-            recommendations.append("Basic syntax check passed (Mock QA Mode).")
+            recommendations.append("Basic structural check passed (mock QA mode).")
 
     review_results = {
         "passed": passed,
@@ -69,7 +73,11 @@ def qa_agent(state: AgentState) -> dict:
         "recommendations": recommendations,
     }
 
-    status_msg = "Passed code review successfully." if passed else f"Found {len(issues)} issues during code review."
+    status_msg = (
+        f"Passed code review via {get_agent_llm_label(state)}."
+        if passed and llm is not None
+        else f"Found {len(issues)} issues during code review." if not passed else "Passed structural code review."
+    )
     logs = add_log(logs, "QAAgent", "completed" if passed else "warning", status_msg)
 
     return {

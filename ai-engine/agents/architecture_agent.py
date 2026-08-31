@@ -1,9 +1,9 @@
 """Architecture Agent node for designing software file structure."""
 
 import logging
-from config.llm import get_llm
+from config.llm import invoke_with_retry
 from graph.state import AgentState
-from agents.utils import add_log, extract_json_from_llm
+from agents.utils import add_log, extract_json_from_llm, get_agent_llm, get_agent_llm_label
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +37,10 @@ def architecture_agent(state: AgentState) -> dict:
     tech_stack = state.get("tech_stack", "HTML/CSS/JS")
     tasks = state.get("tasks", [])
 
-    llm = get_llm(temperature=0.2)
+    llm = get_agent_llm(state, temperature=0.2)
     if llm is None:
         logger.info("No LLM key configured. Using standard web app file structure.")
-        logs = add_log(logs, "ArchitectureAgent", "completed", "Architecture blueprint generated (Default template).")
+        logs = add_log(logs, "ArchitectureAgent", "completed", "Architecture blueprint generated (mock template).")
         return {
             "architecture": {
                 "design_notes": "Standard web application structure with index.html, styles.css, app.js.",
@@ -51,13 +51,16 @@ def architecture_agent(state: AgentState) -> dict:
         }
 
     try:
-        response = llm.invoke(ARCHITECT_PROMPT_TEMPLATE.format(
-            user_prompt=user_prompt,
-            project_name=project_name,
-            tech_stack=tech_stack,
-            tasks=tasks,
-        ))
-        parsed = extract_json_from_llm(response.content if hasattr(response, "content") else str(response))
+        raw = invoke_with_retry(
+            llm,
+            ARCHITECT_PROMPT_TEMPLATE.format(
+                user_prompt=user_prompt,
+                project_name=project_name,
+                tech_stack=tech_stack,
+                tasks=tasks,
+            ),
+        )
+        parsed = extract_json_from_llm(raw)
 
         file_paths = parsed.get("file_paths") or ["index.html", "styles.css", "app.js"]
         design_notes = parsed.get("design_notes") or "Single page web app architecture."
@@ -67,7 +70,12 @@ def architecture_agent(state: AgentState) -> dict:
             "file_paths": file_paths,
         }
 
-        logs = add_log(logs, "ArchitectureAgent", "completed", f"Blueprint created with {len(file_paths)} files.")
+        logs = add_log(
+            logs,
+            "ArchitectureAgent",
+            "completed",
+            f"Blueprint via {get_agent_llm_label(state)}: {len(file_paths)} files.",
+        )
         return {
             "architecture": architecture_data,
             "logs": logs,
