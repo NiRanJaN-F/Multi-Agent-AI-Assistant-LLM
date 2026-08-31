@@ -4,6 +4,7 @@ import { env } from "./config/env.js";
 import { connectDatabase } from "./config/database.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import agentRoutes from "./routes/agentRoutes.js";
 import { notFound } from "./middleware/notFound.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
@@ -15,13 +16,15 @@ app.use(express.json());
 app.get("/", (_req, res) => {
   res.json({
     service: "multi-agent-ai-assistant-backend",
-    phase: "phase-1",
+    phase: "phase-2",
     docs: "/api/health",
+    generate: "/api/agents/generate",
   });
 });
 
 app.use("/api", healthRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/agents", agentRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

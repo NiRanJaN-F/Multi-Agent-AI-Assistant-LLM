@@ -10,7 +10,13 @@ Express API gateway for the Multi-Agent AI Software Engineering Assistant.
 | GET | `/api/status` | Backend + MongoDB status |
 | GET | `/api/ai/health` | Proxied AI engine health |
 
-See `../docs/api/phase1-health.md` for response examples.
+## Phase 2 endpoints
+
+| Method | Path | Description |
+| --- | --- | --- |
+| POST | `/api/agents/generate` | Run multi-agent project generation |
+
+See `../docs/api/phase2-agents.md` for request/response details.
 
 ## Run (development)
 

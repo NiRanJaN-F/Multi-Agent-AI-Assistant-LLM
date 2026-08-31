@@ -38,4 +38,17 @@ python -m uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 Health check: `http://127.0.0.1:8000/health`  
+Generate: `POST http://127.0.0.1:8000/api/generate`  
 API docs: `http://127.0.0.1:8000/docs`
+
+## LangGraph agent pipeline (Phase 2)
+
+```text
+Planner → Architect → Coder → Tester → QA → Doc Writer
+```
+
+Run tests:
+
+```powershell
+python -m unittest discover -s tests -v
+```

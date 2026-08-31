@@ -1,8 +1,8 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
-async function fetchJson(path) {
-  const response = await fetch(`${API_BASE_URL}${path}`);
+async function fetchJson(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, options);
 
   const data = await response.json().catch(() => ({}));
 
@@ -23,4 +23,26 @@ export async function getBackendStatus() {
 
 export async function getAiEngineHealth() {
   return fetchJson("/ai/health");
+}
+
+export async function generateProject({ prompt, projectName, provider }) {
+  const response = await fetch(`${API_BASE_URL}/agents/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt,
+      projectName: projectName || undefined,
+      provider: provider || undefined,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data.message || data.detail || "Generation failed");
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
 }

@@ -2,7 +2,7 @@
 
 A final-year project that uses Large Language Models and agentic AI to assist with software engineering tasks such as requirement analysis, UI design, code generation, testing, documentation, and deployment support.
 
-> **Status:** Phase 1 — backend API foundation, MongoDB connection, AI engine health proxy, and frontend health dashboard are implemented. LangGraph agents are not implemented yet.
+> **Status:** Phase 2 — LangGraph multi-agent pipeline, project generation API, and frontend generator UI are implemented.
 
 ## Technology Stack
 
@@ -112,9 +112,9 @@ python -m uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
 
 Use three terminals — backend (`npm run dev`), AI engine (`uvicorn` above), frontend (`npm run dev`).
 
-Open the frontend URL and confirm backend, MongoDB, and AI engine status cards are green when all services are running.
+Open the frontend URL and use the **Multi-Agent Generator** to submit a requirement and generate a project.
 
-See `docs/api/phase1-health.md` for endpoint details.
+See `docs/api/phase2-agents.md` for agent pipeline and API details.
 
 ## Current Project Status
 
@@ -127,7 +127,10 @@ See `docs/api/phase1-health.md` for endpoint details.
 - [x] AI engine FastAPI `/health` endpoint
 - [x] Backend → AI engine health proxy
 - [x] Frontend health dashboard
-- [ ] LangGraph agent workflows
+- [x] LangGraph multi-agent workflow (Planner → Doc Writer)
+- [x] `POST /api/agents/generate` project generation
+- [x] Frontend agent generator UI
+- [ ] Chat-based workflow UI
 - [ ] Full Docker multi-service setup
 - [ ] GitHub Actions CI/CD pipelines
 
