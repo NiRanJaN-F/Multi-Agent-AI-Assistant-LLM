@@ -1,4 +1,4 @@
-import { generateProject } from "../services/aiEngineService.js";
+import { generateProject, refineProject } from "../services/aiEngineService.js";
 import {
   deleteGenerationById,
   getGenerationById,
@@ -6,6 +6,31 @@ import {
   listGenerations,
   saveGeneration,
 } from "../services/generationService.js";
+
+async function persistRun({ prompt, provider, result, durationMs, mode }) {
+  try {
+    return await saveGeneration({
+      prompt,
+      projectName: result.project_name,
+      provider: provider || result.llm?.provider || null,
+      status: result.status,
+      techStack: result.tech_stack,
+      tasks: result.tasks,
+      savedFiles: result.saved_files,
+      changedFiles: result.changed_files ?? [],
+      mode,
+      outputDir: result.output_dir,
+      reviewResults: result.review_results,
+      documentation: result.documentation,
+      logs: result.logs,
+      llm: result.llm,
+      durationMs,
+    });
+  } catch (error) {
+    console.warn(`[backend] Failed to persist ${mode} history:`, error.message);
+    return { persisted: false, reason: error.message };
+  }
+}
 
 export async function postGenerate(req, res, next) {
   try {
@@ -28,28 +53,60 @@ export async function postGenerate(req, res, next) {
 
     const durationMs = Date.now() - startedAt;
 
-    let history = { persisted: false, reason: "MongoDB is not connected" };
+    const history = await persistRun({
+      prompt: String(prompt).trim(),
+      provider: provider?.trim(),
+      result,
+      durationMs,
+      mode: "generate",
+    });
 
-    try {
-      history = await saveGeneration({
-        prompt: String(prompt).trim(),
-        projectName: result.project_name,
-        provider: provider?.trim() || result.llm?.provider || null,
-        status: result.status,
-        techStack: result.tech_stack,
-        tasks: result.tasks,
-        savedFiles: result.saved_files,
-        outputDir: result.output_dir,
-        reviewResults: result.review_results,
-        documentation: result.documentation,
-        logs: result.logs,
-        llm: result.llm,
-        durationMs,
+    res.json({
+      status: "ok",
+      ...result,
+      durationMs,
+      history,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function postRefine(req, res, next) {
+  try {
+    const { prompt, projectName, provider } = req.body ?? {};
+
+    if (!prompt || !String(prompt).trim()) {
+      return res.status(400).json({
+        status: "error",
+        message: "prompt is required",
       });
-    } catch (error) {
-      console.warn("[backend] Failed to persist generation history:", error.message);
-      history = { persisted: false, reason: error.message };
     }
+
+    if (!projectName || !String(projectName).trim()) {
+      return res.status(400).json({
+        status: "error",
+        message: "projectName is required to refine an existing project",
+      });
+    }
+
+    const startedAt = Date.now();
+
+    const result = await refineProject({
+      prompt: String(prompt).trim(),
+      projectName: String(projectName).trim(),
+      provider: provider?.trim() || undefined,
+    });
+
+    const durationMs = Date.now() - startedAt;
+
+    const history = await persistRun({
+      prompt: String(prompt).trim(),
+      provider: provider?.trim(),
+      result,
+      durationMs,
+      mode: "refine",
+    });
 
     res.json({
       status: "ok",

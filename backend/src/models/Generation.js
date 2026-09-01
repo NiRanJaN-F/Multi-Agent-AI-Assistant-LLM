@@ -19,6 +19,8 @@ const generationSchema = new mongoose.Schema(
     techStack: { type: String, default: "" },
     tasks: { type: [String], default: [] },
     savedFiles: { type: [String], default: [] },
+    changedFiles: { type: [String], default: [] },
+    mode: { type: String, enum: ["generate", "refine"], default: "generate" },
     outputDir: { type: String, default: "" },
     reviewResults: { type: mongoose.Schema.Types.Mixed, default: {} },
     documentation: { type: String, default: "" },

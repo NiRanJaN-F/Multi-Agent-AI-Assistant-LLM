@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 import { Generation } from "../models/Generation.js";
 
-const LIST_PROJECTION = "prompt projectName provider status techStack llm durationMs createdAt";
+const LIST_PROJECTION =
+  "prompt projectName provider status techStack llm durationMs mode changedFiles createdAt";
 
 export function isDatabaseReady() {
   return mongoose.connection.readyState === 1;

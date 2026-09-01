@@ -158,6 +158,15 @@
   white-space: pre-wrap;
 }
 
+.chat__context {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
 .chat__pipeline {
   display: flex;
   flex-wrap: wrap;

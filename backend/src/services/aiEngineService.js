@@ -91,6 +91,50 @@ export async function generateProject({ prompt, projectName, provider }) {
   }
 }
 
+export async function refineProject({ prompt, projectName, provider }) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), GENERATE_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${env.aiEngineUrl}/api/refine`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        prompt,
+        project_name: projectName,
+        provider: provider || undefined,
+      }),
+    });
+
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const error = new Error(
+        body.detail || body.message || "AI engine refinement failed",
+      );
+      error.statusCode = response.status;
+      throw error;
+    }
+
+    return body;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      const timeoutError = new Error(
+        "Refinement timed out after 5 minutes. Try a smaller change request.",
+      );
+      timeoutError.statusCode = 504;
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function fetchAiEngineJson(path, timeoutMs = HEALTH_TIMEOUT_MS) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);

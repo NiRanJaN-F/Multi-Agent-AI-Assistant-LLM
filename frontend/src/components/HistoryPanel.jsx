@@ -82,7 +82,8 @@ export default function HistoryPanel({ refreshKey = 0 }) {
               <strong>{item.projectName}</strong>
               <span className="history-item__prompt">{item.prompt}</span>
               <span className="history-item__meta">
-                {new Date(item.createdAt).toLocaleString()} · {item.llm?.mode ?? "unknown"} mode
+                {new Date(item.createdAt).toLocaleString()} ·{" "}
+                {item.mode === "refine" ? "refinement" : "generation"} · {item.llm?.mode ?? "unknown"} mode
                 {item.durationMs ? ` · ${(item.durationMs / 1000).toFixed(1)}s` : ""}
               </span>
             </button>
