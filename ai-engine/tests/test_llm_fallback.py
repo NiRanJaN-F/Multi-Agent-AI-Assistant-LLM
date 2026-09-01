@@ -69,10 +69,18 @@ class TestQuotaDetection(unittest.TestCase):
         self.assertEqual(llm.calls, 3)
 
 
+NO_EXTRA_PROVIDERS = {
+    "groq_api_key": None,
+    "openrouter_api_key": None,
+    "ollama_enabled": False,
+}
+
+
 class TestModelCandidates(unittest.TestCase):
     def test_requested_provider_comes_first_then_the_other(self):
         with patch.multiple(
             settings,
+            **NO_EXTRA_PROVIDERS,
             gemini_api_key="gem-key",
             openai_api_key="oai-key",
             gemini_model="gemini-2.5-flash",
@@ -92,6 +100,7 @@ class TestModelCandidates(unittest.TestCase):
     def test_providers_without_a_key_are_skipped_and_models_deduplicated(self):
         with patch.multiple(
             settings,
+            **NO_EXTRA_PROVIDERS,
             gemini_api_key="gem-key",
             openai_api_key=None,
             gemini_model="gemini-2.5-flash",
@@ -103,7 +112,12 @@ class TestModelCandidates(unittest.TestCase):
             )
 
     def test_no_candidates_without_any_key(self):
-        with patch.multiple(settings, gemini_api_key=None, openai_api_key=None):
+        with patch.multiple(
+            settings,
+            **NO_EXTRA_PROVIDERS,
+            gemini_api_key=None,
+            openai_api_key=None,
+        ):
             self.assertEqual(get_model_candidates("gemini"), [])
 
 

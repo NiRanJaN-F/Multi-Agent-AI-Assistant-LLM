@@ -5,7 +5,7 @@ import json
 import re
 from typing import Any, Dict
 
-from config.llm import FallbackLLM, get_llm_status, get_model_candidates
+from config.llm import FallbackLLM, get_model_candidates
 from graph.state import AgentState, LogEntry
 
 FILE_MARKER_PATTERN = re.compile(r"^\s*(?:#{1,6}\s*)?FILE:\s*(.+?)\s*$", re.MULTILINE)
@@ -33,10 +33,12 @@ def get_agent_llm(state: AgentState, temperature: float = 0.2) -> FallbackLLM | 
 
 def get_agent_llm_label(state: AgentState) -> str:
     """Human-readable label for logs indicating live vs mock LLM mode."""
-    status = get_llm_status(state.get("llm_provider"))
-    if status["mode"] == "live":
-        return f"{status['provider']} ({status['model']})"
-    return "mock templates"
+    candidates = get_model_candidates(state.get("llm_provider") or None)
+    if not candidates:
+        return "mock templates"
+
+    provider, model = candidates[0]
+    return f"{provider} ({model})"
 
 
 def llm_label(llm: FallbackLLM | None, state: AgentState) -> str:
