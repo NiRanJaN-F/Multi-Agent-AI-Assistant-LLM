@@ -1,15 +1,88 @@
-# Multi-Agent AI Software Engineering Assistant
+# Multi-Agent AI Software Engineering Assistant — full stack
 #
-# Initial Docker Compose scaffold only.
-# Full multi-service containerization will be implemented in a later phase.
+# Usage:
+#   copy .env.example .env   (Windows)  /  cp .env.example .env  (Linux, macOS)
+#   docker compose up --build
 #
-# Planned services (later):
-#   - frontend  (React / Vite)
-#   - backend   (Node.js / Express)
-#   - ai-engine (Python / FastAPI or equivalent)
-#   - mongodb   (optional local DB for Docker-based demos)
-#
-# Setup now: file present as a placeholder for Phase 1+ DevOps work.
-# Implementation later: actual service definitions, networks, and volumes.
+# Frontend:  http://localhost:5173
+# Backend:   http://localhost:5000/api/health
+# AI engine: http://localhost:8000/docs
 
-services: {}
+services:
+  mongodb:
+    image: mongo:7
+    container_name: maa-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ai-engine:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ai-engine
+    container_name: maa-ai-engine
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./generated-projects:/app/generated-projects
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: maa-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/multi_agent_assistant
+      AI_ENGINE_URL: http://ai-engine:8000
+    ports:
+      - "5000:5000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      ai-engine:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: maa-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_started
+
+volumes:
+  mongo-data:

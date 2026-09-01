@@ -22,7 +22,7 @@ class TestFastAPIEndpoints(MockLLMTestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["service"], "ai-engine")
-        self.assertEqual(data["phase"], "phase-3")
+        self.assertEqual(data["phase"], "phase-4")
 
     def test_health_endpoint(self):
         response = self.client.get("/health")

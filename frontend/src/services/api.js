@@ -42,6 +42,45 @@ export async function verifyLlmConnection() {
   return data;
 }
 
+export async function getGenerationHistory({ limit = 20, skip = 0 } = {}) {
+  const response = await fetch(`${API_BASE_URL}/agents/history?limit=${limit}&skip=${skip}`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data.message || "Generation history is unavailable");
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getGeneration(id) {
+  const response = await fetch(`${API_BASE_URL}/agents/history/${id}`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data.message || "Generation not found");
+    error.status = response.status;
+    throw error;
+  }
+
+  return data.generation;
+}
+
+export async function deleteGeneration(id) {
+  const response = await fetch(`${API_BASE_URL}/agents/history/${id}`, { method: "DELETE" });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data.message || "Failed to delete generation");
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
+}
+
 export async function generateProject({ prompt, projectName, provider }) {
   const response = await fetch(`${API_BASE_URL}/agents/generate`, {
     method: "POST",

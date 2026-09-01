@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import { env } from "./config/env.js";
 import { connectDatabase } from "./config/database.js";
 import healthRoutes from "./routes/healthRoutes.js";
@@ -8,7 +10,7 @@ import agentRoutes from "./routes/agentRoutes.js";
 import { notFound } from "./middleware/notFound.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
-const app = express();
+export const app = express();
 
 app.use(cors());
 app.use(express.json());
@@ -16,9 +18,10 @@ app.use(express.json());
 app.get("/", (_req, res) => {
   res.json({
     service: "multi-agent-ai-assistant-backend",
-    phase: "phase-3",
+    phase: "phase-4",
     docs: "/api/health",
     generate: "/api/agents/generate",
+    history: "/api/agents/history",
   });
 });
 
@@ -29,7 +32,7 @@ app.use("/api/agents", agentRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-async function startServer() {
+export async function startServer() {
   try {
     await connectDatabase();
     console.log("MongoDB connected");
@@ -45,4 +48,9 @@ async function startServer() {
   });
 }
 
-startServer();
+const isDirectRun =
+  process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+
+if (isDirectRun) {
+  startServer();
+}
