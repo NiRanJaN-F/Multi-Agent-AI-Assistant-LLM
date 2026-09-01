@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Multi-Agent AI Assistant — AI Engine",
-    version="0.3.0",
-    description="Python AI engine with LangGraph multi-agent architecture and live LLM integration (Phase 3).",
+    version="0.4.0",
+    description="Python AI engine with LangGraph multi-agent architecture and live LLM integration, persisted history, and containerized deployment (Phase 4).",
 )
 
 app.add_middleware(
@@ -57,7 +57,7 @@ class GenerateResponse(BaseModel):
 def root() -> dict:
     return {
         "service": "ai-engine",
-        "phase": "phase-3",
+        "phase": "phase-4",
         "docs": "/docs",
         "health": "/health",
         "llm_status": "/api/llm/status",
@@ -72,7 +72,7 @@ def health() -> dict:
     return {
         "status": "ok",
         "service": "ai-engine",
-        "phase": "phase-3",
+        "phase": "phase-4",
         "environment": settings.node_env,
         "llm": llm,
         "timestamp": datetime.now(UTC).isoformat(),
