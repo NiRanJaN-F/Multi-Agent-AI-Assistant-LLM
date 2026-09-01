@@ -35,8 +35,8 @@ agent_graph = create_agent_graph()
 refinement_graph = create_refinement_graph()
 
 QUOTA_HINT = (
-    "All configured LLM models are out of quota. Wait for the quota to reset, set "
-    "GEMINI_FALLBACK_MODELS to models you still have quota for, or add OPENAI_API_KEY."
+    "All configured LLM models are out of quota. Wait for the quota to reset, add a free "
+    "GROQ_API_KEY or OPENROUTER_API_KEY, or run a local model with OLLAMA_ENABLED=true."
 )
 
 

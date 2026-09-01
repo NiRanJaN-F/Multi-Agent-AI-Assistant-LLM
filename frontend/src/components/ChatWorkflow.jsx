@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { generateProject, refineProject } from "../services/api";
+import { LLM_PROVIDERS } from "../constants/providers";
 import GenerationResult from "./GenerationResult";
 
 const AGENT_PIPELINE = ["Planner", "Architect", "Coder", "Tester", "QA", "Doc Writer"];
@@ -205,8 +206,11 @@ export default function ChatWorkflow({ onGenerated }) {
             disabled={loading}
           >
             <option value="">Default provider</option>
-            <option value="gemini">Gemini</option>
-            <option value="openai">OpenAI</option>
+            {LLM_PROVIDERS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
 
           <button type="submit" className="btn btn--primary" disabled={loading || !input.trim()}>

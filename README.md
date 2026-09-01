@@ -15,7 +15,7 @@ A final-year project that uses Large Language Models and agentic AI to assist wi
 | Database | MongoDB |
 | AI Engine | Python |
 | Agent Framework | LangGraph |
-| LLM Providers | Gemini API / OpenAI API |
+| LLM Providers | Gemini / Groq / OpenRouter / Ollama (local) / OpenAI |
 | Containerization | Docker |
 | CI/CD | GitHub Actions |
 | Version Control | Git + GitHub |
@@ -33,7 +33,7 @@ LangGraph
     ↓
 Specialized AI Agents
     ↓
-LLM Provider (Gemini / OpenAI)
+LLM Provider (Gemini / Groq / OpenRouter / Ollama / OpenAI)
 ```
 
 ## Repository Structure
@@ -62,7 +62,8 @@ LLM Provider (Gemini / OpenAI)
 - Python 3.11+ + pip
 - MongoDB (local Community Server **or** Atlas) — optional, only needed for generation history
 - Docker Desktop (for the containerized stack)
-- Gemini and/or OpenAI API key — optional; without one the agents run in deterministic mock mode
+- An LLM provider key — optional; free options are Gemini, Groq, OpenRouter, or a local Ollama
+  install. Without any of them the agents run in deterministic mock mode
 
 Developed on Windows 11; the stack also runs on Linux and macOS.
 
@@ -131,10 +132,9 @@ Press **New project** to start a fresh generation.
 ```
 
 In mock mode (no API key) refinement is deterministic — it marks the targeted files with a change
-note rather than writing real feature code. Configure `GEMINI_API_KEY` or `OPENAI_API_KEY` for
-actual code edits.
+note rather than writing real feature code. Configure any provider key for actual code edits.
 
-### LLM quota budget and model fallback
+### LLM quota budget and provider fallback
 
 Free Gemini tiers allow as few as 20 requests per day, so the pipeline is deliberately cheap: a full
 run costs **2 LLM calls** — Planner (plan + architecture in one response) and Coder (all files in one
@@ -142,15 +142,36 @@ response). Architect, Tester, QA, and Doc Writer are deterministic and never tou
 refinement run also costs 2 calls.
 
 When a model returns a quota/rate-limit error the engine does not retry it; it moves straight to the
-next candidate — `GEMINI_MODEL`, then each model in `GEMINI_FALLBACK_MODELS`, then the OpenAI models
-if `OPENAI_API_KEY` is set. If every candidate is exhausted the API answers `429` with an actionable
-message instead of hanging until the request times out.
+next candidate: the selected provider's models first, then the other configured providers in this
+order — free ones before paid OpenAI, which is only used when its key is set:
+
+```text
+Gemini → Groq → OpenRouter → Ollama (local) → OpenAI → deterministic mock templates
+```
+
+Every key is optional and unconfigured providers are skipped, so the chain is as long as you make
+it. If every candidate is exhausted the API answers `429` with an actionable message instead of
+hanging until the request times out. `GET /api/llm/status` reports the active provider, the
+providers currently usable, and the exact fallback chain.
+
+| Provider | Free tier | Key |
+| --- | --- | --- |
+| Gemini | ~20 requests/day | https://aistudio.google.com/apikey |
+| Groq | thousands of requests/day, OpenAI-compatible | https://console.groq.com/keys |
+| OpenRouter | `:free` models (availability varies) | https://openrouter.ai/keys |
+| Ollama | unlimited, runs on your machine, no network | none — install https://ollama.com |
+| OpenAI | paid only | https://platform.openai.com/api-keys |
 
 ```env
-GEMINI_MODEL=gemini-2.5-flash
-GEMINI_FALLBACK_MODELS=gemini-2.0-flash
-OPENAI_API_KEY=            # optional second provider
+GEMINI_API_KEY=
+GROQ_API_KEY=              # largest free tier — recommended primary
+OPENROUTER_API_KEY=
+OLLAMA_ENABLED=false       # true after `ollama pull qwen2.5-coder:7b`
+LLM_PROVIDER=gemini        # which provider is tried first
 ```
+
+Ollama runs on the host, not in Compose: install it, pull a model, set `OLLAMA_ENABLED=true`, and
+the container reaches it through `http://host.docker.internal:11434/v1`.
 
 ### 7. Run everything with Docker (recommended for demos)
 
@@ -198,7 +219,7 @@ The same three suites plus the three Docker image builds run in GitHub Actions o
 - [x] LangGraph multi-agent workflow (Planner → Doc Writer)
 - [x] `POST /api/agents/generate` project generation
 - [x] Frontend agent generator UI
-- [x] Live LLM integration (Gemini / OpenAI)
+- [x] Live LLM integration (Gemini / Groq / OpenRouter / Ollama / OpenAI)
 - [x] LLM status & verify endpoints
 - [x] Chat-based workflow UI
 - [x] MongoDB generation history (`/api/agents/history`)
@@ -207,6 +228,7 @@ The same three suites plus the three Docker image builds run in GitHub Actions o
 - [x] Automated test suites for all three services
 - [x] Iterative refinement of an existing project (`POST /api/agents/refine`)
 - [x] 2-call-per-run pipeline with model/provider fallback and fast `429` quota errors
+- [x] Free multi-provider chain (Gemini → Groq → OpenRouter → Ollama → OpenAI → mock)
 - [ ] Authentication and per-user history
 - [ ] Download generated project as ZIP + in-browser file preview
 - [ ] Public cloud deployment
