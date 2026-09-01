@@ -1,21 +1,28 @@
 """Coder Agent node for generating source code implementations."""
 
 import logging
-from config.llm import invoke_with_retry
+from config.llm import invoke_with_retry, is_quota_error
 from graph.state import AgentState
-from agents.utils import add_log, get_agent_llm, get_agent_llm_label, strip_code_fence
+from agents.utils import add_log, get_agent_llm, llm_label, parse_multi_file_response
 
 logger = logging.getLogger(__name__)
 
 CODER_PROMPT_TEMPLATE = """You are a Principal Software Engineer.
-Write clean, modern, fully functional code for the following file path in the project.
+Write clean, modern, fully functional code for EVERY file listed below, in a single response.
 
 User Request: "{user_prompt}"
 Tech Stack: "{tech_stack}"
-Target File Path: "{file_path}"
-Other Files in Project: {file_paths}
+Files To Write: {file_paths}
 
-Return ONLY the complete code content for "{file_path}". Do not include markdown code block syntax if possible, or wrap entirely in a ``` block.
+The files must work together as one application — keep element ids, imports, and function names
+consistent across them.
+
+Format the response exactly like this, once per file and nothing else:
+
+FILE: path/of/file
+```
+<complete file content>
+```
 """
 
 
@@ -142,35 +149,43 @@ def coder_agent(state: AgentState) -> dict:
     file_paths = architecture.get("file_paths", ["index.html", "styles.css", "app.js"])
 
     llm = get_agent_llm(state, temperature=0.2)
-    generated_files = {}
-    used_live_llm = llm is not None
 
-    for file_path in file_paths:
-        if llm is None:
-            generated_files[file_path] = _get_fallback_code(file_path, user_prompt)
-        else:
-            try:
-                raw_code = invoke_with_retry(
-                    llm,
-                    CODER_PROMPT_TEMPLATE.format(
-                        user_prompt=user_prompt,
-                        tech_stack=tech_stack,
-                        file_path=file_path,
-                        file_paths=file_paths,
-                    ),
-                )
-                generated_files[file_path] = strip_code_fence(raw_code)
-            except Exception as e:
-                logger.error(f"Error coding {file_path}: {e}")
-                generated_files[file_path] = _get_fallback_code(file_path, user_prompt)
+    if llm is None:
+        generated_files = {path: _get_fallback_code(path, user_prompt) for path in file_paths}
+        logs = add_log(
+            logs,
+            "CoderAgent",
+            "completed",
+            f"Generated code for {len(generated_files)} files via mock templates.",
+        )
+        return {"files": generated_files, "logs": logs, "current_step": "coded"}
 
-    mode_label = get_agent_llm_label(state) if used_live_llm else "mock templates"
-    logs = add_log(
-        logs,
-        "CoderAgent",
-        "completed",
-        f"Generated code for {len(generated_files)} files via {mode_label}.",
-    )
+    try:
+        raw = invoke_with_retry(
+            llm,
+            CODER_PROMPT_TEMPLATE.format(
+                user_prompt=user_prompt,
+                tech_stack=tech_stack,
+                file_paths=file_paths,
+            ),
+        )
+    except Exception as e:
+        logger.error(f"Coder Agent error: {e}")
+        status = "quota_exceeded" if is_quota_error(e) else "error"
+        logs = add_log(logs, "CoderAgent", status, f"Code generation failed: {e}")
+        return {"error": str(e), "logs": logs, "current_step": "coding_failed"}
+
+    generated_files = parse_multi_file_response(raw)
+    missing = [path for path in file_paths if path not in generated_files]
+
+    for path in missing:
+        generated_files[path] = _get_fallback_code(path, user_prompt)
+
+    message = f"Generated code for {len(generated_files)} files in one call via {llm_label(llm, state)}."
+    if missing:
+        message += f" Used templates for {len(missing)} file(s) the model did not return: {', '.join(missing)}."
+
+    logs = add_log(logs, "CoderAgent", "warning" if missing else "completed", message)
     return {
         "files": generated_files,
         "logs": logs,

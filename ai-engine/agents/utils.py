@@ -5,8 +5,10 @@ import json
 import re
 from typing import Any, Dict
 
-from config.llm import get_llm, get_llm_status
+from config.llm import FallbackLLM, get_llm_status, get_model_candidates
 from graph.state import AgentState, LogEntry
+
+FILE_MARKER_PATTERN = re.compile(r"^\s*(?:#{1,6}\s*)?FILE:\s*(.+?)\s*$", re.MULTILINE)
 
 
 def add_log(state_logs: list[LogEntry], agent: str, status: str, message: str) -> list[LogEntry]:
@@ -21,10 +23,12 @@ def add_log(state_logs: list[LogEntry], agent: str, status: str, message: str) -
     return new_logs
 
 
-def get_agent_llm(state: AgentState, temperature: float = 0.2):
-    """Resolve the LLM client for an agent based on graph state provider override."""
-    provider = state.get("llm_provider") or None
-    return get_llm(provider=provider, temperature=temperature)
+def get_agent_llm(state: AgentState, temperature: float = 0.2) -> FallbackLLM | None:
+    """Resolve the LLM client for an agent, with automatic model/provider fallback."""
+    candidates = get_model_candidates(state.get("llm_provider") or None)
+    if not candidates:
+        return None
+    return FallbackLLM(candidates, temperature=temperature)
 
 
 def get_agent_llm_label(state: AgentState) -> str:
@@ -33,6 +37,13 @@ def get_agent_llm_label(state: AgentState) -> str:
     if status["mode"] == "live":
         return f"{status['provider']} ({status['model']})"
     return "mock templates"
+
+
+def llm_label(llm: FallbackLLM | None, state: AgentState) -> str:
+    """Label naming the model that actually served the call, falling back to config."""
+    if llm is None:
+        return "mock templates"
+    return llm.label if llm.last_model else get_agent_llm_label(state)
 
 
 def strip_code_fence(text: str) -> str:
@@ -51,6 +62,24 @@ def strip_code_fence(text: str) -> str:
         return "\n".join(lines).strip()
 
     return cleaned
+
+
+def parse_multi_file_response(text: str) -> Dict[str, str]:
+    """Parse a single LLM response containing several files delimited by ``FILE: <path>``."""
+    if not text:
+        return {}
+
+    markers = list(FILE_MARKER_PATTERN.finditer(text))
+    files: Dict[str, str] = {}
+
+    for index, marker in enumerate(markers):
+        end = markers[index + 1].start() if index + 1 < len(markers) else len(text)
+        path = marker.group(1).strip().strip("`\"'")
+        content = strip_code_fence(text[marker.end() : end])
+        if path and content:
+            files[path] = content
+
+    return files
 
 
 def extract_json_from_llm(text: str) -> Dict[str, Any]:

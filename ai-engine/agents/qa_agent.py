@@ -1,71 +1,102 @@
-"""QA / Code Reviewer Agent node for quality verification."""
+"""QA / Code Reviewer Agent node for quality verification.
 
+The review is a set of static checks over the generated files instead of an LLM call: it costs
+no provider quota and catches the failures that actually occur (empty files, syntax errors,
+an entry point referencing assets that were never generated).
+"""
+
+import ast
+import json
 import logging
-from config.llm import invoke_with_retry
+import re
+
 from graph.state import AgentState
-from agents.utils import add_log, extract_json_from_llm, get_agent_llm, get_agent_llm_label
+from agents.utils import add_log
 
 logger = logging.getLogger(__name__)
 
-QA_PROMPT_TEMPLATE = """You are a QA Lead and Code Reviewer.
-Inspect the generated code files for completeness, security, and basic correctness.
+MIN_CONTENT_CHARS = 10
+BRACKET_PAIRS = {")": "(", "]": "[", "}": "{"}
+HTML_REFERENCE_PATTERN = re.compile(r"""(?:src|href)\s*=\s*["']([^"'#?]+)["']""", re.IGNORECASE)
 
-Target Stack: "{tech_stack}"
-File List and Content Summary:
-{files_summary}
 
-Return ONLY a valid JSON object matching this schema:
-{{
-  "passed": true,
-  "issues": [],
-  "recommendations": ["Add unit tests", "Optimize responsive CSS"]
-}}
-If there are critical syntax errors or missing required files, set passed to false and list issues.
-"""
+def _unbalanced_brackets(content: str) -> bool:
+    """Cheap syntax smell check for brace/bracket languages, ignoring strings and comments."""
+    stripped = re.sub(r"//.*?$|/\*[\s\S]*?\*/|'[^'\n]*'|\"[^\"\n]*\"|`[^`]*`", "", content, flags=re.MULTILINE)
+    stack: list[str] = []
+
+    for char in stripped:
+        if char in "([{":
+            stack.append(char)
+        elif char in BRACKET_PAIRS:
+            if not stack or stack.pop() != BRACKET_PAIRS[char]:
+                return True
+
+    return bool(stack)
+
+
+def _check_file(path: str, content: str) -> list[str]:
+    """Return the issues found in a single generated file."""
+    if not content or len(content.strip()) < MIN_CONTENT_CHARS:
+        return [f"File '{path}' appears empty or incomplete."]
+
+    if path.endswith(".py"):
+        try:
+            ast.parse(content)
+        except SyntaxError as error:
+            return [f"File '{path}' has a Python syntax error on line {error.lineno}: {error.msg}."]
+    elif path.endswith(".json"):
+        try:
+            json.loads(content)
+        except json.JSONDecodeError as error:
+            return [f"File '{path}' is not valid JSON: {error.msg} (line {error.lineno})."]
+    elif path.endswith((".js", ".jsx", ".ts", ".tsx", ".css")) and _unbalanced_brackets(content):
+        return [f"File '{path}' has unbalanced brackets and is probably truncated."]
+
+    return []
+
+
+def _check_html_references(files: dict[str, str]) -> list[str]:
+    """Flag local assets an HTML file links to that were never generated."""
+    issues = []
+    basenames = {path.rsplit("/", 1)[-1] for path in files}
+
+    for path, content in files.items():
+        if not path.endswith(".html"):
+            continue
+
+        for reference in HTML_REFERENCE_PATTERN.findall(content):
+            if "//" in reference or reference.startswith(("data:", "mailto:")):
+                continue
+            if reference.rsplit("/", 1)[-1] not in basenames:
+                issues.append(f"'{path}' references '{reference}', which was not generated.")
+
+    return issues
 
 
 def qa_agent(state: AgentState) -> dict:
-    """Executes quality analysis and syntax inspection on generated files."""
+    """Executes static quality analysis and syntax inspection on generated files."""
     logs = add_log(state.get("logs", []), "QAAgent", "started", "Performing code review and quality verification...")
 
     files = state.get("files", {})
-    tech_stack = state.get("tech_stack", "")
+    issues: list[str] = []
+    recommendations: list[str] = []
 
-    issues = []
-    recommendations = []
-
-    # Local structural validation
     if not files:
         issues.append("No files were produced by Coder agent.")
     else:
-        for path, content in files.items():
-            if not content or len(content.strip()) < 10:
-                issues.append(f"File '{path}' appears empty or incomplete.")
+        for path, content in sorted(files.items()):
+            issues.extend(_check_file(path, content))
+        issues.extend(_check_html_references(files))
 
-    llm = get_agent_llm(state, temperature=0.1)
-    if llm is not None and files:
-        try:
-            summary = "\n".join([f"--- {path} ---\n{content[:300]}..." for path, content in files.items()])
-            raw = invoke_with_retry(
-                llm,
-                QA_PROMPT_TEMPLATE.format(
-                    tech_stack=tech_stack,
-                    files_summary=summary,
-                ),
-            )
-            parsed = extract_json_from_llm(raw)
+        if not any(path.startswith("tests/") for path in files):
+            recommendations.append("Add an automated test suite under tests/.")
+        if not any(path.startswith("README") for path in files):
+            recommendations.append("Add a README.md describing how to run the project.")
 
-            passed = parsed.get("passed", True) and len(issues) == 0
-            issues.extend(parsed.get("issues", []))
-            recommendations.extend(parsed.get("recommendations", []))
-        except Exception as e:
-            logger.warning(f"QA LLM inspection failed: {e}")
-            passed = len(issues) == 0
-            recommendations.append(f"LLM QA fallback used: {e}")
-    else:
-        passed = len(issues) == 0
-        if passed:
-            recommendations.append("Basic structural check passed (mock QA mode).")
+    passed = not issues
+    if passed:
+        recommendations.append(f"Static review passed across {len(files)} files.")
 
     review_results = {
         "passed": passed,
@@ -74,14 +105,15 @@ def qa_agent(state: AgentState) -> dict:
     }
 
     status_msg = (
-        f"Passed code review via {get_agent_llm_label(state)}."
-        if passed and llm is not None
-        else f"Found {len(issues)} issues during code review." if not passed else "Passed structural code review."
+        f"Passed static code review of {len(files)} files."
+        if passed
+        else f"Found {len(issues)} issues during code review."
     )
     logs = add_log(logs, "QAAgent", "completed" if passed else "warning", status_msg)
 
     return {
         "review_results": review_results,
+        "retry_count": state.get("retry_count", 0) + (0 if passed else 1),
         "logs": logs,
         "current_step": "reviewed",
     }

@@ -2,14 +2,14 @@
 
 import logging
 
-from config.llm import invoke_with_retry
+from config.llm import invoke_with_retry, is_quota_error
 from graph.state import AgentState
 from agents.utils import (
     add_log,
     extract_json_from_llm,
     get_agent_llm,
-    get_agent_llm_label,
-    strip_code_fence,
+    llm_label,
+    parse_multi_file_response,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,16 +39,21 @@ REFINE_CODER_PROMPT_TEMPLATE = """You are a Principal Software Engineer editing 
 
 Change Request: "{change_request}"
 Tech Stack: "{tech_stack}"
-Target File: "{file_path}"
-Other Files In Project: {file_paths}
+All Files In Project: {file_paths}
+Files To Rewrite: {targets}
 
-Current content of "{file_path}":
-```
-{current_content}
-```
+Current content of the files to rewrite:
+{current_contents}
 
-Rewrite the file so the change request is satisfied. Preserve all existing behaviour that the
-change request does not ask you to alter. Return ONLY the complete new content of the file.
+Rewrite every file listed under "Files To Rewrite" so the change request is satisfied, in a
+single response. Preserve all existing behaviour the change request does not ask you to alter.
+
+Format the response exactly like this, once per file and nothing else:
+
+FILE: path/of/file
+```
+<complete new file content>
+```
 """
 
 
@@ -171,7 +176,7 @@ def refine_planner_agent(state: AgentState) -> dict:
             logs,
             "RefinePlannerAgent",
             "completed",
-            f"Change plan via {get_agent_llm_label(state)}: "
+            f"Change plan via {llm_label(llm, state)}: "
             f"{len(modify_files)} file(s) to modify, {len(new_files)} to create.",
         )
         return {
@@ -187,7 +192,8 @@ def refine_planner_agent(state: AgentState) -> dict:
         }
     except Exception as e:
         logger.error(f"Refine Planner error: {e}")
-        logs = add_log(logs, "RefinePlannerAgent", "error", f"Change planning failed: {str(e)}")
+        status = "quota_exceeded" if is_quota_error(e) else "error"
+        logs = add_log(logs, "RefinePlannerAgent", status, f"Change planning failed: {str(e)}")
         return {
             "error": str(e),
             "logs": logs,
@@ -212,45 +218,62 @@ def refine_coder_agent(state: AgentState) -> dict:
 
     llm = get_agent_llm(state, temperature=0.2)
     files = dict(existing_files)
-    changed_files: list[str] = []
 
-    for file_path in targets:
-        current_content = existing_files.get(file_path, "")
-        if llm is None:
-            files[file_path] = _mock_refined_content(file_path, current_content, change_request)
-            changed_files.append(file_path)
-            continue
-
-        try:
-            raw_code = invoke_with_retry(
-                llm,
-                REFINE_CODER_PROMPT_TEMPLATE.format(
-                    change_request=change_request,
-                    tech_stack=tech_stack,
-                    file_path=file_path,
-                    file_paths=list(existing_files),
-                    current_content=current_content[:MAX_CONTEXT_CHARS_PER_FILE],
-                ),
+    if llm is None:
+        for file_path in targets:
+            files[file_path] = _mock_refined_content(
+                file_path, existing_files.get(file_path, ""), change_request
             )
-            new_content = strip_code_fence(raw_code)
-            if new_content:
-                files[file_path] = new_content
-                changed_files.append(file_path)
-        except Exception as e:
-            logger.error(f"Error refining {file_path}: {e}")
-            logs = add_log(
-                logs,
-                "RefineCoderAgent",
-                "warning",
-                f"Kept the previous version of '{file_path}': {str(e)}",
-            )
+        logs = add_log(
+            logs,
+            "RefineCoderAgent",
+            "completed" if targets else "warning",
+            f"Updated {len(targets)} file(s) via mock templates.",
+        )
+        return {
+            "files": files,
+            "changed_files": list(targets),
+            "logs": logs,
+            "current_step": "refined",
+        }
 
-    mode_label = get_agent_llm_label(state) if llm is not None else "mock templates"
+    current_contents = "\n".join(
+        f"FILE: {path}\n```\n{existing_files.get(path, '')[:MAX_CONTEXT_CHARS_PER_FILE]}\n```"
+        for path in targets
+    )
+
+    try:
+        raw = invoke_with_retry(
+            llm,
+            REFINE_CODER_PROMPT_TEMPLATE.format(
+                change_request=change_request,
+                tech_stack=tech_stack,
+                file_paths=list(existing_files),
+                targets=targets,
+                current_contents=current_contents,
+            ),
+        )
+    except Exception as e:
+        logger.error(f"Refine Coder error: {e}")
+        status = "quota_exceeded" if is_quota_error(e) else "error"
+        logs = add_log(logs, "RefineCoderAgent", status, f"Editing the project failed: {e}")
+        return {"error": str(e), "logs": logs, "current_step": "refine_coding_failed"}
+
+    rewritten = parse_multi_file_response(raw)
+    changed_files = [path for path in targets if rewritten.get(path)]
+    for path in changed_files:
+        files[path] = rewritten[path]
+
+    skipped = [path for path in targets if path not in changed_files]
+    message = f"Updated {len(changed_files)} file(s) via {llm_label(llm, state)}."
+    if skipped:
+        message += f" Kept the previous version of: {', '.join(skipped)}."
+
     logs = add_log(
         logs,
         "RefineCoderAgent",
         "completed" if changed_files else "warning",
-        f"Updated {len(changed_files)} file(s) via {mode_label}.",
+        message,
     )
 
     return {

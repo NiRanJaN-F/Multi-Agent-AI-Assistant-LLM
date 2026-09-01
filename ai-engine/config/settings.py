@@ -21,9 +21,11 @@ class Settings(BaseSettings):
     ai_engine_port: int = Field(default=8000, alias="AI_ENGINE_PORT")
     llm_provider: str = Field(default="gemini", alias="LLM_PROVIDER")
     gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
-    gemini_model: str = Field(default="gemini-3.6-flash", alias="GEMINI_MODEL")
+    gemini_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_MODEL")
+    gemini_fallback_models: str = Field(default="gemini-2.0-flash", alias="GEMINI_FALLBACK_MODELS")
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
     openai_model: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL")
+    openai_fallback_models: str = Field(default="", alias="OPENAI_FALLBACK_MODELS")
 
 
 settings = Settings()

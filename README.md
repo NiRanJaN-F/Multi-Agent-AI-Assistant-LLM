@@ -134,6 +134,24 @@ In mock mode (no API key) refinement is deterministic — it marks the targeted 
 note rather than writing real feature code. Configure `GEMINI_API_KEY` or `OPENAI_API_KEY` for
 actual code edits.
 
+### LLM quota budget and model fallback
+
+Free Gemini tiers allow as few as 20 requests per day, so the pipeline is deliberately cheap: a full
+run costs **2 LLM calls** — Planner (plan + architecture in one response) and Coder (all files in one
+response). Architect, Tester, QA, and Doc Writer are deterministic and never touch the provider. A
+refinement run also costs 2 calls.
+
+When a model returns a quota/rate-limit error the engine does not retry it; it moves straight to the
+next candidate — `GEMINI_MODEL`, then each model in `GEMINI_FALLBACK_MODELS`, then the OpenAI models
+if `OPENAI_API_KEY` is set. If every candidate is exhausted the API answers `429` with an actionable
+message instead of hanging until the request times out.
+
+```env
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_FALLBACK_MODELS=gemini-2.0-flash
+OPENAI_API_KEY=            # optional second provider
+```
+
 ### 7. Run everything with Docker (recommended for demos)
 
 ```bash
@@ -147,7 +165,7 @@ AI engine `http://localhost:8000/docs`, MongoDB `mongodb://localhost:27017`.
 ## Tests
 
 ```bash
-cd ai-engine && python -m unittest discover -s tests -v   # 20 agent/graph/API/refinement tests
+cd ai-engine && python -m unittest discover -s tests -v   # 42 agent/graph/API/refinement/fallback tests
 cd backend  && npm test                                   # Express API tests (node --test)
 cd frontend && npm run lint && npm run build              # oxlint + production build
 ```
@@ -188,6 +206,7 @@ The same three suites plus the three Docker image builds run in GitHub Actions o
 - [x] GitHub Actions CI/CD pipelines (tests + image builds)
 - [x] Automated test suites for all three services
 - [x] Iterative refinement of an existing project (`POST /api/agents/refine`)
+- [x] 2-call-per-run pipeline with model/provider fallback and fast `429` quota errors
 - [ ] Authentication and per-user history
 - [ ] Download generated project as ZIP + in-browser file preview
 - [ ] Public cloud deployment

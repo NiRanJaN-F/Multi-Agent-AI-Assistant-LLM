@@ -12,7 +12,7 @@ class MockLLMTestCase(unittest.TestCase):
     """Base test case that forces mock LLM mode (no live API calls)."""
 
     def setUp(self):
-        self.llm_patcher = patch("agents.utils.get_llm", return_value=None)
+        self.llm_patcher = patch("agents.utils.get_model_candidates", return_value=[])
         self.llm_patcher.start()
 
     def tearDown(self):

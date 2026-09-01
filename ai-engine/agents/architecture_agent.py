@@ -1,91 +1,85 @@
-"""Architecture Agent node for designing software file structure."""
+"""Architecture Agent node that validates and normalises the planned file structure.
+
+The Planner returns the file layout together with the plan in a single LLM call, so this node
+does no LLM work: it sanitises those paths and fills in a stack-appropriate default when the
+plan is missing or unusable. That keeps a full run at two LLM calls (Planner + Coder).
+"""
 
 import logging
-from config.llm import invoke_with_retry
+from posixpath import normpath
+
 from graph.state import AgentState
-from agents.utils import add_log, extract_json_from_llm, get_agent_llm, get_agent_llm_label
+from agents.utils import add_log
 
 logger = logging.getLogger(__name__)
 
-ARCHITECT_PROMPT_TEMPLATE = """You are a Senior Software Architect.
-Based on the user request and planned tech stack, design a complete project file structure.
+MAX_FILES = 12
 
-User Request: "{user_prompt}"
-Project Name: "{project_name}"
-Tech Stack: "{tech_stack}"
-Tasks: {tasks}
+DEFAULT_LAYOUTS = {
+    "python": ["main.py", "requirements.txt"],
+    "react": ["index.html", "src/main.jsx", "src/App.jsx", "src/styles.css", "package.json"],
+    "node": ["server.js", "package.json", "public/index.html"],
+}
+DEFAULT_WEB_LAYOUT = ["index.html", "styles.css", "app.js"]
 
-Return ONLY a valid JSON object matching this schema:
-{{
-  "design_notes": "Brief system design overview",
-  "file_paths": [
-    "index.html",
-    "styles.css",
-    "app.js"
-  ]
-}}
-Ensure all necessary source files for a working application are included in file_paths.
-"""
+
+def _default_layout(tech_stack: str) -> list[str]:
+    """Pick a sensible file layout for the planned stack."""
+    stack = tech_stack.lower()
+
+    if "python" in stack or "fastapi" in stack or "django" in stack or "flask" in stack:
+        return DEFAULT_LAYOUTS["python"]
+    if "react" in stack or "next" in stack or "vue" in stack:
+        return DEFAULT_LAYOUTS["react"]
+    if "express" in stack or "node" in stack:
+        return DEFAULT_LAYOUTS["node"]
+    return DEFAULT_WEB_LAYOUT
+
+
+def _sanitise(file_paths: list) -> list[str]:
+    """Drop absolute paths, traversal, README, and duplicates from the planned layout."""
+    cleaned: list[str] = []
+
+    for raw in file_paths:
+        if not isinstance(raw, str):
+            continue
+
+        path = normpath(raw.strip().replace("\\", "/").lstrip("/"))
+        if not path or path.startswith("..") or path == "." or path.lower().startswith("readme"):
+            continue
+        if path in cleaned:
+            continue
+
+        cleaned.append(path)
+
+    return cleaned[:MAX_FILES]
 
 
 def architecture_agent(state: AgentState) -> dict:
-    """Executes the architecture blueprint design phase."""
-    logs = add_log(state.get("logs", []), "ArchitectureAgent", "started", "Designing file structure and system architecture...")
+    """Validates the planned file structure without spending an extra LLM call."""
+    logs = add_log(state.get("logs", []), "ArchitectureAgent", "started", "Validating file structure and system architecture...")
 
-    user_prompt = state.get("user_prompt", "")
-    project_name = state.get("project_name", "app")
     tech_stack = state.get("tech_stack", "HTML/CSS/JS")
-    tasks = state.get("tasks", [])
+    planned = state.get("architecture", {}) or {}
+    file_paths = _sanitise(planned.get("file_paths", []))
 
-    llm = get_agent_llm(state, temperature=0.2)
-    if llm is None:
-        logger.info("No LLM key configured. Using standard web app file structure.")
-        logs = add_log(logs, "ArchitectureAgent", "completed", "Architecture blueprint generated (mock template).")
-        return {
-            "architecture": {
-                "design_notes": "Standard web application structure with index.html, styles.css, app.js.",
-                "file_paths": ["index.html", "styles.css", "app.js"],
-            },
-            "logs": logs,
-            "current_step": "architected",
-        }
+    if file_paths:
+        message = f"Blueprint validated: {len(file_paths)} files."
+        status = "completed"
+    else:
+        file_paths = _default_layout(tech_stack)
+        status = "warning" if planned.get("file_paths") else "completed"
+        message = f"Applied default {tech_stack} structure ({len(file_paths)} files)."
 
-    try:
-        raw = invoke_with_retry(
-            llm,
-            ARCHITECT_PROMPT_TEMPLATE.format(
-                user_prompt=user_prompt,
-                project_name=project_name,
-                tech_stack=tech_stack,
-                tasks=tasks,
-            ),
-        )
-        parsed = extract_json_from_llm(raw)
+    architecture = {
+        "design_notes": planned.get("design_notes") or f"{tech_stack} application structure.",
+        "file_paths": file_paths,
+    }
 
-        file_paths = parsed.get("file_paths") or ["index.html", "styles.css", "app.js"]
-        design_notes = parsed.get("design_notes") or "Single page web app architecture."
+    logs = add_log(logs, "ArchitectureAgent", status, message)
 
-        architecture_data = {
-            "design_notes": design_notes,
-            "file_paths": file_paths,
-        }
-
-        logs = add_log(
-            logs,
-            "ArchitectureAgent",
-            "completed",
-            f"Blueprint via {get_agent_llm_label(state)}: {len(file_paths)} files.",
-        )
-        return {
-            "architecture": architecture_data,
-            "logs": logs,
-            "current_step": "architected",
-        }
-    except Exception as e:
-        logger.error(f"Architecture Agent error: {e}")
-        logs = add_log(logs, "ArchitectureAgent", "error", f"Architect design failed: {str(e)}")
-        return {
-            "error": str(e),
-            "logs": logs,
-            "current_step": "architecture_failed",
-        }
+    return {
+        "architecture": architecture,
+        "logs": logs,
+        "current_step": "architected",
+    }
