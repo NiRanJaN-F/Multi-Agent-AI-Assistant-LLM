@@ -1,87 +1,98 @@
-"""Test Generator Agent node for creating automated unit tests."""
+"""Test Generator Agent node for creating an automated unit test suite.
+
+The suite is derived from the generated file set rather than from an LLM call, so a full run
+costs no extra provider quota. Free-tier keys allow very few requests per day, and a test
+scaffold is mechanical enough not to need one.
+"""
 
 import logging
-from config.llm import invoke_with_retry
+
 from graph.state import AgentState
-from agents.utils import add_log, get_agent_llm, get_agent_llm_label, strip_code_fence
+from agents.utils import add_log
 
 logger = logging.getLogger(__name__)
 
-TESTER_PROMPT_TEMPLATE = """You are a Software QA Automation Specialist.
-Based on the generated source code files, write a complete, working unit test suite file.
 
-Tech Stack: "{tech_stack}"
-Source Files:
-{files_summary}
+def _python_test_suite(project_name: str, module_names: list[str]) -> str:
+    """Import-and-smoke-test suite for a Python project."""
+    imports = "\n".join(f"    import {name}  # noqa: F401" for name in module_names) or "    pass"
 
-Write a comprehensive test file (e.g., `tests/app.test.js` for JS/Node, or `tests/test_app.py` for Python).
-Return ONLY the raw code content for the test file. Do not include markdown code block syntax if possible, or wrap entirely in a ``` block.
-"""
+    return f'''"""Automated unit tests generated for {project_name}."""
+
+import unittest
 
 
-def _get_fallback_test_code(project_name: str, tech_stack: str) -> tuple[str, str]:
-    """Generate fallback unit test code when no LLM key is configured."""
-    test_filepath = "tests/app.test.js"
-    test_code = f"""// Automated Unit Tests generated for {project_name}
-// Tech Stack: {tech_stack}
+class ModuleImportTests(unittest.TestCase):
+    def test_modules_import_cleanly(self):
+{imports}
 
-describe('Application Initializer & DOM Tests', () => {{
-    test('DOM containers should be correctly configured', () => {{
-        const appTitle = '{project_name}';
-        expect(appTitle).toBeDefined();
-        expect(typeof appTitle).toBe('string');
-    }});
 
-    test('Action button event listener contract validation', () => {{
-        const initialCount = 0;
-        const increment = (c) => c + 1;
-        expect(increment(initialCount)).toBe(1);
-    }});
+if __name__ == "__main__":
+    unittest.main()
+'''
+
+
+def _js_test_suite(project_name: str, source_files: list[str]) -> str:
+    """Node test-runner suite asserting the generated sources exist and are non-empty."""
+    file_list = ", ".join(f"'{path}'" for path in source_files)
+
+    return f"""// Automated unit tests generated for {project_name}
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const SOURCE_FILES = [{file_list}];
+const projectRoot = path.join(__dirname, '..');
+
+test('every generated source file exists and has content', () => {{
+  for (const file of SOURCE_FILES) {{
+    const fullPath = path.join(projectRoot, file);
+    assert.ok(fs.existsSync(fullPath), `missing file: ${{file}}`);
+    assert.ok(fs.readFileSync(fullPath, 'utf8').trim().length > 0, `empty file: ${{file}}`);
+  }}
+}});
+
+test('the entry point references its scripts and styles', () => {{
+  const entry = SOURCE_FILES.find((file) => file.endsWith('.html'));
+  if (!entry) return;
+
+  const html = fs.readFileSync(path.join(projectRoot, entry), 'utf8');
+  for (const file of SOURCE_FILES.filter((f) => f.endsWith('.js') || f.endsWith('.css'))) {{
+    assert.ok(html.includes(path.basename(file)), `entry point does not reference ${{file}}`);
+  }}
 }});
 """
-    return test_filepath, test_code
 
 
 def tester_agent(state: AgentState) -> dict:
-    """Executes automated unit test generation for project code."""
+    """Builds an automated test suite for the generated project files."""
     logs = add_log(state.get("logs", []), "TesterAgent", "started", "Generating automated unit test suite...")
 
     project_name = state.get("project_name", "app")
     tech_stack = state.get("tech_stack", "HTML/CSS/JS")
     files = state.get("files", {})
 
-    llm = get_agent_llm(state, temperature=0.2)
-    updated_files = dict(files)
+    source_files = sorted(path for path in files if not path.startswith(("README", "tests/")))
+    is_python = "python" in tech_stack.lower() or any(path.endswith(".py") for path in source_files)
 
-    if llm is None or not files:
-        logger.info("Using default automated test suite template.")
-        test_path, test_code = _get_fallback_test_code(project_name, tech_stack)
-        updated_files[test_path] = test_code
-        logs = add_log(logs, "TesterAgent", "completed", f"Generated unit test file '{test_path}' (mock template).")
+    if is_python:
+        modules = [path[:-3].replace("/", ".") for path in source_files if path.endswith(".py")]
+        test_path = "tests/test_app.py"
+        test_code = _python_test_suite(project_name, modules)
     else:
-        try:
-            summary = "\n".join([f"--- {path} ---\n{content[:300]}..." for path, content in files.items() if not path.startswith("README")])
-            raw = invoke_with_retry(
-                llm,
-                TESTER_PROMPT_TEMPLATE.format(
-                    tech_stack=tech_stack,
-                    files_summary=summary,
-                ),
-            )
-            cleaned_code = strip_code_fence(raw)
-            test_path = "tests/test_main.py" if "python" in tech_stack.lower() else "tests/app.test.js"
-            updated_files[test_path] = cleaned_code
-            logs = add_log(
-                logs,
-                "TesterAgent",
-                "completed",
-                f"Generated unit test suite '{test_path}' via {get_agent_llm_label(state)}.",
-            )
-        except Exception as e:
-            logger.error(f"Tester Agent error: {e}")
-            test_path, test_code = _get_fallback_test_code(project_name, tech_stack)
-            updated_files[test_path] = test_code
-            logs = add_log(logs, "TesterAgent", "warning", f"Generated fallback unit test suite due to: {e}")
+        test_path = "tests/app.test.js"
+        test_code = _js_test_suite(project_name, source_files)
+
+    updated_files = dict(files)
+    updated_files[test_path] = test_code
+
+    logs = add_log(
+        logs,
+        "TesterAgent",
+        "completed",
+        f"Generated unit test suite '{test_path}' covering {len(source_files)} source files.",
+    )
 
     return {
         "files": updated_files,

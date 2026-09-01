@@ -16,6 +16,8 @@ from graph.state import AgentState
 
 logger = logging.getLogger(__name__)
 
+MAX_CODER_RETRIES = 1
+
 
 def should_retry_coder(state: AgentState) -> Literal["coder", "doc_writer"]:
     """Conditional edge decision function following QA code review."""
@@ -23,11 +25,20 @@ def should_retry_coder(state: AgentState) -> Literal["coder", "doc_writer"]:
     passed = review_results.get("passed", True)
     retry_count = state.get("retry_count", 0)
 
-    if not passed and retry_count < 2:
-        logger.info(f"QA review failed. Returning to CoderAgent (Retry count: {retry_count + 1})")
+    if not passed and retry_count <= MAX_CODER_RETRIES:
+        logger.info(f"QA review failed. Returning to CoderAgent (Retry count: {retry_count})")
         return "coder"
-    
+
     return "doc_writer"
+
+
+def _halt_on_error(next_node: str):
+    """Route to END when an agent recorded an error, so failures surface immediately."""
+
+    def route(state: AgentState) -> str:
+        return END if state.get("error") else next_node
+
+    return route
 
 
 def create_agent_graph():
@@ -44,9 +55,9 @@ def create_agent_graph():
 
     # Wire Edges
     workflow.add_edge(START, "planner")
-    workflow.add_edge("planner", "architect")
+    workflow.add_conditional_edges("planner", _halt_on_error("architect"), {"architect": "architect", END: END})
     workflow.add_edge("architect", "coder")
-    workflow.add_edge("coder", "tester")
+    workflow.add_conditional_edges("coder", _halt_on_error("tester"), {"tester": "tester", END: END})
     workflow.add_edge("tester", "qa")
 
     # Conditional Routing from QA
@@ -76,8 +87,8 @@ def create_refinement_graph():
     workflow.add_node("doc_writer", doc_agent)
 
     workflow.add_edge(START, "refine_planner")
-    workflow.add_edge("refine_planner", "coder")
-    workflow.add_edge("coder", "tester")
+    workflow.add_conditional_edges("refine_planner", _halt_on_error("coder"), {"coder": "coder", END: END})
+    workflow.add_conditional_edges("coder", _halt_on_error("tester"), {"tester": "tester", END: END})
     workflow.add_edge("tester", "qa")
 
     workflow.add_conditional_edges(

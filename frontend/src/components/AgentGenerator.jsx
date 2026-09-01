@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { generateProject } from "../services/api";
+import { LLM_PROVIDERS } from "../constants/providers";
 import GenerationResult from "./GenerationResult";
 
 const EXAMPLE_PROMPT =
@@ -77,8 +78,11 @@ export default function AgentGenerator() {
               disabled={loading}
             >
               <option value="">Default (from .env)</option>
-              <option value="gemini">Gemini</option>
-              <option value="openai">OpenAI</option>
+              {LLM_PROVIDERS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </label>
         </div>

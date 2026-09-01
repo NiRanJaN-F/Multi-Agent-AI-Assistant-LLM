@@ -1,14 +1,14 @@
 """Planner Agent node for requirement analysis and task decomposition."""
 
 import logging
-from config.llm import invoke_with_retry
+from config.llm import invoke_with_retry, is_quota_error
 from graph.state import AgentState
-from agents.utils import add_log, extract_json_from_llm, get_agent_llm, get_agent_llm_label
+from agents.utils import add_log, extract_json_from_llm, get_agent_llm, llm_label
 
 logger = logging.getLogger(__name__)
 
 PLANNER_PROMPT_TEMPLATE = """You are an expert Software Architecture Planner.
-Analyze the user request and generate a structured JSON execution plan.
+Analyze the user request and produce both the execution plan and the file layout in one response.
 
 User Request:
 "{user_prompt}"
@@ -22,8 +22,11 @@ Return ONLY a valid JSON object matching this schema:
     "Task 2: UI/Frontend components implementation",
     "Task 3: Backend API routes or application logic",
     "Task 4: Unit testing and documentation"
-  ]
+  ],
+  "design_notes": "Brief system design overview",
+  "file_paths": ["index.html", "styles.css", "app.js"]
 }}
+Keep "file_paths" to the minimum set of source files needed for a working application.
 """
 
 
@@ -47,6 +50,7 @@ def planner_agent(state: AgentState) -> dict:
                 "Implement frontend application logic",
                 "Add README documentation and setup instructions",
             ],
+            "architecture": {},
             "logs": logs,
             "current_step": "planned",
         }
@@ -59,22 +63,29 @@ def planner_agent(state: AgentState) -> dict:
         tech_stack = parsed.get("tech_stack") or "Web Application Stack"
         tasks = parsed.get("tasks") or ["Project structure setup", "Feature implementation", "Documentation"]
 
+        architecture = {
+            "design_notes": parsed.get("design_notes") or "Single page web app architecture.",
+            "file_paths": parsed.get("file_paths") or [],
+        }
+
         logs = add_log(
             logs,
             "PlannerAgent",
             "completed",
-            f"Plan created via {get_agent_llm_label(state)}: {len(tasks)} tasks for '{project_name}'.",
+            f"Plan created via {llm_label(llm, state)}: {len(tasks)} tasks for '{project_name}'.",
         )
         return {
             "project_name": project_name,
             "tech_stack": tech_stack,
             "tasks": tasks,
+            "architecture": architecture,
             "logs": logs,
             "current_step": "planned",
         }
     except Exception as e:
         logger.error(f"Planner Agent error: {e}")
-        logs = add_log(logs, "PlannerAgent", "error", f"Planning failed: {str(e)}")
+        status = "quota_exceeded" if is_quota_error(e) else "error"
+        logs = add_log(logs, "PlannerAgent", status, f"Planning failed: {str(e)}")
         return {
             "error": str(e),
             "logs": logs,

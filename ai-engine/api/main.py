@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from config.llm import get_llm_status, verify_llm_connection
+from config.llm import get_llm_status, is_quota_message, verify_llm_connection
 from config.settings import settings
 from graph.builder import create_agent_graph, create_refinement_graph
 from graph.state import AgentState
@@ -33,6 +33,18 @@ app.add_middleware(
 
 agent_graph = create_agent_graph()
 refinement_graph = create_refinement_graph()
+
+QUOTA_HINT = (
+    "All configured LLM models are out of quota. Wait for the quota to reset, add a free "
+    "GROQ_API_KEY or OPENROUTER_API_KEY, or run a local model with OLLAMA_ENABLED=true."
+)
+
+
+def _pipeline_failure(stage: str, message: str) -> HTTPException:
+    """Turn an agent error into a status code the UI can explain to the user."""
+    if is_quota_message(message):
+        return HTTPException(status_code=429, detail=f"{QUOTA_HINT} (failed at '{stage}': {message})")
+    return HTTPException(status_code=502, detail=f"Agent pipeline failed at '{stage}': {message}")
 
 
 class GenerateRequest(BaseModel):
@@ -145,10 +157,7 @@ def generate_project(req: GenerateRequest) -> dict:
         final_state = agent_graph.invoke(initial_state)
 
         if final_state.get("error"):
-            raise HTTPException(
-                status_code=502,
-                detail=f"Agent pipeline failed at '{final_state.get('current_step')}': {final_state['error']}",
-            )
+            raise _pipeline_failure(final_state.get("current_step", "unknown"), str(final_state["error"]))
 
         project_name = final_state.get("project_name", "generated-app")
         generated_files = final_state.get("files", {})
@@ -224,16 +233,13 @@ def refine_project(req: RefineRequest) -> dict:
         final_state = refinement_graph.invoke(initial_state)
 
         if final_state.get("error"):
-            raise HTTPException(
-                status_code=502,
-                detail=f"Refinement pipeline failed at '{final_state.get('current_step')}': {final_state['error']}",
-            )
+            raise _pipeline_failure(final_state.get("current_step", "unknown"), str(final_state["error"]))
 
         changed_files = final_state.get("changed_files", [])
         updated_files = {
             path: content
             for path, content in final_state.get("files", {}).items()
-            if path in changed_files
+            if path in changed_files or path == "README.md" or path.startswith("tests/")
         }
         save_result = save_project_files(req.project_name, updated_files)
 
