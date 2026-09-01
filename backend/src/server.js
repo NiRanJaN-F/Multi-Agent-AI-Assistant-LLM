@@ -18,9 +18,10 @@ app.use(express.json());
 app.get("/", (_req, res) => {
   res.json({
     service: "multi-agent-ai-assistant-backend",
-    phase: "phase-4",
+    phase: "phase-5",
     docs: "/api/health",
     generate: "/api/agents/generate",
+    refine: "/api/agents/refine",
     history: "/api/agents/history",
   });
 });

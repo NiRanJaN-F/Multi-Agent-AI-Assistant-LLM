@@ -2,7 +2,9 @@
 
 A final-year project that uses Large Language Models and agentic AI to assist with software engineering tasks such as requirement analysis, UI design, code generation, testing, documentation, and deployment support.
 
-> **Status:** Phase 4 — chat-based workflow UI, MongoDB generation history, full Docker Compose stack, and GitHub Actions CI. All planned phases are complete.
+> **Status:** Phase 5 — iterative refinement: after the first prompt generates a project, follow-up
+> prompts modify that same project on disk instead of starting over. Phases 1–4 (agent pipeline,
+> live LLM integration, chat UI, MongoDB history, Docker stack, CI) are complete.
 
 ## Technology Stack
 
@@ -115,6 +117,23 @@ Use three terminals — backend (`npm run dev`), AI engine (`uvicorn` above), fr
 Open the frontend URL and use the **Chat** tab to describe a requirement, the **Form** tab for the
 classic single-shot generator, and the **History** tab to browse past runs stored in MongoDB.
 
+### Iterative development (Phase 5)
+
+In the **Chat** tab the first message generates a new project. Every message after that is treated as
+a change request against the same project: the AI engine reloads the files from
+`generated-projects/<project-name>/`, plans the minimal set of files to touch, rewrites them in
+place, and re-runs the Tester, QA, and Doc Writer agents. The result shows which files changed.
+Press **New project** to start a fresh generation.
+
+```text
+"Build a task management app"        → generated-projects/task-management-app/
+"Add a dark mode toggle"             → same folder, only the affected files rewritten
+```
+
+In mock mode (no API key) refinement is deterministic — it marks the targeted files with a change
+note rather than writing real feature code. Configure `GEMINI_API_KEY` or `OPENAI_API_KEY` for
+actual code edits.
+
 ### 7. Run everything with Docker (recommended for demos)
 
 ```bash
@@ -128,7 +147,7 @@ AI engine `http://localhost:8000/docs`, MongoDB `mongodb://localhost:27017`.
 ## Tests
 
 ```bash
-cd ai-engine && python -m unittest discover -s tests -v   # 13 agent/graph/API tests
+cd ai-engine && python -m unittest discover -s tests -v   # 20 agent/graph/API/refinement tests
 cd backend  && npm test                                   # Express API tests (node --test)
 cd frontend && npm run lint && npm run build              # oxlint + production build
 ```
@@ -143,6 +162,7 @@ The same three suites plus the three Docker image builds run in GitHub Actions o
 | `docs/api/phase2-agents.md` | LangGraph agent pipeline and generation API |
 | `docs/api/phase3-llm.md` | LLM configuration and verification |
 | `docs/api/phase4-history.md` | MongoDB generation history API |
+| `docs/api/phase5-refinement.md` | Iterative refinement API |
 | `docs/setup/docker.md` | Docker Compose stack |
 | `.github/workflows/README.md` | CI/CD pipelines |
 
@@ -167,6 +187,10 @@ The same three suites plus the three Docker image builds run in GitHub Actions o
 - [x] Full Docker multi-service setup (frontend, backend, AI engine, MongoDB)
 - [x] GitHub Actions CI/CD pipelines (tests + image builds)
 - [x] Automated test suites for all three services
+- [x] Iterative refinement of an existing project (`POST /api/agents/refine`)
+- [ ] Authentication and per-user history
+- [ ] Download generated project as ZIP + in-browser file preview
+- [ ] Public cloud deployment
 
 ## License
 

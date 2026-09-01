@@ -10,17 +10,17 @@ from pydantic import BaseModel, Field
 
 from config.llm import get_llm_status, verify_llm_connection
 from config.settings import settings
-from graph.builder import create_agent_graph
+from graph.builder import create_agent_graph, create_refinement_graph
 from graph.state import AgentState
-from services.file_manager import save_project_files
+from services.file_manager import list_projects, load_project_files, save_project_files
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Multi-Agent AI Assistant — AI Engine",
-    version="0.4.0",
-    description="Python AI engine with LangGraph multi-agent architecture and live LLM integration, persisted history, and containerized deployment (Phase 4).",
+    version="0.5.0",
+    description="Python AI engine with LangGraph multi-agent architecture, live LLM integration, persisted history, containerized deployment, and iterative refinement of generated projects (Phase 5).",
 )
 
 app.add_middleware(
@@ -32,11 +32,18 @@ app.add_middleware(
 )
 
 agent_graph = create_agent_graph()
+refinement_graph = create_refinement_graph()
 
 
 class GenerateRequest(BaseModel):
     prompt: str = Field(..., description="User prompt describing the requested software application.")
     project_name: Optional[str] = Field(default=None, description="Optional custom project name slug.")
+    provider: Optional[str] = Field(default=None, description="LLM provider override ('gemini' or 'openai').")
+
+
+class RefineRequest(BaseModel):
+    prompt: str = Field(..., description="Follow-up instruction describing the change to apply.")
+    project_name: str = Field(..., description="Name of the previously generated project to modify.")
     provider: Optional[str] = Field(default=None, description="LLM provider override ('gemini' or 'openai').")
 
 
@@ -51,18 +58,22 @@ class GenerateResponse(BaseModel):
     documentation: str
     logs: List[Dict[str, Any]]
     llm: Dict[str, Any]
+    changed_files: List[str] = []
+    mode: str = "generate"
 
 
 @app.get("/")
 def root() -> dict:
     return {
         "service": "ai-engine",
-        "phase": "phase-4",
+        "phase": "phase-5",
         "docs": "/docs",
         "health": "/health",
         "llm_status": "/api/llm/status",
         "llm_verify": "/api/llm/verify",
         "generate": "/api/generate",
+        "refine": "/api/refine",
+        "projects": "/api/projects",
     }
 
 
@@ -72,7 +83,7 @@ def health() -> dict:
     return {
         "status": "ok",
         "service": "ai-engine",
-        "phase": "phase-4",
+        "phase": "phase-5",
         "environment": settings.node_env,
         "llm": llm,
         "timestamp": datetime.now(UTC).isoformat(),
@@ -118,6 +129,9 @@ def generate_project(req: GenerateRequest) -> dict:
         "tasks": [],
         "architecture": {},
         "files": {},
+        "existing_files": {},
+        "change_request": "",
+        "changed_files": [],
         "review_results": {},
         "documentation": "",
         "logs": [],
@@ -151,9 +165,94 @@ def generate_project(req: GenerateRequest) -> dict:
             "documentation": final_state.get("documentation", ""),
             "logs": final_state.get("logs", []),
             "llm": llm_info,
+            "changed_files": save_result.get("saved_files", []),
+            "mode": "generate",
+        }
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Error executing agent graph")
+        raise HTTPException(status_code=500, detail=f"Multi-Agent execution failed: {str(e)}")
+
+
+@app.get("/api/projects")
+def get_projects() -> dict:
+    """List the generated projects available on disk for refinement."""
+    return {"projects": list_projects()}
+
+
+@app.post("/api/refine", response_model=GenerateResponse)
+def refine_project(req: RefineRequest) -> dict:
+    """Apply a follow-up change request to an already generated project."""
+    logger.info("Received refinement request for project '%s'", req.project_name)
+
+    if not req.prompt or not req.prompt.strip():
+        raise HTTPException(status_code=400, detail="Prompt parameter cannot be empty.")
+
+    existing_files = load_project_files(req.project_name)
+    if not existing_files:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No generated project named '{req.project_name}' was found.",
+        )
+
+    active_provider = (req.provider or settings.llm_provider).lower()
+    llm_info = get_llm_status(active_provider)
+
+    initial_state: AgentState = {
+        "user_prompt": req.prompt.strip(),
+        "project_name": req.project_name,
+        "tech_stack": "",
+        "tasks": [],
+        "architecture": {},
+        "files": {},
+        "existing_files": existing_files,
+        "change_request": req.prompt.strip(),
+        "changed_files": [],
+        "review_results": {},
+        "documentation": "",
+        "logs": [],
+        "current_step": "init",
+        "retry_count": 0,
+        "error": None,
+        "llm_provider": active_provider,
+    }
+
+    try:
+        final_state = refinement_graph.invoke(initial_state)
+
+        if final_state.get("error"):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Refinement pipeline failed at '{final_state.get('current_step')}': {final_state['error']}",
+            )
+
+        changed_files = final_state.get("changed_files", [])
+        updated_files = {
+            path: content
+            for path, content in final_state.get("files", {}).items()
+            if path in changed_files
+        }
+        save_result = save_project_files(req.project_name, updated_files)
+
+        return {
+            "status": "completed",
+            "project_name": req.project_name,
+            "tech_stack": final_state.get("tech_stack", ""),
+            "tasks": final_state.get("tasks", []),
+            "saved_files": sorted(final_state.get("files", {})),
+            "output_dir": save_result.get("output_dir", ""),
+            "review_results": final_state.get("review_results", {}),
+            "documentation": final_state.get("documentation", ""),
+            "logs": final_state.get("logs", []),
+            "llm": llm_info,
+            "changed_files": changed_files,
+            "mode": "refine",
         }
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("Error executing agent graph")
-        raise HTTPException(status_code=500, detail=f"Multi-Agent execution failed: {str(e)}")
+        logger.exception("Error executing refinement graph")
+        raise HTTPException(status_code=500, detail=f"Refinement execution failed: {str(e)}")

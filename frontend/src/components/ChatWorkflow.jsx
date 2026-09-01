@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { generateProject } from "../services/api";
+import { generateProject, refineProject } from "../services/api";
 import GenerationResult from "./GenerationResult";
 
 const AGENT_PIPELINE = ["Planner", "Architect", "Coder", "Tester", "QA", "Doc Writer"];
+const REFINE_PIPELINE = ["Change Planner", "Coder", "Tester", "QA", "Doc Writer"];
 
 const WELCOME_MESSAGE = {
   id: "welcome",
   role: "assistant",
-  text: "Describe the software you want and the agent team will plan, architect, code, test, review, and document it.",
+  text: "Describe the software you want and the agent team will plan, architect, code, test, review, and document it. Follow-up messages then modify that same project.",
 };
 
 let messageCounter = 0;
@@ -24,7 +25,10 @@ export default function ChatWorkflow({ onGenerated }) {
   const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeStage, setActiveStage] = useState(0);
+  const [activeProject, setActiveProject] = useState(null);
   const threadRef = useRef(null);
+
+  const pipeline = activeProject ? REFINE_PIPELINE : AGENT_PIPELINE;
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
@@ -36,11 +40,17 @@ export default function ChatWorkflow({ onGenerated }) {
     }
 
     const interval = setInterval(() => {
-      setActiveStage((stage) => Math.min(stage + 1, AGENT_PIPELINE.length - 1));
+      setActiveStage((stage) => Math.min(stage + 1, pipeline.length - 1));
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [loading]);
+  }, [loading, pipeline.length]);
+
+  function startNewConversation() {
+    setMessages([WELCOME_MESSAGE]);
+    setActiveProject(null);
+    setProjectName("");
+  }
 
   function appendMessage(message) {
     setMessages((current) => [...current, message]);
@@ -60,21 +70,33 @@ export default function ChatWorkflow({ onGenerated }) {
     setLoading(true);
 
     try {
-      const result = await generateProject({
-        prompt,
-        projectName: projectName.trim() || undefined,
-        provider: provider || undefined,
-      });
+      const result = activeProject
+        ? await refineProject({
+            prompt,
+            projectName: activeProject,
+            provider: provider || undefined,
+          })
+        : await generateProject({
+            prompt,
+            projectName: projectName.trim() || undefined,
+            provider: provider || undefined,
+          });
+
+      const llmLabel =
+        result.llm?.mode === "live"
+          ? `${result.llm.provider} (${result.llm.model})`
+          : "mock templates";
 
       appendMessage({
         id: nextId("assistant"),
         role: "assistant",
-        text: `Generated ${result.saved_files?.length ?? 0} files for "${result.project_name}" using ${
-          result.llm?.mode === "live" ? `${result.llm.provider} (${result.llm.model})` : "mock templates"
-        }.`,
+        text: activeProject
+          ? `Updated ${result.changed_files?.length ?? 0} file(s) in "${result.project_name}" using ${llmLabel}.`
+          : `Generated ${result.saved_files?.length ?? 0} files for "${result.project_name}" using ${llmLabel}.`,
         result,
       });
 
+      setActiveProject(result.project_name);
       onGenerated?.(result);
     } catch (error) {
       appendMessage({
@@ -100,16 +122,11 @@ export default function ChatWorkflow({ onGenerated }) {
         <div>
           <h2>Agent Chat</h2>
           <p className="panel__subtitle">
-            Conversational workflow — {AGENT_PIPELINE.join(" → ")}
+            Conversational workflow — {pipeline.join(" → ")}
           </p>
         </div>
-        <button
-          type="button"
-          className="btn"
-          onClick={() => setMessages([WELCOME_MESSAGE])}
-          disabled={loading}
-        >
-          New conversation
+        <button type="button" className="btn" onClick={startNewConversation} disabled={loading}>
+          New project
         </button>
       </div>
 
@@ -124,12 +141,21 @@ export default function ChatWorkflow({ onGenerated }) {
           </article>
         ))}
 
+        {activeProject && (
+          <p className="chat__context">
+            Follow-up prompts modify <strong>{activeProject}</strong> — e.g. “add a dark mode
+            toggle”. Use “New project” to start from scratch.
+          </p>
+        )}
+
         {loading && (
           <article className="chat__message chat__message--assistant">
             <span className="chat__author">Agent team</span>
-            <p className="chat__text">Working on it…</p>
+            <p className="chat__text">
+              {activeProject ? `Updating ${activeProject}…` : "Working on it…"}
+            </p>
             <ol className="chat__pipeline">
-              {AGENT_PIPELINE.map((agent, index) => (
+              {pipeline.map((agent, index) => (
                 <li
                   key={agent}
                   className={`chat__stage ${
@@ -154,7 +180,11 @@ export default function ChatWorkflow({ onGenerated }) {
           value={input}
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="e.g. Build a todo list web app with add, complete, and delete tasks."
+          placeholder={
+            activeProject
+              ? `e.g. Add a dark mode toggle to ${activeProject}`
+              : "e.g. Build a todo list web app with add, complete, and delete tasks."
+          }
           rows={3}
           disabled={loading}
         />
@@ -163,10 +193,10 @@ export default function ChatWorkflow({ onGenerated }) {
           <input
             type="text"
             className="chat__project"
-            value={projectName}
+            value={activeProject ?? projectName}
             onChange={(event) => setProjectName(event.target.value)}
             placeholder="Project name (optional)"
-            disabled={loading}
+            disabled={loading || Boolean(activeProject)}
           />
 
           <select
@@ -180,7 +210,7 @@ export default function ChatWorkflow({ onGenerated }) {
           </select>
 
           <button type="submit" className="btn btn--primary" disabled={loading || !input.trim()}>
-            {loading ? "Running agents…" : "Send"}
+            {loading ? "Running agents…" : activeProject ? "Apply change" : "Send"}
           </button>
         </div>
       </form>

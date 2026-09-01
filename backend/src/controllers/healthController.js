@@ -6,7 +6,7 @@ export function getHealth(_req, res) {
   res.json({
     status: "ok",
     service: "backend",
-    phase: "phase-4",
+    phase: "phase-5",
     timestamp: new Date().toISOString(),
   });
 }
@@ -17,7 +17,7 @@ export function getStatus(_req, res) {
   res.json({
     status: database.status === "connected" ? "ok" : "degraded",
     service: "backend",
-    phase: "phase-4",
+    phase: "phase-5",
     environment: env.nodeEnv,
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),

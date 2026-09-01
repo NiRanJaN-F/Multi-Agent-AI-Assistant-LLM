@@ -14,5 +14,6 @@
 | [`api/phase2-agents.md`](api/phase2-agents.md) | LangGraph agent pipeline and `POST /api/agents/generate` |
 | [`api/phase3-llm.md`](api/phase3-llm.md) | LLM provider configuration, status, and verification |
 | [`api/phase4-history.md`](api/phase4-history.md) | MongoDB generation history endpoints |
+| [`api/phase5-refinement.md`](api/phase5-refinement.md) | Iterative refinement of an existing generated project |
 | [`setup/docker.md`](setup/docker.md) | Full Docker Compose stack: build, run, verify |
 | [`../.github/workflows/README.md`](../.github/workflows/README.md) | CI/CD pipelines |

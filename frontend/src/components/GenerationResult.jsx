@@ -17,6 +17,8 @@ export default function GenerationResult({ result }) {
   const projectName = result.project_name ?? result.projectName;
   const techStack = result.tech_stack ?? result.techStack;
   const outputDir = result.output_dir ?? result.outputDir;
+  const changedFiles = result.changed_files ?? result.changedFiles ?? [];
+  const isRefinement = result.mode === "refine";
 
   return (
     <div className="result">
@@ -26,6 +28,7 @@ export default function GenerationResult({ result }) {
           value={result.status}
           tone={result.status === "ok" || result.status === "completed" ? "ok" : "warn"}
         />
+        <StatusPill label="Run" value={isRefinement ? "refinement" : "generation"} />
         <StatusPill label="Project" value={projectName} />
         <StatusPill label="Tech stack" value={techStack} />
         <StatusPill label="Output" value={outputDir} />
@@ -52,7 +55,7 @@ export default function GenerationResult({ result }) {
 
       {result.tasks?.length > 0 && (
         <div className="result__block">
-          <h3>Requirement analysis (Planner)</h3>
+          <h3>{isRefinement ? "Change plan" : "Requirement analysis (Planner)"}</h3>
           <ul>
             {result.tasks.map((task) => (
               <li key={task}>{task}</li>
@@ -61,9 +64,22 @@ export default function GenerationResult({ result }) {
         </div>
       )}
 
+      {isRefinement && changedFiles.length > 0 && (
+        <div className="result__block">
+          <h3>Files changed</h3>
+          <ul className="file-list">
+            {changedFiles.map((file) => (
+              <li key={file}>
+                <code>{file}</code>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {savedFiles?.length > 0 && (
         <div className="result__block">
-          <h3>Generated files</h3>
+          <h3>{isRefinement ? "Project files" : "Generated files"}</h3>
           <ul className="file-list">
             {savedFiles.map((file) => (
               <li key={file}>

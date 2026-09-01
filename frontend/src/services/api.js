@@ -81,6 +81,28 @@ export async function deleteGeneration(id) {
   return data;
 }
 
+export async function refineProject({ prompt, projectName, provider }) {
+  const response = await fetch(`${API_BASE_URL}/agents/refine`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt,
+      projectName,
+      provider: provider || undefined,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data.message || data.detail || "Refinement failed");
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
+}
+
 export async function generateProject({ prompt, projectName, provider }) {
   const response = await fetch(`${API_BASE_URL}/agents/generate`, {
     method: "POST",

@@ -58,6 +58,30 @@ describe("backend API", () => {
     assert.equal(body.message, "prompt is required");
   });
 
+  it("rejects refinement requests without a prompt", async () => {
+    const response = await fetch(`${baseUrl}/api/agents/refine`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "  ", projectName: "demo-app" }),
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.message, "prompt is required");
+  });
+
+  it("rejects refinement requests without a project name", async () => {
+    const response = await fetch(`${baseUrl}/api/agents/refine`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "Add dark mode" }),
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.message, "projectName is required to refine an existing project");
+  });
+
   it("returns 503 for history when MongoDB is not connected", async () => {
     const response = await fetch(`${baseUrl}/api/agents/history`);
     const body = await response.json();
