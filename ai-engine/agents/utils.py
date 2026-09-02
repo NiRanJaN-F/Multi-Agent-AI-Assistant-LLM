@@ -8,7 +8,10 @@ from typing import Any, Dict
 from config.llm import FallbackLLM, get_model_candidates
 from graph.state import AgentState, LogEntry
 
-FILE_MARKER_PATTERN = re.compile(r"^\s*(?:#{1,6}\s*)?FILE:\s*(.+?)\s*$", re.MULTILINE)
+FILE_MARKER_PATTERN = re.compile(
+    r"^\s*(?:#{1,6}\s*|\*{1,3}\s*)?FILE:\s*[`\"']?(.+?)[`\"']?\s*:?\s*\*{0,3}\s*$",
+    re.MULTILINE | re.IGNORECASE,
+)
 
 
 def add_log(state_logs: list[LogEntry], agent: str, status: str, message: str) -> list[LogEntry]:
@@ -80,7 +83,8 @@ def parse_multi_file_response(text: str) -> Dict[str, str]:
 
     for index, marker in enumerate(markers):
         end = markers[index + 1].start() if index + 1 < len(markers) else len(text)
-        path = marker.group(1).strip().strip("`\"'")
+        raw_path = marker.group(1).strip()
+        path = re.sub(r"^[\*`\"'\#\s]+|[\*`\"':\s]+$", "", raw_path).strip()
         content = strip_code_fence(text[marker.end() : end])
         if path and content:
             files[path] = content

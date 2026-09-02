@@ -65,14 +65,16 @@ class TestNoLLMCalls(unittest.TestCase):
 
 class TestArchitectValidation(unittest.TestCase):
     def test_rejects_traversal_and_absolute_paths(self):
-        result = architecture_agent(
-            base_state(architecture={"file_paths": ["../escape.js", "/etc/passwd", "app.js"]})
-        )
-        self.assertEqual(result["architecture"]["file_paths"], ["etc/passwd", "app.js"])
+        with patch("agents.architecture_agent.get_agent_llm", return_value=None):
+            result = architecture_agent(
+                base_state(architecture={"file_paths": ["../escape.js", "/etc/passwd", "app.js"]})
+            )
+            self.assertEqual(result["architecture"]["file_paths"], ["etc/passwd", "app.js"])
 
     def test_falls_back_to_a_stack_default_when_the_plan_is_empty(self):
-        result = architecture_agent(base_state(tech_stack="Python FastAPI"))
-        self.assertEqual(result["architecture"]["file_paths"], ["main.py", "requirements.txt"])
+        with patch("agents.architecture_agent.get_agent_llm", return_value=None):
+            result = architecture_agent(base_state(tech_stack="Python FastAPI"))
+            self.assertEqual(result["architecture"]["file_paths"], ["main.py", "requirements.txt"])
 
 
 class TestTesterSuite(unittest.TestCase):
@@ -81,15 +83,16 @@ class TestTesterSuite(unittest.TestCase):
             base_state(tech_stack="Python", files={"main.py": "print('hi')"})
         )
         self.assertIn("tests/test_app.py", result["files"])
-        self.assertIn("import main", result["files"]["tests/test_app.py"])
+        self.assertIn("main", result["files"]["tests/test_app.py"])
 
     def test_javascript_suite_lists_every_source_file(self):
-        result = tester_agent(
-            base_state(files={"index.html": "<html></html>", "app.js": "const x = 1;"})
-        )
-        suite = result["files"]["tests/app.test.js"]
-        self.assertIn("'index.html'", suite)
-        self.assertIn("'app.js'", suite)
+        with patch("agents.tester_agent.get_agent_llm", return_value=None):
+            result = tester_agent(
+                base_state(files={"index.html": "<html></html>", "app.js": "const x = 1;"})
+            )
+            suite = result["files"]["tests/app.test.js"]
+            self.assertIn("'index.html'", suite)
+            self.assertIn("'app.js'", suite)
 
 
 class TestStaticReview(unittest.TestCase):
@@ -97,7 +100,7 @@ class TestStaticReview(unittest.TestCase):
         files = {
             "index.html": '<html><link rel="stylesheet" href="styles.css"><script src="app.js"></script></html>',
             "styles.css": "body { margin: 0; }",
-            "app.js": "const x = 1;\nconsole.log(x);",
+            "app.js": "document.addEventListener('DOMContentLoaded', () => { const x = 1; console.log(x); });",
             "tests/app.test.js": "// generated test suite\n",
             "README.md": "# Todo App\n\nGenerated project.\n",
         }

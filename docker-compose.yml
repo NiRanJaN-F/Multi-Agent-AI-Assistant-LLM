@@ -33,24 +33,24 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
-      GEMINI_FALLBACK_MODELS: ${GEMINI_FALLBACK_MODELS:-gemini-flash-latest,gemini-flash-lite-latest}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
+      GEMINI_FALLBACK_MODELS: ${GEMINI_FALLBACK_MODELS:-gemini-2.5-flash-lite,gemini-3-flash-preview}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_FALLBACK_MODELS: ${OPENAI_FALLBACK_MODELS:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
-      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
-      GROQ_FALLBACK_MODELS: ${GROQ_FALLBACK_MODELS:-llama-3.1-8b-instant}
+      GROQ_MODEL: ${GROQ_MODEL:-qwen/qwen3.6-27b}
+      GROQ_FALLBACK_MODELS: ${GROQ_FALLBACK_MODELS:-groq/compound-mini,openai/gpt-oss-20b,allam-2-7b}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-deepseek/deepseek-chat-v3.1:free}
       OPENROUTER_FALLBACK_MODELS: ${OPENROUTER_FALLBACK_MODELS:-}
       OLLAMA_ENABLED: ${OLLAMA_ENABLED:-false}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
-      OLLAMA_FALLBACK_MODELS: ${OLLAMA_FALLBACK_MODELS:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:3b}
+      OLLAMA_FALLBACK_MODELS: ${OLLAMA_FALLBACK_MODELS:-qwen2.5-coder:7b,qwen2.5-coder:latest,qwen2.5-coder:3b}
       PLANNER_PROVIDER: ${PLANNER_PROVIDER:-}
       CODER_PROVIDER: ${CODER_PROVIDER:-}
-      CODER_FILE_MODE: ${CODER_FILE_MODE:-auto}
+      CODER_FILE_MODE: ${CODER_FILE_MODE:-file}
       RATE_LIMIT_WAIT_SECONDS: ${RATE_LIMIT_WAIT_SECONDS:-40}
     extra_hosts:
       - "host.docker.internal:host-gateway"

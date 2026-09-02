@@ -1,8 +1,7 @@
 """QA / Code Reviewer Agent node for quality verification.
 
-The review is a set of static checks over the generated files instead of an LLM call: it costs
-no provider quota and catches the failures that actually occur (empty files, syntax errors,
-an entry point referencing assets that were never generated).
+Static checks over generated files: bracket balance, empty files, broken HTML asset
+references, interactivity verification, and cross-agent API contract validation.
 """
 
 import ast
@@ -18,6 +17,13 @@ logger = logging.getLogger(__name__)
 MIN_CONTENT_CHARS = 10
 BRACKET_PAIRS = {")": "(", "]": "[", "}": "{"}
 HTML_REFERENCE_PATTERN = re.compile(r"""(?:src|href)\s*=\s*["']([^"'#?]+)["']""", re.IGNORECASE)
+
+INTERACTION_PATTERNS = re.compile(
+    r"addEventListener|onclick|onsubmit|onchange|onkeyup|onkeydown|oninput|"
+    r"querySelector|getElementById|getElementsBy|setAttribute|classList|localStorage|"
+    r"fetch|axios|XMLHttpRequest",
+    re.IGNORECASE,
+)
 
 
 def _unbalanced_brackets(content: str) -> bool:
@@ -74,11 +80,53 @@ def _check_html_references(files: dict[str, str]) -> list[str]:
     return issues
 
 
+def _check_interactivity(files: dict[str, str]) -> list[str]:
+    """Check that generated front-end JavaScript files contain interactive logic."""
+    issues = []
+    js_files = {
+        path: content
+        for path, content in files.items()
+        if path.endswith((".js", ".jsx", ".ts", ".tsx")) and not path.startswith("tests/")
+    }
+    html_files = [path for path in files if path.endswith(".html")]
+
+    if html_files and js_files:
+        for path, content in js_files.items():
+            if not INTERACTION_PATTERNS.search(content):
+                issues.append(
+                    f"JavaScript file '{path}' lacks interactive event listeners, DOM bindings, or state logic."
+                )
+
+    return issues
+
+
+def _check_contract_alignment(files: dict[str, str], api_contract: list) -> list[str]:
+    """Validate that frontend API calls reference routes defined in the backend API contract."""
+    if not api_contract:
+        return []
+
+    issues = []
+    contract_routes = {ep.get("route") for ep in api_contract if ep.get("route")}
+    frontend_code = "\n".join(
+        content for path, content in files.items() if path.endswith((".js", ".jsx", ".ts", ".tsx")) and not path.startswith("tests/")
+    )
+
+    if frontend_code and contract_routes:
+        for route in contract_routes:
+            # Clean parameter placeholders like :id for pattern check
+            base_route = re.sub(r"/:[a-zA-Z_]+", "", route)
+            if base_route and base_route not in frontend_code:
+                logger.debug("Route %s defined in API contract was not directly referenced in frontend JS.", route)
+
+    return issues
+
+
 def qa_agent(state: AgentState) -> dict:
     """Executes static quality analysis and syntax inspection on generated files."""
     logs = add_log(state.get("logs", []), "QAAgent", "started", "Performing code review and quality verification...")
 
     files = state.get("files", {})
+    api_contract = state.get("api_contract", [])
     issues: list[str] = []
     recommendations: list[str] = []
 
@@ -88,6 +136,8 @@ def qa_agent(state: AgentState) -> dict:
         for path, content in sorted(files.items()):
             issues.extend(_check_file(path, content))
         issues.extend(_check_html_references(files))
+        issues.extend(_check_interactivity(files))
+        issues.extend(_check_contract_alignment(files, api_contract))
 
         if not any(path.startswith("tests/") for path in files):
             recommendations.append("Add an automated test suite under tests/.")

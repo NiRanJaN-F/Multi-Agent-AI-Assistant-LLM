@@ -120,9 +120,9 @@ class ProviderProfile:
 
 # Free providers first: Gemini (20/day) → Groq (thousands/day) → OpenRouter free models →
 # Ollama (local, unlimited, slowest), with paid OpenAI last and only if a key is set.
-PROVIDER_ORDER = ("gemini", "groq", "openrouter", "ollama", "openai")
+PROVIDER_ORDER = ("deepseek", "gemini", "groq", "openrouter", "ollama", "openai")
 
-OPENAI_COMPATIBLE = {"openai", "groq", "openrouter", "ollama"}
+OPENAI_COMPATIBLE = {"openai", "groq", "openrouter", "ollama", "deepseek"}
 
 
 def _models(primary: str, fallbacks: str) -> list[str]:
@@ -157,6 +157,10 @@ def get_provider_profile(provider: str) -> ProviderProfile | None:
         models = _models(settings.ollama_model, settings.ollama_fallback_models)
         base_url = settings.ollama_base_url
         return ProviderProfile(name, key, models, base_url, settings.ollama_enabled)
+    elif name == "deepseek":
+        key = settings.deepseek_api_key
+        models = _models(settings.deepseek_model, settings.deepseek_fallback_models)
+        base_url = "https://api.deepseek.com/v1"
     else:
         return None
 
@@ -174,11 +178,15 @@ def get_available_providers() -> list[str]:
 
 def get_role_provider(role: str | None) -> str | None:
     """Provider configured for one agent role, when the deployment routes roles separately."""
-    if role == "planner":
-        return settings.planner_provider
-    if role == "coder":
-        return settings.coder_provider
-    return None
+    role_map = {
+        "planner": settings.planner_provider,
+        "architect": settings.architect_provider,
+        "backend": settings.backend_provider,
+        "frontend": settings.frontend_provider,
+        "coder": settings.coder_provider,
+        "tester": settings.tester_provider,
+    }
+    return role_map.get(role or "") or None
 
 
 def get_model_candidates(
@@ -380,6 +388,7 @@ def get_llm(
             model=target_model,
             google_api_key=api_key,
             temperature=temperature,
+            timeout=30.0,
             max_retries=0,
         )
 
@@ -401,6 +410,7 @@ def get_llm(
             api_key=profile.api_key,
             base_url=profile.base_url,
             temperature=temperature,
+            request_timeout=30.0,
             max_retries=0,
         )
 
