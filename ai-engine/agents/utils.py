@@ -23,17 +23,21 @@ def add_log(state_logs: list[LogEntry], agent: str, status: str, message: str) -
     return new_logs
 
 
-def get_agent_llm(state: AgentState, temperature: float = 0.2) -> FallbackLLM | None:
+def get_agent_llm(
+    state: AgentState,
+    temperature: float = 0.2,
+    role: str | None = None,
+) -> FallbackLLM | None:
     """Resolve the LLM client for an agent, with automatic model/provider fallback."""
-    candidates = get_model_candidates(state.get("llm_provider") or None)
+    candidates = get_model_candidates(state.get("llm_provider") or None, role=role)
     if not candidates:
         return None
     return FallbackLLM(candidates, temperature=temperature)
 
 
-def get_agent_llm_label(state: AgentState) -> str:
+def get_agent_llm_label(state: AgentState, role: str | None = None) -> str:
     """Human-readable label for logs indicating live vs mock LLM mode."""
-    candidates = get_model_candidates(state.get("llm_provider") or None)
+    candidates = get_model_candidates(state.get("llm_provider") or None, role=role)
     if not candidates:
         return "mock templates"
 

@@ -48,6 +48,10 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
       OLLAMA_FALLBACK_MODELS: ${OLLAMA_FALLBACK_MODELS:-}
+      PLANNER_PROVIDER: ${PLANNER_PROVIDER:-}
+      CODER_PROVIDER: ${CODER_PROVIDER:-}
+      CODER_FILE_MODE: ${CODER_FILE_MODE:-auto}
+      RATE_LIMIT_WAIT_SECONDS: ${RATE_LIMIT_WAIT_SECONDS:-40}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

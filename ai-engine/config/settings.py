@@ -42,5 +42,15 @@ class Settings(BaseSettings):
     ollama_fallback_models: str = Field(default="", alias="OLLAMA_FALLBACK_MODELS")
     ollama_enabled: bool = Field(default=False, alias="OLLAMA_ENABLED")
 
+    # Per-agent routing: each falls back to llm_provider when unset.
+    planner_provider: str | None = Field(default=None, alias="PLANNER_PROVIDER")
+    coder_provider: str | None = Field(default=None, alias="CODER_PROVIDER")
+
+    # Longest a per-minute rate limit is worth waiting out; 0 disables waiting.
+    rate_limit_wait_seconds: float = Field(default=40.0, alias="RATE_LIMIT_WAIT_SECONDS")
+
+    # auto: one call per file only for local models | file: always | batch: never
+    coder_file_mode: str = Field(default="auto", alias="CODER_FILE_MODE")
+
 
 settings = Settings()

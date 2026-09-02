@@ -155,6 +155,13 @@ it. If every candidate is exhausted the API answers `429` with an actionable mes
 hanging until the request times out. `GET /api/llm/status` reports the active provider, the
 providers currently usable, and the exact fallback chain.
 
+A `429` can mean two different things, and they are handled differently. A **per-minute** limit
+(`GenerateRequestsPerMinutePerProjectPerModel`, or a tokens-per-minute cap) clears itself in
+seconds, so once every other candidate has also been tried the engine waits out the provider's own
+`retry_delay` and retries — bounded by `RATE_LIMIT_WAIT_SECONDS` (default 40s, `0` disables it).
+A **per-day** quota cannot clear during the run, so that model is dropped immediately and never
+waited on.
+
 | Provider | Free tier | Key |
 | --- | --- | --- |
 | Gemini | ~20 requests/day | https://aistudio.google.com/apikey |
@@ -174,7 +181,34 @@ LLM_PROVIDER=gemini        # which provider is tried first
 ```
 
 Ollama runs on the host, not in Compose: install it, pull a model, set `OLLAMA_ENABLED=true`, and
-the container reaches it through `http://host.docker.internal:11434/v1`.
+the container reaches it through `http://host.docker.internal:11434/v1`. Pick the model to fit your
+GPU: `qwen2.5-coder:7b` needs ~8 GB of VRAM, `qwen2.5-coder:3b` runs on 4 GB cards such as a
+GTX 1650.
+
+### Per-agent model routing
+
+Only two agents call an LLM, and they want different things from it: the Planner sends a short
+prompt and needs reasoning, while the Coder produces the bulk of the tokens. They can therefore run
+on different providers, each still falling back through the whole chain from its own starting
+point:
+
+```env
+PLANNER_PROVIDER=groq      # cheap, short prompt, needs the better model
+CODER_PROVIDER=ollama      # token-heavy, local, no quota to exhaust
+```
+
+Either may be left empty, in which case that agent uses `LLM_PROVIDER`. The provider selector in
+the UI overrides both for a single run. Routing the Coder to Ollama keeps the whole cloud quota for
+planning, which is what makes the free tiers last.
+
+### One call per file for small models
+
+A 3B local model asked for five files in one response typically drops the `FILE:` markers or
+truncates the last file. When the Coder runs on a local provider it therefore issues **one call per
+file**, each with the plan and the other file names as context — extra requests cost nothing
+locally. Cloud providers keep the single-call path, where requests, not competence, are the scarce
+resource. `CODER_FILE_MODE` forces the choice: `auto` (default), `file`, or `batch`. A file that
+fails still falls back to a deterministic template, so a partial failure never loses the run.
 
 ### 7. Run everything with Docker (recommended for demos)
 
@@ -189,7 +223,7 @@ AI engine `http://localhost:8000/docs`, MongoDB `mongodb://localhost:27017`.
 ## Tests
 
 ```bash
-cd ai-engine && python -m unittest discover -s tests -v   # 42 agent/graph/API/refinement/fallback tests
+cd ai-engine && python -m unittest discover -s tests -v   # 74 agent/graph/API/refinement/routing/fallback tests
 cd backend  && npm test                                   # Express API tests (node --test)
 cd frontend && npm run lint && npm run build              # oxlint + production build
 ```
@@ -232,6 +266,7 @@ The same three suites plus the three Docker image builds run in GitHub Actions o
 - [x] Iterative refinement of an existing project (`POST /api/agents/refine`)
 - [x] 2-call-per-run pipeline with model/provider fallback and fast `429` quota errors
 - [x] Free multi-provider chain (Gemini → Groq → OpenRouter → Ollama → OpenAI → mock)
+- [x] Per-agent model routing, per-file generation for local models, rate-limit-aware retry
 - [ ] Authentication and per-user history
 - [ ] Download generated project as ZIP + in-browser file preview
 - [ ] Public cloud deployment

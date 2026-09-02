@@ -1,6 +1,7 @@
 """LLM provider factory covering Gemini, Groq, OpenRouter, OpenAI, and local Ollama."""
 
 import logging
+import re
 import time
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -35,6 +36,26 @@ MODEL_UNAVAILABLE_MARKERS = (
 )
 
 
+# A per-minute cap clears itself in seconds, unlike a per-day cap; only the latter is worth
+# giving up on. Providers say which one was hit in the quota id or the message text.
+RATE_LIMIT_MARKERS = (
+    "perminute",
+    "per minute",
+    "per-minute",
+    "requests per min",
+    "tokens per min",
+    "rpm",
+    "tpm",
+)
+
+RETRY_AFTER_PATTERNS = (
+    re.compile(r"retry_delay\s*\{[^}]*seconds:\s*(\d+(?:\.\d+)?)", re.IGNORECASE),
+    re.compile(r"retry[- ]after[\"']?\s*[:=]?\s*(\d+(?:\.\d+)?)", re.IGNORECASE),
+    re.compile(r"(?:retry|try again) in\s*(\d+(?:\.\d+)?)\s*s", re.IGNORECASE),
+    re.compile(r"(?:retry|try again) in\s*(\d+(?:\.\d+)?)m(\d+(?:\.\d+)?)s", re.IGNORECASE),
+)
+
+
 class QuotaExceededError(RuntimeError):
     """Raised when every configured model has exhausted its provider quota."""
 
@@ -54,6 +75,30 @@ def is_quota_message(text: str) -> bool:
 def is_quota_error(error: BaseException) -> bool:
     """Detect provider quota / rate-limit failures, which retrying cannot fix."""
     return is_quota_message(f"{type(error).__name__} {error}")
+
+
+def is_rate_limit_error(error: BaseException) -> bool:
+    """True when the 429 is a short per-minute limit rather than an exhausted daily quota."""
+    if not is_quota_error(error):
+        return False
+    lowered = f"{type(error).__name__} {error}".lower()
+    if any(marker in lowered for marker in RATE_LIMIT_MARKERS):
+        return True
+    # A provider that tells us when to come back is describing a window, not an exhausted day.
+    return get_retry_after_seconds(error) is not None and "per day" not in lowered
+
+
+def get_retry_after_seconds(error: BaseException) -> float | None:
+    """Seconds the provider asked us to wait, when it says so."""
+    text = f"{error}"
+
+    for pattern in RETRY_AFTER_PATTERNS:
+        match = pattern.search(text)
+        if match:
+            groups = [float(value) for value in match.groups() if value is not None]
+            return groups[0] * 60 + groups[1] if len(groups) == 2 else groups[0]
+
+    return None
 
 
 def is_model_unavailable_error(error: BaseException) -> bool:
@@ -127,9 +172,26 @@ def get_available_providers() -> list[str]:
     ]
 
 
-def get_model_candidates(provider: str | None = None) -> list[tuple[str, str]]:
-    """Ordered (provider, model) pairs to try: requested provider first, then the rest."""
-    target = (provider or settings.llm_provider).lower()
+def get_role_provider(role: str | None) -> str | None:
+    """Provider configured for one agent role, when the deployment routes roles separately."""
+    if role == "planner":
+        return settings.planner_provider
+    if role == "coder":
+        return settings.coder_provider
+    return None
+
+
+def get_model_candidates(
+    provider: str | None = None,
+    role: str | None = None,
+) -> list[tuple[str, str]]:
+    """Ordered (provider, model) pairs to try: requested provider first, then the rest.
+
+    Precedence: an explicit request (the UI selector) beats the role's provider, which beats
+    the global default. The rest of the chain follows in either case, so routing never costs
+    a run: a role pinned to an unconfigured provider still falls through to the others.
+    """
+    target = (provider or get_role_provider(role) or settings.llm_provider).lower()
     ordered = [target, *(name for name in PROVIDER_ORDER if name != target)]
 
     return [
@@ -155,22 +217,34 @@ class FallbackLLM:
     def label(self) -> str:
         return f"{self.last_provider} ({self.last_model})"
 
+    def _try(self, provider: str, model: str, prompt: str) -> Any:
+        llm = get_llm(provider=provider, model_name=model, temperature=self.temperature)
+        if llm is None:
+            raise LookupError(f"Provider '{provider}' is not configured.")
+
+        response = llm.invoke(prompt)
+        self.last_provider, self.last_model = provider, model
+        return response
+
     def invoke(self, prompt: str) -> Any:
         last_error: BaseException | None = None
         only_quota_failures = True
+        # (wait_seconds, provider, model) for models blocked by a per-minute window that a
+        # short sleep would clear — used only after every other candidate has been tried.
+        deferred: list[tuple[float, str, str]] = []
 
         for provider, model in self.candidates:
-            llm = get_llm(provider=provider, model_name=model, temperature=self.temperature)
-            if llm is None:
-                continue
-
             try:
-                response = llm.invoke(prompt)
-                self.last_provider, self.last_model = provider, model
-                return response
+                return self._try(provider, model, prompt)
+            except LookupError:
+                continue
             except Exception as error:
                 last_error = error
                 if is_quota_error(error):
+                    if is_rate_limit_error(error):
+                        wait = get_retry_after_seconds(error) or 5.0
+                        if wait <= settings.rate_limit_wait_seconds:
+                            deferred.append((wait, provider, model))
                     logger.warning("Quota exhausted for %s/%s, trying next model.", provider, model)
                     continue
                 if is_model_unavailable_error(error):
@@ -184,6 +258,26 @@ class FallbackLLM:
                     continue
                 only_quota_failures = False
                 logger.warning("Model %s/%s failed: %s", provider, model, error)
+
+        budget = settings.rate_limit_wait_seconds
+        for wait, provider, model in sorted(deferred):
+            if wait > budget:
+                break
+            budget -= wait
+            logger.warning(
+                "Every model is busy; waiting %.0fs for the %s/%s rate limit to reset.",
+                wait,
+                provider,
+                model,
+            )
+            time.sleep(wait)
+            try:
+                return self._try(provider, model, prompt)
+            except LookupError:
+                continue
+            except Exception as error:
+                last_error = error
+                logger.warning("Model %s/%s still failing after the wait: %s", provider, model, error)
 
         if last_error is None:
             raise RuntimeError("No usable LLM model is configured.")
