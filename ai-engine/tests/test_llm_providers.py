@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from config.llm import (
     FallbackLLM,
+    QuotaExceededError,
     get_available_providers,
     get_llm,
     get_llm_status,
@@ -185,6 +186,37 @@ class TestChainFallback(unittest.TestCase):
         self.assertEqual(response.content, "generated")
         self.assertEqual(exhausted.calls, 3)
         self.assertEqual(llm.label, "ollama (qwen2.5-coder:7b)")
+
+    def test_retired_model_falls_through_instead_of_failing_the_run(self):
+        retired = StubLLM(
+            error=RuntimeError(
+                "404 This model models/gemini-2.0-flash is no longer available."
+            )
+        )
+        working = StubLLM(content="generated")
+        clients = {"gemini": retired, "groq": working}
+
+        llm = FallbackLLM(
+            [("gemini", "gemini-2.0-flash"), ("groq", "llama-3.3-70b-versatile")]
+        )
+        with patch(
+            "config.llm.get_llm",
+            side_effect=lambda provider, model_name, temperature: clients[provider],
+        ):
+            response = llm.invoke("prompt")
+
+        self.assertEqual(response.content, "generated")
+        self.assertEqual(llm.label, "groq (llama-3.3-70b-versatile)")
+
+    def test_retired_model_is_not_reported_as_a_quota_failure(self):
+        retired = StubLLM(error=RuntimeError("404 model_not_found"))
+
+        llm = FallbackLLM([("gemini", "gemini-2.0-flash")])
+        with patch("config.llm.get_llm", return_value=retired):
+            with self.assertRaises(RuntimeError) as ctx:
+                llm.invoke("prompt")
+
+        self.assertNotIsInstance(ctx.exception, QuotaExceededError)
 
 
 if __name__ == "__main__":
