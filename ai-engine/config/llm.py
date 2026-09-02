@@ -21,6 +21,19 @@ QUOTA_ERROR_MARKERS = (
     "insufficient_quota",
 )
 
+# Providers retire models regularly ("gemini-2.0-flash is no longer available"); a configured
+# model that no longer exists must not abort the run while other candidates remain.
+MODEL_UNAVAILABLE_MARKERS = (
+    "no longer available",
+    "not found",
+    "does not exist",
+    "decommissioned",
+    "deprecated",
+    "unsupported model",
+    "model_not_found",
+    "invalid model",
+)
+
 
 class QuotaExceededError(RuntimeError):
     """Raised when every configured model has exhausted its provider quota."""
@@ -41,6 +54,12 @@ def is_quota_message(text: str) -> bool:
 def is_quota_error(error: BaseException) -> bool:
     """Detect provider quota / rate-limit failures, which retrying cannot fix."""
     return is_quota_message(f"{type(error).__name__} {error}")
+
+
+def is_model_unavailable_error(error: BaseException) -> bool:
+    """Detect a retired, renamed, or misspelled model, which only another model can fix."""
+    lowered = f"{type(error).__name__} {error}".lower()
+    return any(marker in lowered for marker in MODEL_UNAVAILABLE_MARKERS)
 
 
 @dataclass(frozen=True)
@@ -138,7 +157,7 @@ class FallbackLLM:
 
     def invoke(self, prompt: str) -> Any:
         last_error: BaseException | None = None
-        quota_exhausted = True
+        only_quota_failures = True
 
         for provider, model in self.candidates:
             llm = get_llm(provider=provider, model_name=model, temperature=self.temperature)
@@ -154,12 +173,21 @@ class FallbackLLM:
                 if is_quota_error(error):
                     logger.warning("Quota exhausted for %s/%s, trying next model.", provider, model)
                     continue
-                quota_exhausted = False
+                if is_model_unavailable_error(error):
+                    only_quota_failures = False
+                    logger.warning(
+                        "Model %s/%s is unavailable (%s), trying next model.",
+                        provider,
+                        model,
+                        error,
+                    )
+                    continue
+                only_quota_failures = False
                 logger.warning("Model %s/%s failed: %s", provider, model, error)
 
         if last_error is None:
             raise RuntimeError("No usable LLM model is configured.")
-        if quota_exhausted:
+        if only_quota_failures:
             tried = ", ".join(f"{p}/{m}" for p, m in self.candidates)
             raise QuotaExceededError(
                 f"LLM quota exceeded on every configured model ({tried}). "
@@ -307,7 +335,7 @@ def invoke_with_retry(
                 max_retries + 1,
                 error,
             )
-            if is_quota_error(error):
+            if is_quota_error(error) or is_model_unavailable_error(error):
                 break
             if attempt < max_retries:
                 time.sleep(retry_delay_seconds * (attempt + 1))

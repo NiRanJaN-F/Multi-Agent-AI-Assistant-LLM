@@ -141,9 +141,10 @@ run costs **2 LLM calls** — Planner (plan + architecture in one response) and 
 response). Architect, Tester, QA, and Doc Writer are deterministic and never touch the provider. A
 refinement run also costs 2 calls.
 
-When a model returns a quota/rate-limit error the engine does not retry it; it moves straight to the
-next candidate: the selected provider's models first, then the other configured providers in this
-order — free ones before paid OpenAI, which is only used when its key is set:
+When a model returns a quota/rate-limit error — or has been retired by the provider, as
+`gemini-2.0-flash` was — the engine does not retry it; it moves straight to the next candidate: the
+selected provider's models first, then the other configured providers in this order, free ones
+before paid OpenAI, which is only used when its key is set:
 
 ```text
 Gemini → Groq → OpenRouter → Ollama (local) → OpenAI → deterministic mock templates
@@ -164,6 +165,8 @@ providers currently usable, and the exact fallback chain.
 
 ```env
 GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_FALLBACK_MODELS=gemini-flash-latest,gemini-flash-lite-latest
 GROQ_API_KEY=              # largest free tier — recommended primary
 OPENROUTER_API_KEY=
 OLLAMA_ENABLED=false       # true after `ollama pull qwen2.5-coder:7b`
