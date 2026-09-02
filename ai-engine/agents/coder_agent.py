@@ -1,9 +1,16 @@
 """Coder Agent node for generating source code implementations."""
 
 import logging
-from config.llm import invoke_with_retry, is_quota_error
+from config.llm import FallbackLLM, invoke_with_retry, is_quota_error
+from config.settings import settings
 from graph.state import AgentState
-from agents.utils import add_log, get_agent_llm, llm_label, parse_multi_file_response
+from agents.utils import (
+    add_log,
+    get_agent_llm,
+    llm_label,
+    parse_multi_file_response,
+    strip_code_fence,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +31,69 @@ FILE: path/of/file
 <complete file content>
 ```
 """
+
+SINGLE_FILE_PROMPT_TEMPLATE = """You are a Principal Software Engineer.
+Write the complete content of ONE file of a project.
+
+User Request: "{user_prompt}"
+Tech Stack: "{tech_stack}"
+All Files In The Project: {file_paths}
+File To Write Now: {file_path}
+
+The file must work with the others — keep element ids, imports, and function names consistent
+with the file names listed above.
+
+Return only the content of {file_path} inside a single code fence, with no commentary.
+"""
+
+# Small local models lose the output format part-way through a multi-file response, but they
+# handle one file at a time — and a local provider has no request quota to spend on the extra
+# calls. Cloud providers keep the single-call path, where requests are the scarce resource.
+LOCAL_PROVIDERS = {"ollama"}
+
+
+def one_call_per_file(llm: FallbackLLM) -> bool:
+    """Whether this model should write one file per call instead of all files in one."""
+    mode = settings.coder_file_mode.lower()
+    if mode == "file":
+        return True
+    if mode == "batch":
+        return False
+    return llm.candidates[0][0] in LOCAL_PROVIDERS
+
+
+def _generate_file_by_file(
+    llm: FallbackLLM,
+    file_paths: list[str],
+    user_prompt: str,
+    tech_stack: str,
+) -> tuple[dict[str, str], BaseException | None]:
+    """One call per file, so a weak model only has to hold one file's format at a time."""
+    generated: dict[str, str] = {}
+    last_error: BaseException | None = None
+
+    for file_path in file_paths:
+        try:
+            raw = invoke_with_retry(
+                llm,
+                SINGLE_FILE_PROMPT_TEMPLATE.format(
+                    user_prompt=user_prompt,
+                    tech_stack=tech_stack,
+                    file_paths=file_paths,
+                    file_path=file_path,
+                ),
+            )
+        except Exception as error:
+            logger.warning("Coder Agent failed on %s: %s", file_path, error)
+            last_error = error
+            continue
+
+        # The model is asked for bare content, but often labels it anyway.
+        content = parse_multi_file_response(raw).get(file_path) or strip_code_fence(raw)
+        if content:
+            generated[file_path] = content
+
+    return generated, last_error
 
 
 def _get_fallback_code(file_path: str, user_prompt: str) -> str:
@@ -148,7 +218,7 @@ def coder_agent(state: AgentState) -> dict:
     architecture = state.get("architecture", {})
     file_paths = architecture.get("file_paths", ["index.html", "styles.css", "app.js"])
 
-    llm = get_agent_llm(state, temperature=0.2)
+    llm = get_agent_llm(state, temperature=0.2, role="coder")
 
     if llm is None:
         generated_files = {path: _get_fallback_code(path, user_prompt) for path in file_paths}
@@ -160,28 +230,43 @@ def coder_agent(state: AgentState) -> dict:
         )
         return {"files": generated_files, "logs": logs, "current_step": "coded"}
 
-    try:
-        raw = invoke_with_retry(
-            llm,
-            CODER_PROMPT_TEMPLATE.format(
-                user_prompt=user_prompt,
-                tech_stack=tech_stack,
-                file_paths=file_paths,
-            ),
-        )
-    except Exception as e:
-        logger.error(f"Coder Agent error: {e}")
-        status = "quota_exceeded" if is_quota_error(e) else "error"
-        logs = add_log(logs, "CoderAgent", status, f"Code generation failed: {e}")
-        return {"error": str(e), "logs": logs, "current_step": "coding_failed"}
+    per_file = one_call_per_file(llm)
 
-    generated_files = parse_multi_file_response(raw)
+    if per_file:
+        generated_files, error = _generate_file_by_file(llm, file_paths, user_prompt, tech_stack)
+        if not generated_files and error is not None:
+            logger.error(f"Coder Agent error: {error}")
+            status = "quota_exceeded" if is_quota_error(error) else "error"
+            logs = add_log(logs, "CoderAgent", status, f"Code generation failed: {error}")
+            return {"error": str(error), "logs": logs, "current_step": "coding_failed"}
+    else:
+        try:
+            raw = invoke_with_retry(
+                llm,
+                CODER_PROMPT_TEMPLATE.format(
+                    user_prompt=user_prompt,
+                    tech_stack=tech_stack,
+                    file_paths=file_paths,
+                ),
+            )
+        except Exception as e:
+            logger.error(f"Coder Agent error: {e}")
+            status = "quota_exceeded" if is_quota_error(e) else "error"
+            logs = add_log(logs, "CoderAgent", status, f"Code generation failed: {e}")
+            return {"error": str(e), "logs": logs, "current_step": "coding_failed"}
+
+        generated_files = parse_multi_file_response(raw)
+
     missing = [path for path in file_paths if path not in generated_files]
 
     for path in missing:
         generated_files[path] = _get_fallback_code(path, user_prompt)
 
-    message = f"Generated code for {len(generated_files)} files in one call via {llm_label(llm, state)}."
+    strategy = f"{len(file_paths)} calls" if per_file else "one call"
+    message = (
+        f"Generated code for {len(generated_files)} files in {strategy} "
+        f"via {llm_label(llm, state)}."
+    )
     if missing:
         message += f" Used templates for {len(missing)} file(s) the model did not return: {', '.join(missing)}."
 

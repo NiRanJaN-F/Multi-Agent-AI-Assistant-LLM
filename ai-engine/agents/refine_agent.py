@@ -2,14 +2,16 @@
 
 import logging
 
-from config.llm import invoke_with_retry, is_quota_error
+from config.llm import FallbackLLM, invoke_with_retry, is_quota_error
 from graph.state import AgentState
+from agents.coder_agent import one_call_per_file
 from agents.utils import (
     add_log,
     extract_json_from_llm,
     get_agent_llm,
     llm_label,
     parse_multi_file_response,
+    strip_code_fence,
 )
 
 logger = logging.getLogger(__name__)
@@ -54,6 +56,24 @@ FILE: path/of/file
 ```
 <complete new file content>
 ```
+"""
+
+REFINE_SINGLE_FILE_PROMPT_TEMPLATE = """You are a Principal Software Engineer editing an existing project.
+
+Change Request: "{change_request}"
+Tech Stack: "{tech_stack}"
+All Files In Project: {file_paths}
+File To Rewrite Now: {file_path}
+
+Current content of {file_path}:
+```
+{current_content}
+```
+
+Rewrite this one file so the change request is satisfied, preserving all existing behaviour it
+does not ask you to alter.
+
+Return only the new content of {file_path} inside a single code fence, with no commentary.
 """
 
 
@@ -105,6 +125,43 @@ def _mock_refined_content(file_path: str, current_content: str, change_request: 
     return f"{current_content.rstrip()}{marker}"
 
 
+def _rewrite_file_by_file(
+    llm: FallbackLLM,
+    targets: list[str],
+    existing_files: dict[str, str],
+    change_request: str,
+    tech_stack: str,
+) -> tuple[dict[str, str], BaseException | None]:
+    """One call per file, so a weak model only has to hold one file's format at a time."""
+    rewritten: dict[str, str] = {}
+    last_error: BaseException | None = None
+
+    for file_path in targets:
+        try:
+            raw = invoke_with_retry(
+                llm,
+                REFINE_SINGLE_FILE_PROMPT_TEMPLATE.format(
+                    change_request=change_request,
+                    tech_stack=tech_stack,
+                    file_paths=list(existing_files),
+                    file_path=file_path,
+                    current_content=existing_files.get(file_path, "")[
+                        :MAX_CONTEXT_CHARS_PER_FILE
+                    ],
+                ),
+            )
+        except Exception as error:
+            logger.warning("Refine Coder failed on %s: %s", file_path, error)
+            last_error = error
+            continue
+
+        content = parse_multi_file_response(raw).get(file_path) or strip_code_fence(raw)
+        if content:
+            rewritten[file_path] = content
+
+    return rewritten, last_error
+
+
 def refine_planner_agent(state: AgentState) -> dict:
     """Plan which files a follow-up change request should touch."""
     logs = add_log(
@@ -132,7 +189,7 @@ def refine_planner_agent(state: AgentState) -> dict:
             "current_step": "refine_planning_failed",
         }
 
-    llm = get_agent_llm(state, temperature=0.2)
+    llm = get_agent_llm(state, temperature=0.2, role="planner")
     if llm is None:
         targets = _mock_targets(existing_files, change_request)
         logs = add_log(
@@ -216,7 +273,7 @@ def refine_coder_agent(state: AgentState) -> dict:
     architecture = state.get("architecture", {})
     targets = list(architecture.get("modify_files", [])) + list(architecture.get("new_files", []))
 
-    llm = get_agent_llm(state, temperature=0.2)
+    llm = get_agent_llm(state, temperature=0.2, role="coder")
     files = dict(existing_files)
 
     if llm is None:
@@ -237,29 +294,39 @@ def refine_coder_agent(state: AgentState) -> dict:
             "current_step": "refined",
         }
 
-    current_contents = "\n".join(
-        f"FILE: {path}\n```\n{existing_files.get(path, '')[:MAX_CONTEXT_CHARS_PER_FILE]}\n```"
-        for path in targets
-    )
-
-    try:
-        raw = invoke_with_retry(
-            llm,
-            REFINE_CODER_PROMPT_TEMPLATE.format(
-                change_request=change_request,
-                tech_stack=tech_stack,
-                file_paths=list(existing_files),
-                targets=targets,
-                current_contents=current_contents,
-            ),
+    if one_call_per_file(llm):
+        rewritten, error = _rewrite_file_by_file(
+            llm, targets, existing_files, change_request, tech_stack
         )
-    except Exception as e:
-        logger.error(f"Refine Coder error: {e}")
-        status = "quota_exceeded" if is_quota_error(e) else "error"
-        logs = add_log(logs, "RefineCoderAgent", status, f"Editing the project failed: {e}")
-        return {"error": str(e), "logs": logs, "current_step": "refine_coding_failed"}
+        if not rewritten and error is not None:
+            logger.error(f"Refine Coder error: {error}")
+            status = "quota_exceeded" if is_quota_error(error) else "error"
+            logs = add_log(logs, "RefineCoderAgent", status, f"Editing the project failed: {error}")
+            return {"error": str(error), "logs": logs, "current_step": "refine_coding_failed"}
+    else:
+        current_contents = "\n".join(
+            f"FILE: {path}\n```\n{existing_files.get(path, '')[:MAX_CONTEXT_CHARS_PER_FILE]}\n```"
+            for path in targets
+        )
 
-    rewritten = parse_multi_file_response(raw)
+        try:
+            raw = invoke_with_retry(
+                llm,
+                REFINE_CODER_PROMPT_TEMPLATE.format(
+                    change_request=change_request,
+                    tech_stack=tech_stack,
+                    file_paths=list(existing_files),
+                    targets=targets,
+                    current_contents=current_contents,
+                ),
+            )
+        except Exception as e:
+            logger.error(f"Refine Coder error: {e}")
+            status = "quota_exceeded" if is_quota_error(e) else "error"
+            logs = add_log(logs, "RefineCoderAgent", status, f"Editing the project failed: {e}")
+            return {"error": str(e), "logs": logs, "current_step": "refine_coding_failed"}
+
+        rewritten = parse_multi_file_response(raw)
     changed_files = [path for path in targets if rewritten.get(path)]
     for path in changed_files:
         files[path] = rewritten[path]

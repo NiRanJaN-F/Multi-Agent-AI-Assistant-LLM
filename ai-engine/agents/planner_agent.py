@@ -36,7 +36,7 @@ def planner_agent(state: AgentState) -> dict:
     user_prompt = state.get("user_prompt", "Sample Application")
     existing_name = state.get("project_name", "").strip()
 
-    llm = get_agent_llm(state, temperature=0.2)
+    llm = get_agent_llm(state, temperature=0.2, role="planner")
     if llm is None:
         logger.info("No LLM key configured. Using default planning template.")
         slug = existing_name or ("".join(c if c.isalnum() else "-" for c in user_prompt.lower())[:25].strip("-") or "generated-app")
