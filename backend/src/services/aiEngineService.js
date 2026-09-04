@@ -189,3 +189,24 @@ export async function verifyLlmConnection(provider) {
 
   return result.body;
 }
+
+export async function fetchProjectsList() {
+  const result = await fetchAiEngineJson("/api/projects");
+  if (result.unreachable || !result.ok) {
+    return { projects: [] };
+  }
+  return result.body;
+}
+
+export async function fetchProjectFiles(projectName) {
+  const result = await fetchAiEngineJson(
+    `/api/projects/${encodeURIComponent(projectName)}/files`,
+    15_000,
+  );
+  if (result.unreachable || !result.ok) {
+    const error = new Error(result.body.detail || result.body.message || "Failed to load project files");
+    error.statusCode = result.httpStatus || 500;
+    throw error;
+  }
+  return result.body;
+}

@@ -108,6 +108,8 @@ def planner_agent(state: AgentState) -> dict:
     try:
         raw = invoke_with_retry(llm, PLANNER_PROMPT_TEMPLATE.format(user_prompt=user_prompt))
         parsed = extract_json_from_llm(raw)
+        if not isinstance(parsed, dict):
+            parsed = {}
 
         project_name = existing_name or (parsed.get("project_name") or "generated-app")
         project_type = parsed.get("project_type") or _detect_project_type(user_prompt)

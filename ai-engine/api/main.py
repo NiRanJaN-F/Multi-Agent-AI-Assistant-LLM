@@ -72,6 +72,8 @@ class GenerateResponse(BaseModel):
     llm: Dict[str, Any]
     changed_files: List[str] = []
     mode: str = "generate"
+    files: Optional[Dict[str, str]] = Field(default_factory=dict)
+
 
 
 @app.get("/")
@@ -176,6 +178,7 @@ def generate_project(req: GenerateRequest) -> dict:
             "llm": llm_info,
             "changed_files": save_result.get("saved_files", []),
             "mode": "generate",
+            "files": generated_files,
         }
     except HTTPException:
         raise
@@ -190,6 +193,18 @@ def generate_project(req: GenerateRequest) -> dict:
 def get_projects() -> dict:
     """List the generated projects available on disk for refinement."""
     return {"projects": list_projects()}
+
+
+@app.get("/api/projects/{project_name}/files")
+def get_project_files(project_name: str) -> dict:
+    """Return the full file content dict for a generated project."""
+    try:
+        files = load_project_files(project_name)
+        if not files:
+            raise HTTPException(status_code=404, detail=f"Project '{project_name}' not found or has no files.")
+        return {"project_name": project_name, "files": files}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post("/api/refine", response_model=GenerateResponse)
@@ -256,6 +271,7 @@ def refine_project(req: RefineRequest) -> dict:
             "llm": llm_info,
             "changed_files": changed_files,
             "mode": "refine",
+            "files": final_state.get("files", {}),
         }
     except HTTPException:
         raise

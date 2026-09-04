@@ -27,6 +27,7 @@ CRITICAL FUNCTIONALITY REQUIREMENTS:
 - For JavaScript: attach real event listeners (form submit, button click, input keyup), manipulate DOM nodes dynamically, handle task creation, completion toggles, deletion, state array management, and localStorage persistence.
 - For CSS: provide complete responsive styling, flexbox/grid layout, hover effects, and clean UI design.
 - Element IDs and classes MUST match exactly across index.html, styles.css, and app.js.
+- DEFENSIVE JAVASCRIPT: Always check that DOM elements exist before referencing properties or adding listeners (e.g., use `if (el) el.value = ...` or `el?.addEventListener`). Never allow null element references to crash script execution during initialization.
 
 Format the response exactly like this, once per file and nothing else:
 
@@ -49,7 +50,7 @@ CRITICAL FUNCTIONALITY REQUIREMENTS:
 - Do NOT output placeholders, TODOs, or mock stubs.
 - Keep element IDs, class names, function signatures, and file references perfectly aligned with the other project files.
 - If writing HTML: include all interactive forms, inputs, buttons, and containers required by the prompt.
-- If writing JavaScript: implement complete event handling (click, submit, change), dynamic DOM node creation/deletion, state updating, and localStorage persistence.
+- If writing JavaScript: implement complete event handling (click, submit, change), dynamic DOM node creation/deletion, state updating, and localStorage persistence. ALWAYS check that DOM elements exist before setting properties (e.g. `if (el) el.value = ...`).
 - If writing CSS: provide clean modern layout, responsive styles, and component styling.
 
 Return ONLY the complete raw source code of {file_path} inside a single code fence, with no commentary.

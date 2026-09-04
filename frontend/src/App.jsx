@@ -1,54 +1,106 @@
-import { useState } from "react";
-import HealthDashboard from "./components/HealthDashboard";
-import AgentGenerator from "./components/AgentGenerator";
-import ChatWorkflow from "./components/ChatWorkflow";
-import HistoryPanel from "./components/HistoryPanel";
-import "./App.css";
+import React from "react";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import LoginPage from "./components/auth/LoginPage";
+import IDENavbar from "./components/IDENavbar";
+import CommandCenter from "./components/CommandCenter";
+import DevWorkspace from "./components/DevWorkspace";
+import useGeneration from "./hooks/useGeneration";
+import "./styles/ide.css";
 
-const TABS = [
-  { id: "chat", label: "Chat" },
-  { id: "form", label: "Form" },
-  { id: "history", label: "History" },
-];
-
-function App() {
-  const [tab, setTab] = useState("chat");
-  const [historyKey, setHistoryKey] = useState(0);
+function MainIDE() {
+  const {
+    loading,
+    error,
+    result,
+    activeProject,
+    stepStates,
+    generate,
+    refine,
+    reset,
+  } = useGeneration();
 
   return (
-    <main className="app">
-      <header className="app__header">
-        <p className="app__eyebrow">Phase 5</p>
-        <h1>Multi-Agent AI Assistant</h1>
-        <p className="app__subtitle">
-          Live LLM-powered software engineering — generate projects from natural language using Gemini or OpenAI.
-        </p>
-      </header>
+    <div className="ide-shell">
+      <IDENavbar activeProject={activeProject} result={result} />
 
-      <nav className="tabs" aria-label="Workspace views">
-        {TABS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`tabs__button ${tab === item.id ? "tabs__button--active" : ""}`}
-            onClick={() => setTab(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </nav>
+      {error && (
+        <div style={{
+          padding: "8px 16px",
+          background: "rgba(239,68,68,0.12)",
+          borderBottom: "1px solid rgba(239,68,68,0.3)",
+          color: "#fca5a5",
+          fontSize: "13px",
+          flexShrink: 0,
+        }}>
+          ⚠ {error}
+        </div>
+      )}
 
-      {tab === "chat" && <ChatWorkflow onGenerated={() => setHistoryKey((key) => key + 1)} />}
-      {tab === "form" && <AgentGenerator />}
-      {tab === "history" && <HistoryPanel refreshKey={historyKey} />}
-
-      <HealthDashboard />
-
-      <footer className="app__footer">
-        <code>{import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}</code>
-      </footer>
-    </main>
+      <div className="ide-body">
+        <CommandCenter
+          stepStates={stepStates}
+          loading={loading}
+          activeProject={activeProject}
+          result={result}
+          onGenerate={generate}
+          onRefine={refine}
+          onReset={reset}
+        />
+        <DevWorkspace
+          result={result}
+          activeProject={activeProject}
+          onReset={reset}
+        />
+      </div>
+    </div>
   );
 }
 
-export default App;
+function AuthGate() {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        height: "100vh",
+        width: "100vw",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#090a0f",
+        color: "#8b8fa8",
+        fontFamily: "'Inter', system-ui, sans-serif",
+      }}>
+        <div style={{
+          width: "36px",
+          height: "36px",
+          border: "3px solid #232635",
+          borderTopColor: "#6366f1",
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+          marginBottom: "16px",
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <span style={{ fontSize: "13px", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+          Authenticating Session…
+        </span>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  return <MainIDE />;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
+  );
+}
+

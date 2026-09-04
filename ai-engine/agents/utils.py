@@ -56,8 +56,10 @@ def llm_label(llm: FallbackLLM | None, state: AgentState) -> str:
 
 
 def strip_code_fence(text: str) -> str:
-    """Remove markdown code fences from LLM output when present."""
+    """Remove reasoning <think> blocks and markdown code fences from LLM output."""
     cleaned = (text or "").strip()
+    cleaned = re.sub(r"<think>[\s\S]*?</think>", "", cleaned, flags=re.IGNORECASE).strip()
+
     match = re.search(r"```(?:[\w+-]*)?\s*([\s\S]*?)\s*```", cleaned)
     if match:
         return match.group(1).strip()
@@ -92,6 +94,16 @@ def parse_multi_file_response(text: str) -> Dict[str, str]:
     return files
 
 
+def _coerce_to_dict(data: Any) -> Dict[str, Any]:
+    if isinstance(data, dict):
+        return data
+    if isinstance(data, list):
+        if data and isinstance(data[0], dict):
+            return data[0]
+        return {"tasks": data}
+    return {}
+
+
 def extract_json_from_llm(text: str) -> Dict[str, Any]:
     """Extract and parse JSON content from raw LLM output text, handling markdown code blocks."""
     if not text:
@@ -100,13 +112,15 @@ def extract_json_from_llm(text: str) -> Dict[str, Any]:
     cleaned = strip_code_fence(text)
 
     try:
-        return json.loads(cleaned)
+        data = json.loads(cleaned)
+        return _coerce_to_dict(data)
     except json.JSONDecodeError:
         start = cleaned.find("{")
         end = cleaned.rfind("}")
         if start != -1 and end != -1 and end > start:
             try:
-                return json.loads(cleaned[start : end + 1])
+                data = json.loads(cleaned[start : end + 1])
+                return _coerce_to_dict(data)
             except json.JSONDecodeError:
                 pass
         return {}

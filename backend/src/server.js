@@ -7,6 +7,7 @@ import { connectDatabase } from "./config/database.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import agentRoutes from "./routes/agentRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import { notFound } from "./middleware/notFound.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
@@ -27,6 +28,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api", healthRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/agents", agentRoutes);
 
