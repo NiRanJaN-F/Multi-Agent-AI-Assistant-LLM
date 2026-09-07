@@ -10,9 +10,8 @@ const TEMPLATES = [
   { emoji: "☁️", label: "SaaS App", prompt: "Build a SaaS task management app with user authentication, team workspaces, kanban board, and real-time updates using Express + HTML/JS." },
 ];
 
-const STATUS_ICONS = { pending: "○", running: "◉", done: "✓", failed: "✗" };
-
 export default function CommandCenter({ stepStates, loading, activeProject, onGenerate, onRefine, onReset, result }) {
+
   const [prompt, setPrompt] = useState("");
   const [projectName, setProjectName] = useState("");
   const [provider, setProvider] = useState("");

@@ -108,7 +108,10 @@ def _generate_backend_file_by_file(
         except Exception as error:
             logger.warning("BackendAgent failed on %s: %s", file_path, error)
             last_error = error
+            if is_quota_error(error):
+                break
             continue
+
 
         content = parse_multi_file_response(raw).get(file_path) or strip_code_fence(raw)
         if content:

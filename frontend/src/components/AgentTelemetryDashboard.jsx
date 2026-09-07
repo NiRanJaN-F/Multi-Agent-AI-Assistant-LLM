@@ -11,11 +11,11 @@ import {
   Coins,
   Cpu,
   CheckCircle2,
-  AlertCircle,
   Activity,
   ArrowRight,
   Zap,
 } from "lucide-react";
+
 import {
   ResponsiveContainer,
   BarChart,

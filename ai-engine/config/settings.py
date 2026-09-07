@@ -77,5 +77,11 @@ class Settings(BaseSettings):
     # auto: one call per file only for local models | file: always | batch: never
     coder_file_mode: str = Field(default="file", alias="CODER_FILE_MODE")
 
+    # --- Free-tier quality & budget guardrails ---
+    enable_llm_qa_review: bool = Field(default=False, alias="ENABLE_LLM_QA_REVIEW")
+    token_budget_per_generation_k: int = Field(default=25, alias="TOKEN_BUDGET_PER_GENERATION_K")
+    enable_prompt_cache: bool = Field(default=True, alias="ENABLE_PROMPT_CACHE")
+    deepseek_paid_tier: bool = Field(default=False, alias="DEEPSEEK_PAID_TIER")
+
 
 settings = Settings()

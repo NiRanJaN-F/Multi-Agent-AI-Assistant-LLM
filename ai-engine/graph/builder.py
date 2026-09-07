@@ -22,7 +22,7 @@ from graph.state import AgentState
 
 logger = logging.getLogger(__name__)
 
-MAX_CODER_RETRIES = 1
+MAX_CODER_RETRIES = 2
 
 
 def route_by_project_type(state: AgentState) -> Literal["backend", "coder"]:

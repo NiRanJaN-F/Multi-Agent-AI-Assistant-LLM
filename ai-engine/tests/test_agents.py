@@ -9,10 +9,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from agents.planner_agent import planner_agent
 from agents.architecture_agent import architecture_agent
 from agents.coder_agent import coder_agent
-from agents.tester_agent import tester_agent
+from agents.tester_agent import tester_agent as run_tester_agent
 from agents.qa_agent import qa_agent
 from agents.doc_agent import doc_agent
 from graph.state import AgentState
+
 
 
 from tests.test_helpers import MockLLMTestCase
@@ -70,8 +71,9 @@ class TestAgentNodes(MockLLMTestCase):
             "index.html": "<html><body><h1>Todo App</h1></body></html>",
             "app.js": "console.log('App ready');",
         }
-        res = tester_agent(state)
+        res = run_tester_agent(state)
         self.assertIn("files", res)
+
         self.assertTrue(any(k.startswith("tests/") for k in res["files"].keys()))
         self.assertEqual(res["current_step"], "tested")
 

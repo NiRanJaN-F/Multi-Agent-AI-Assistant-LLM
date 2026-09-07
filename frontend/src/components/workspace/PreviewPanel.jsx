@@ -19,6 +19,16 @@ function buildBlobUrl(files) {
   const jsxFiles = fileKeys.filter((k) => k.endsWith(".jsx") || k.endsWith(".tsx"));
   const isReact = jsxFiles.length > 0 || Object.values(files).some((c) => typeof c === "string" && (c.includes("import React") || c.includes("from \"react\"") || c.includes("from 'react'")));
 
+  // ─── 0. Ensure Tailwind CSS & Font CDN in head ───────────────────────────
+  if (!html.includes("cdn.tailwindcss.com")) {
+    const tailwindTag = '<script src="https://cdn.tailwindcss.com"></script>';
+    if (html.includes("<head>")) {
+      html = html.replace("<head>", `<head>\n  ${tailwindTag}`);
+    } else {
+      html = `<head>${tailwindTag}</head>\n${html}`;
+    }
+  }
+
   // ─── 1. Inlining All CSS ───────────────────────────────────────────────────
   const cssMatches = [...html.matchAll(/<link[^>]+href=["']([^"']*\.css)["'][^>]*>/gi)];
   const inlinedCss = new Set();
@@ -54,14 +64,37 @@ function buildBlobUrl(files) {
 
   // ─── 2. Handling React / JSX Bundling ──────────────────────────────────────
   if (isReact) {
+    // Collect helper/utility JS files (storage.js, api.js, utils)
+    const helperJsFiles = fileKeys.filter(
+      (k) =>
+        k.endsWith(".js") &&
+        !k.includes("server") &&
+        !k.includes("test") &&
+        !k.includes("vite.config") &&
+        !k.includes("tailwind.config") &&
+        !k.includes("main.js")
+    );
+
+    const helperCodes = [];
+    for (const key of helperJsFiles) {
+      let code = files[key] || "";
+      if (!code.trim()) continue;
+
+      code = code
+        .replace(/import\s+[\s\S]*?from\s+['"][^'"]+['"];?/g, "")
+        .replace(/export\s+default\s+function\s+([A-Za-z0-9_]+)/g, "function $1")
+        .replace(/export\s+default\s+([A-Za-z0-9_]+);?/g, "")
+        .replace(/export\s+\{[^}]*\};?/g, "")
+        .replace(/export\s+(const|let|var|function|class|async\s+function)\s+/g, "$1 ");
+
+      helperCodes.push(`// --- Helper Module: ${key} ---\n${code}`);
+    }
+
     // Collect all JSX & component code
     const componentCodes = [];
-    const helperOrder = ["Header", "Navbar", "Sidebar", "Footer", "Card", "Button", "Modal"];
-
-    // Sort components before App.jsx so dependencies are defined first
     const sortedJsxKeys = [...jsxFiles].sort((a, b) => {
-      if (a.includes("App.jsx")) return 1;
-      if (b.includes("App.jsx")) return -1;
+      if (a.includes("App.jsx") || a.endsWith("/App.jsx")) return 1;
+      if (b.includes("App.jsx") || b.endsWith("/App.jsx")) return -1;
       if (a.includes("main.jsx") || a.includes("index.jsx")) return 1;
       if (b.includes("main.jsx") || b.includes("index.jsx")) return -1;
       return a.localeCompare(b);
@@ -77,35 +110,95 @@ function buildBlobUrl(files) {
         .replace(/export\s+default\s+function\s+([A-Za-z0-9_]+)/g, "function $1")
         .replace(/export\s+default\s+([A-Za-z0-9_]+);?/g, "")
         .replace(/export\s+\{[^}]*\};?/g, "")
-        .replace(/export\s+(const|let|var|function|class)\s+/g, "$1 ");
+        .replace(/export\s+(const|let|var|function|class|async\s+function)\s+/g, "$1 ");
 
       componentCodes.push(`// --- Component: ${key} ---\n${code}`);
     }
 
+    // Extract all Lucide and React-Icons imports across all project files
+    const detectedIcons = new Set([
+      'Activity', 'Dumbbell', 'Flame', 'TrendingUp', 'TrendingDown', 'Plus', 'PlusCircle',
+      'Trash', 'Trash2', 'Edit', 'Edit2', 'Calendar', 'Clock', 'Award', 'Target',
+      'Check', 'CheckCircle', 'X', 'XCircle', 'Search', 'Zap', 'User', 'Users', 'Settings',
+      'Heart', 'Star', 'ShoppingBag', 'ShoppingCart', 'Filter', 'ChevronRight', 'ChevronLeft',
+      'ChevronDown', 'ArrowRight', 'RefreshCw', 'BarChart2', 'BarChart3', 'PieChart', 'DollarSign',
+      'Gamepad2', 'Volume2', 'VolumeX', 'Sparkles', 'Play', 'Pause', 'RotateCcw', 'Coffee',
+      'Utensils', 'Phone', 'Mail', 'MessageSquare', 'HelpCircle', 'Trophy', 'Bot', 'Cpu',
+      'Layers', 'Compass', 'MapPin', 'Send', 'Share2', 'Sliders', 'Sun', 'Moon', 'ExternalLink',
+      'Eye', 'EyeOff', 'Copy', 'Download', 'Upload', 'Maximize', 'Minimize', 'Grid', 'List'
+    ]);
+
+    for (const [filePath, content] of Object.entries(files)) {
+      if (typeof content !== 'string') continue;
+      const iconMatches = content.matchAll(/import\s+\{([^}]+)\}\s+from\s+['"](?:lucide-react|react-icons[\w/]*|lucide)['"]/g);
+      for (const match of iconMatches) {
+        match[1].split(',').forEach((rawItem) => {
+          const name = rawItem.trim().split(/\s+as\s+/)[0].trim();
+          if (name && /^[A-Z]\w+$/.test(name)) {
+            detectedIcons.add(name);
+          }
+        });
+      }
+    }
+
+    const iconDeclarations = Array.from(detectedIcons)
+      .map((name) => `const ${name} = _icon('${name}');`)
+      .join('\n  ');
+
     // React CDN dependencies + Babel standalone wrapper
     const reactRuntime = `
-<!-- React & Babel Standalone CDN -->
+<!-- React, ReactDOM, Babel Standalone CDN -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script type="text/babel" data-presets="react">
-  const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
+  const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext, useReducer } = React;
 
-  // Mock react-chartjs-2 fallbacks if imported
+  // Universal Icon Factory
+  const _icon = (name) => (props) => (
+    <svg width={props?.size || props?.width || 18} height={props?.size || props?.height || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props?.className || ""} style={props?.style || {display: 'inline-block', verticalAlign: 'middle'}}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v8M8 12h8" />
+    </svg>
+  );
+
+  // Dynamic Icon declarations
+  ${iconDeclarations}
+
+  // Framer Motion fallbacks
+  const motion = new Proxy({}, {
+    get: (_, tag) => (props) => {
+      const Component = typeof tag === 'string' && tag.length > 0 ? tag : 'div';
+      const { initial, animate, exit, transition, whileHover, whileTap, whileInView, viewport, ...rest } = props || {};
+      return <Component {...rest} />;
+    }
+  });
+  const AnimatePresence = ({ children }) => <>{children}</>;
+
+  // Mock react-chartjs-2 fallbacks
   const Bar = (props) => <div className="mock-chart bar-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>📊 Bar Chart: {props.data?.datasets?.[0]?.label || 'Data'}</div>;
   const Line = (props) => <div className="mock-chart line-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>📈 Line Chart: {props.data?.datasets?.[0]?.label || 'Trend'}</div>;
   const Pie = (props) => <div className="mock-chart pie-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>🥧 Pie Chart: {props.data?.labels?.join(', ') || 'Distribution'}</div>;
+  const Doughnut = (props) => <div className="mock-chart doughnut-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>🍩 Chart: {props.data?.labels?.join(', ') || 'Distribution'}</div>;
   const ChartJS = { register: () => {} };
   const CategoryScale = {}; const LinearScale = {}; const BarElement = {}; const PointElement = {}; const LineElement = {}; const ArcElement = {}; const Title = {}; const Tooltip = {}; const Legend = {};
 
   try {
+    ${helperCodes.join("\n\n")}
+
     ${componentCodes.join("\n\n")}
 
     // Mount to #root
-    const mountTarget = document.getElementById("root");
-    if (mountTarget && typeof App !== 'undefined') {
+    let mountTarget = document.getElementById("root");
+    if (!mountTarget) {
+      mountTarget = document.createElement("div");
+      mountTarget.id = "root";
+      document.body.prepend(mountTarget);
+    }
+
+    if (typeof App !== 'undefined') {
       const root = ReactDOM.createRoot(mountTarget);
       root.render(<App />);
     }
@@ -118,9 +211,9 @@ function buildBlobUrl(files) {
     }
   } catch (err) {
     console.error("Preview Render Error:", err);
-    const target = document.getElementById("root");
+    const target = document.getElementById("root") || document.body;
     if (target) {
-      target.innerHTML = '<div style="padding:24px;color:#f87171;font-family:sans-serif;"><h3>Preview Warning</h3><p>' + err.message + '</p></div>';
+      target.innerHTML = '<div style="padding:24px;color:#f87171;font-family:sans-serif;background:#181926;border:1px solid #ef4444;border-radius:8px;margin:20px;"><h3>Preview Note</h3><p>' + err.message + '</p></div>';
     }
   }
 </script>
@@ -128,6 +221,15 @@ function buildBlobUrl(files) {
 
     // Remove any original main.jsx scripts
     html = html.replace(/<script[^>]+src=["'][^"']*(?:main|index)\.jsx?["'][^>]*>\s*<\/script>/gi, "");
+
+    // Ensure root div exists in body
+    if (!html.includes('id="root"')) {
+      if (html.includes("<body>")) {
+        html = html.replace("<body>", '<body>\n  <div id="root"></div>');
+      } else {
+        html = `<div id="root"></div>\n${html}`;
+      }
+    }
 
     if (html.includes("</body>")) {
       html = html.replace("</body>", `${reactRuntime}\n</body>`);

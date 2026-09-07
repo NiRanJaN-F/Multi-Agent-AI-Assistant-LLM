@@ -2,6 +2,9 @@
 
 Static checks over generated files: bracket balance, empty files, broken HTML asset
 references, interactivity verification, and cross-agent API contract validation.
+
+Optional LLM-based review gated behind ENABLE_LLM_QA_REVIEW (default=false for
+free-tier; enabled when tokens are budgeted).
 """
 
 import ast
@@ -9,8 +12,10 @@ import json
 import logging
 import re
 
+from config.llm import is_quota_error
+from config.settings import settings
 from graph.state import AgentState
-from agents.utils import add_log
+from agents.utils import add_log, extract_json_from_llm, get_agent_llm, llm_label
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +26,45 @@ HTML_REFERENCE_PATTERN = re.compile(r"""(?:src|href)\s*=\s*["']([^"'#?]+)["']"""
 INTERACTION_PATTERNS = re.compile(
     r"addEventListener|onclick|onsubmit|onchange|onkeyup|onkeydown|oninput|"
     r"querySelector|getElementById|getElementsBy|setAttribute|classList|localStorage|"
-    r"fetch|axios|XMLHttpRequest",
+    r"fetch|axios|XMLHttpRequest|useState|useEffect|useRef|useReducer|useCallback|useMemo|"
+    r"onClick|onChange|onSubmit|onKeyDown|onKeyUp|onFocus|onBlur|<button|<form|<input",
     re.IGNORECASE,
 )
+
+CONFIG_AND_HELPER_FILES = (
+    "vite.config",
+    "tailwind.config",
+    "postcss.config",
+    "eslint.config",
+    "jest.config",
+    "webpack.config",
+    "tsconfig",
+    "package.json",
+    "server.js",
+    "app.js",
+    "routes/",
+    "models/",
+    "middleware/",
+    "controllers/",
+    "db/",
+)
+
+LLM_QA_REVIEW_PROMPT = """You are a senior code review and QA engineer.
+Review the following detected issues and code snippets from a generated project.
+
+Issues detected:
+{issues}
+
+Code snippets:
+{file_snippets}
+
+Provide concrete fix instructions and list any files that should be rewritten.
+Return ONLY valid JSON matching this schema:
+{{
+  "fix_instructions": "Detailed instructions on fixing detected bugs and logic gaps",
+  "files_to_rewrite": ["path/to/file.js"]
+}}
+"""
 
 
 def _unbalanced_brackets(content: str) -> bool:
@@ -80,13 +121,16 @@ def _check_html_references(files: dict[str, str]) -> list[str]:
     return issues
 
 
+
 def _check_interactivity(files: dict[str, str]) -> list[str]:
     """Check that generated front-end JavaScript files contain interactive logic."""
     issues = []
     js_files = {
         path: content
         for path, content in files.items()
-        if path.endswith((".js", ".jsx", ".ts", ".tsx")) and not path.startswith("tests/")
+        if path.endswith((".js", ".jsx", ".ts", ".tsx"))
+        and not path.startswith("tests/")
+        and not any(cfg in path.lower() for cfg in CONFIG_AND_HELPER_FILES)
     }
     html_files = [path for path in files if path.endswith(".html")]
 
@@ -121,8 +165,47 @@ def _check_contract_alignment(files: dict[str, str], api_contract: list) -> list
     return issues
 
 
+def _build_fix_instructions(issues: list[str], files: dict[str, str]) -> str:
+    """Convert static issues to a compact, actionable fix-instruction list the coder can ingest."""
+    if not issues:
+        return ""
+
+    lines: list[str] = []
+    for issue in issues[:15]:
+        mentioned_path = None
+        for path in files:
+            if path.lower() in issue.lower() or issue.lower().startswith(("file '" + path.lower(), "javascript file '" + path.lower())):
+                mentioned_path = path
+                break
+        if mentioned_path:
+            content = files.get(mentioned_path, "")
+            snippet_lines = content.splitlines()[:18]
+            snippet = "\n    ".join(f"L{i+1}: {l[:140]}" for i, l in enumerate(snippet_lines) if l.strip())
+            lines.append(f"- FILE: {mentioned_path}\n  ISSUE: {issue}\n  CONTEXT SNIPPET:\n    {snippet[:1200]}")
+        else:
+            lines.append(f"- {issue}")
+    return "\n".join(lines)
+
+
+def _qa_file_snippets(files: dict[str, str], max_chars: int = 3000) -> str:
+    """Compact snippets of all files for optional LLM QA review."""
+    chunks: list[str] = []
+    total = 0
+    for path, content in sorted(files.items()):
+        if total >= max_chars:
+            break
+        lines = content.splitlines()
+        head = "\n    ".join(f"L{i+1}: {l[:160]}" for i, l in enumerate(lines[:20]) if l.strip())
+        chunk = f"--- {path} ---\n    {head[:800]}"
+        if total + len(chunk) > max_chars:
+            chunk = chunk[: max(0, max_chars - total)]
+        chunks.append(chunk)
+        total += len(chunk)
+    return "\n".join(chunks)
+
+
 def qa_agent(state: AgentState) -> dict:
-    """Executes static quality analysis and syntax inspection on generated files."""
+    """Executes static quality analysis + optional LLM review (gated by ENABLE_LLM_QA_REVIEW=false default)."""
     logs = add_log(state.get("logs", []), "QAAgent", "started", "Performing code review and quality verification...")
 
     files = state.get("files", {})
@@ -144,6 +227,32 @@ def qa_agent(state: AgentState) -> dict:
         if not any(path.startswith("README") for path in files):
             recommendations.append("Add a README.md describing how to run the project.")
 
+    fix_instructions = _build_fix_instructions(issues, files) if issues else ""
+
+    if issues and settings.enable_llm_qa_review and len(issues) <= 12:
+        llm = get_agent_llm(state, temperature=0.1, role="tester")
+        if llm is not None:
+            try:
+                raw = llm.invoke(
+                    LLM_QA_REVIEW_PROMPT.format(
+                        issues=issues,
+                        file_snippets=_qa_file_snippets(files),
+                    )
+                )
+                parsed = extract_json_from_llm(raw.content if hasattr(raw, "content") else str(raw))
+                llm_fix = parsed.get("fix_instructions")
+                if llm_fix:
+                    fix_instructions = (fix_instructions + "\n\n--- LLM REVIEW DEEP FIXES ---\n" + str(llm_fix)).strip()
+                    recommendations.append(f"LLM review via {llm_label(llm, state)} appended fix instructions.")
+                rewrite = parsed.get("files_to_rewrite")
+                if isinstance(rewrite, list) and rewrite:
+                    recommendations.append(f"Files flagged for rewrite: {', '.join(str(x) for x in rewrite[:8])}")
+                logs = add_log(logs, "QAAgent", "info", f"Optional LLM QA review ran via {llm_label(llm, state)}.")
+            except Exception as e:
+                logger.warning("Optional LLM QA review failed: %s", e)
+                if not is_quota_error(e):
+                    logs = add_log(logs, "QAAgent", "warning", f"Optional LLM QA review skipped: {e}")
+
     passed = not issues
     if passed:
         recommendations.append(f"Static review passed across {len(files)} files.")
@@ -152,6 +261,7 @@ def qa_agent(state: AgentState) -> dict:
         "passed": passed,
         "issues": issues,
         "recommendations": recommendations,
+        "fix_instructions": fix_instructions,
     }
 
     status_msg = (
@@ -163,6 +273,7 @@ def qa_agent(state: AgentState) -> dict:
 
     return {
         "review_results": review_results,
+        "qa_fix_instructions": fix_instructions,
         "retry_count": state.get("retry_count", 0) + (0 if passed else 1),
         "logs": logs,
         "current_step": "reviewed",

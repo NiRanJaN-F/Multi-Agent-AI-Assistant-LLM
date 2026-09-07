@@ -73,7 +73,9 @@ NO_EXTRA_PROVIDERS = {
     "groq_api_key": None,
     "openrouter_api_key": None,
     "ollama_enabled": False,
+    "deepseek_api_key": None,
 }
+
 
 
 class TestModelCandidates(unittest.TestCase):

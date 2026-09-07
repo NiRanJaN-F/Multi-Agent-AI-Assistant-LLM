@@ -2,8 +2,11 @@
 
 import logging
 import re
+import sys
 import time
-from dataclasses import dataclass
+
+from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Any, Protocol
 
 from langchain_core.language_models import BaseChatModel
@@ -14,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 QUOTA_ERROR_MARKERS = (
     "429",
+    "402",
+    "insufficient balance",
+    "payment required",
     "resourceexhausted",
     "resource_exhausted",
     "quota",
@@ -118,11 +124,45 @@ class ProviderProfile:
     available: bool
 
 
-# Free providers first: Gemini (20/day) → Groq (thousands/day) → OpenRouter free models →
-# Ollama (local, unlimited, slowest), with paid OpenAI last and only if a key is set.
-PROVIDER_ORDER = ("deepseek", "gemini", "groq", "openrouter", "ollama", "openai")
+# Free providers first: Gemini (fast & high quota) → Groq (thousands/day) → OpenRouter free models →
+# Ollama (local, unlimited), with paid DeepSeek/OpenAI last and only if configured.
+PROVIDER_ORDER = ("gemini", "groq", "openrouter", "deepseek", "ollama", "openai")
+
+PROVIDER_COST_TIER = {
+    "ollama": "free_local",
+    "groq": "cheap",
+    "gemini": "standard_daily_cap",
+    "openrouter": "standard",
+    "deepseek": "premium_future_paid",
+    "openai": "premium",
+}
 
 OPENAI_COMPATIBLE = {"openai", "groq", "openrouter", "ollama", "deepseek"}
+
+HEAVY_TOKEN_ROLES = {"planner", "coder"}
+
+
+def _normalize_prompt_for_cache(prompt: str) -> str:
+    if len(prompt) > 2048:
+        return ""
+    collapsed = re.sub(r"\s+", " ", prompt).strip()
+    return collapsed
+
+
+@lru_cache(maxsize=64)
+def _cached_invoke(
+    normalized_prompt: str,
+    provider_name: str,
+    model_name: str,
+    temperature: float,
+) -> str:
+    if not normalized_prompt:
+        raise ValueError("cache bypass")
+    llm = get_llm(provider=provider_name, model_name=model_name, temperature=temperature)
+    if llm is None:
+        raise ValueError("cache bypass")
+    response = llm.invoke(normalized_prompt)
+    return response.content if hasattr(response, "content") else str(response)
 
 
 def _models(primary: str, fallbacks: str) -> list[str]:
@@ -198,9 +238,33 @@ def get_model_candidates(
     Precedence: an explicit request (the UI selector) beats the role's provider, which beats
     the global default. The rest of the chain follows in either case, so routing never costs
     a run: a role pinned to an unconfigured provider still falls through to the others.
+
+    Free-tier optimization: when DEEPSEEK_PAID_TIER=false and role is a heavy-token role
+    (planner, coder), DeepSeek is demoted behind Groq/Gemini/OpenRouter/Ollama to preserve
+    quota. Set DEEPSEEK_PAID_TIER=true to restore DeepSeek to its primary position.
     """
     target = (provider or get_role_provider(role) or settings.llm_provider).lower()
     ordered = [target, *(name for name in PROVIDER_ORDER if name != target)]
+
+    if (
+        not settings.deepseek_paid_tier
+        and role is not None
+        and role.lower() in HEAVY_TOKEN_ROLES
+        and not provider
+    ):
+        if "deepseek" in ordered:
+            ordered.remove("deepseek")
+            insert_at = 1
+            for idx, name in enumerate(ordered):
+                if name in {"openrouter", "ollama"}:
+                    insert_at = idx + 1
+            ordered.insert(insert_at, "deepseek")
+            logger.info(
+                "Free-tier mode: demoted DeepSeek to position %d for %s role. "
+                "Set DEEPSEEK_PAID_TIER=true to promote.",
+                insert_at,
+                role,
+            )
 
     return [
         (profile.name, model)
@@ -214,24 +278,66 @@ class FallbackLLM:
     """Chat model that walks a list of models/providers when one runs out of quota.
 
     Exposes ``invoke`` so it is a drop-in for a LangChain chat model in the agents.
+    Tracks call count for free-tier token-budget gating.
     """
 
     def __init__(self, candidates: list[tuple[str, str]], temperature: float = 0.2) -> None:
         self.candidates = candidates
         self.temperature = temperature
         self.last_provider, self.last_model = candidates[0]
+        self._stats = {"calls": 0, "cache_hits": 0, "budget_warned": False}
 
     @property
     def label(self) -> str:
         return f"{self.last_provider} ({self.last_model})"
 
+    @property
+    def call_count(self) -> int:
+        return self._stats["calls"]
+
     def _try(self, provider: str, model: str, prompt: str) -> Any:
+        if settings.enable_prompt_cache and "pytest" not in sys.modules:
+            normalized = _normalize_prompt_for_cache(prompt)
+
+            if normalized:
+                try:
+                    cached = _cached_invoke(
+                        normalized, provider, model, self.temperature
+                    )
+                    self._stats["cache_hits"] += 1
+                    self.last_provider, self.last_model = provider, model
+                    return type(
+                        "CachedResponse",
+                        (),
+                        {"content": cached},
+                    )()
+                except ValueError:
+                    pass
+                except Exception as error:
+                    if is_quota_error(error) or is_model_unavailable_error(error):
+                        raise error
+                    logger.debug("Prompt cache miss for %s/%s: %s", provider, model, error)
+
+
         llm = get_llm(provider=provider, model_name=model, temperature=self.temperature)
         if llm is None:
             raise LookupError(f"Provider '{provider}' is not configured.")
 
         response = llm.invoke(prompt)
         self.last_provider, self.last_model = provider, model
+        self._stats["calls"] += 1
+        budget_threshold = max(settings.token_budget_per_generation_k * 4, 12)
+        if (
+            self._stats["calls"] >= budget_threshold
+            and not self._stats["budget_warned"]
+        ):
+            self._stats["budget_warned"] = True
+            logger.warning(
+                "Free-tier call budget soft threshold reached (%d calls for this run). "
+                "Remaining steps will be conservative. Raise TOKEN_BUDGET_PER_GENERATION_K "
+                "or set DEEPSEEK_PAID_TIER=true if you have paid quota.",
+                self._stats["calls"],
+            )
         return response
 
     def invoke(self, prompt: str) -> Any:
@@ -250,11 +356,12 @@ class FallbackLLM:
                 last_error = error
                 if is_quota_error(error):
                     if is_rate_limit_error(error):
-                        wait = get_retry_after_seconds(error) or 5.0
-                        if wait <= settings.rate_limit_wait_seconds:
+                        wait = get_retry_after_seconds(error)
+                        if wait is not None and wait <= settings.rate_limit_wait_seconds:
                             deferred.append((wait, provider, model))
                     logger.warning("Quota exhausted for %s/%s, trying next model.", provider, model)
                     continue
+
                 if is_model_unavailable_error(error):
                     only_quota_failures = False
                     logger.warning(
@@ -424,7 +531,12 @@ def invoke_with_retry(
     max_retries: int = 2,
     retry_delay_seconds: float = 1.5,
 ) -> str:
-    """Invoke the LLM with simple retry logic for transient API failures."""
+    """Invoke the LLM with simple retry logic for transient API failures.
+
+    When settings.enable_prompt_cache and the prompt is small (<=2048 chars) and the
+    caller is a FallbackLLM we cache; here we only wrap the underlying invoke with
+    retries, because FallbackLLM._try already gates caching for its own path.
+    """
     last_error: Exception | None = None
 
     for attempt in range(max_retries + 1):

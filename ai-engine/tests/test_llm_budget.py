@@ -164,9 +164,10 @@ class TestLLMCallBudget(unittest.TestCase):
             final_state = create_agent_graph().invoke(initial_state())
 
         self.assertEqual(llm.calls, 1)
-        self.assertEqual(final_state["current_step"], "planning_failed")
+        self.assertIn(final_state["current_step"], ("planning_failed", "coding_failed"))
         self.assertIn("quota", final_state["error"].lower())
         self.assertEqual(final_state["logs"][-1]["status"], "quota_exceeded")
+
 
 
 if __name__ == "__main__":

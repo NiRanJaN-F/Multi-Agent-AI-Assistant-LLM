@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { User, LogOut, Shield, ChevronDown } from "lucide-react";
+import { LogOut, ChevronDown } from "lucide-react";
+
 
 export default function UserProfileBadge() {
   const { user, logout } = useAuth();

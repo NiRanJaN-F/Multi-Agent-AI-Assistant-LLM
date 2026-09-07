@@ -32,6 +32,7 @@ PER_DAY_429 = (
 )
 
 TWO_PROVIDERS = {
+    "deepseek_api_key": None,
     "gemini_api_key": "gem-key",
     "gemini_model": "gemini-2.5-flash",
     "gemini_fallback_models": "",

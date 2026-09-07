@@ -30,8 +30,7 @@ function mapLogsToSteps(logs) {
     docwriter: ["doc", "readme", "documentation"],
   };
 
-  let lastMatchedIndex = -1;
-  steps.forEach((step, si) => {
+  steps.forEach((step) => {
     const matchingLogs = logTexts.filter((lt) => keywords[step.key]?.some((kw) => lt.includes(kw)));
     if (matchingLogs.length > 0) {
       step.status = "done";
@@ -40,9 +39,9 @@ function mapLogsToSteps(logs) {
         return keywords[step.key]?.some((kw) => lt.includes(kw));
       }) || "";
       if (typeof step.log !== "string") step.log = step.log.message || "";
-      lastMatchedIndex = si;
     }
   });
+
 
   return steps;
 }
@@ -76,7 +75,11 @@ export default function useGeneration() {
     clearInterval(intervalRef.current);
     const mapped = logs ? mapLogsToSteps(logs) : null;
     if (mapped) {
-      setStepStates(mapped);
+      const finalized = mapped.map((s) => ({
+        ...s,
+        status: "done",
+      }));
+      setStepStates(finalized);
     } else {
       setStepStates((prev) => prev.map((s) => ({ ...s, status: "done" })));
     }
@@ -97,7 +100,8 @@ export default function useGeneration() {
       return data;
     } catch (err) {
       setError(err.message || "Generation failed");
-      setStepStates((prev) => prev.map((s, i) => (s.status === "running" ? { ...s, status: "failed" } : s)));
+      setStepStates((prev) => prev.map((s) => (s.status === "running" ? { ...s, status: "failed" } : s)));
+
       throw err;
     } finally {
       setLoading(false);

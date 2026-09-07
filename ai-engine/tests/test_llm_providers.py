@@ -19,6 +19,9 @@ from config.llm import (
 from config.settings import settings
 
 ALL_PROVIDERS = {
+    "deepseek_api_key": "ds-key",
+    "deepseek_model": "deepseek-chat",
+    "deepseek_fallback_models": "",
     "gemini_api_key": "gem-key",
     "gemini_model": "gemini-2.5-flash",
     "gemini_fallback_models": "",
@@ -37,6 +40,7 @@ ALL_PROVIDERS = {
 }
 
 NO_PROVIDERS = {
+    "deepseek_api_key": None,
     "gemini_api_key": None,
     "groq_api_key": None,
     "openrouter_api_key": None,
@@ -97,7 +101,7 @@ class TestCandidateOrdering(unittest.TestCase):
 
         self.assertEqual(
             providers,
-            ["gemini", "groq", "groq", "openrouter", "ollama", "openai"],
+            ["gemini", "deepseek", "groq", "groq", "openrouter", "ollama", "openai"],
         )
 
     def test_requested_provider_is_tried_first(self):
@@ -106,7 +110,7 @@ class TestCandidateOrdering(unittest.TestCase):
 
         self.assertEqual(candidates[0], ("groq", "llama-3.3-70b-versatile"))
         self.assertEqual(candidates[1], ("groq", "llama-3.1-8b-instant"))
-        self.assertEqual(candidates[2][0], "gemini")
+        self.assertEqual(candidates[2][0], "deepseek")
 
     def test_unconfigured_provider_falls_through_to_the_configured_ones(self):
         with patch.multiple(settings, **{**NO_PROVIDERS, "groq_api_key": "groq-key"}):

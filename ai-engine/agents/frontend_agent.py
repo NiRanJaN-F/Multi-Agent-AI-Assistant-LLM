@@ -19,25 +19,35 @@ from agents.utils import (
 
 logger = logging.getLogger(__name__)
 
-FRONTEND_PROMPT_TEMPLATE = """You are a Senior Frontend Engineer.
-Write clean, fully interactive, production-ready client-side code for EVERY frontend file listed below.
+FRONTEND_PROMPT_TEMPLATE = """You are a Principal Frontend Architect & Senior UI/UX Designer.
+Write clean, gorgeous, fully interactive, production-ready client-side code tailored SPECIFICALLY to the user's request for EVERY frontend file listed below.
 
 User Request: "{user_prompt}"
 Tech Stack: "{tech_stack}"
 Frontend Files To Write: {file_paths}
 Component Tree: {component_tree}
 
-API Contract (your frontend MUST call these exact routes):
+API Contract:
 {api_contract}
 
-CRITICAL FUNCTIONALITY REQUIREMENTS:
-- Write 100% COMPLETE, fully working interactive code. No TODO comments, placeholders, or empty handlers.
-- For HTML: include all forms, inputs, buttons, containers, and semantic elements the app needs.
-- For JavaScript/JSX: implement real addEventListener (submit, click, change), dynamic DOM manipulation,
-  async fetch() calls to the API routes defined in the API Contract, state array management, and localStorage persistence.
-- For CSS: provide complete responsive styling, flexbox/grid layouts, hover effects, transitions.
-- Element IDs and class names MUST be consistent across HTML, CSS, and JS files.
-- API base URL should default to 'http://localhost:3001' (or appropriate port for the tech stack).
+CRITICAL DESIGN & FUNCTIONALITY REQUIREMENTS:
+- PURPOSE-BUILT UI ARCHITECTURE:
+  * Design the exact layout and user interface tailored directly to what the user requested:
+    - For Games & Puzzles (e.g. Snake, Tic-Tac-Toe, Card games, Ludo): Create a dedicated game arena/canvas or interactive board, score/high-score HUD, start/pause/game-over screens, restart buttons, and keyboard/touch event handlers.
+    - For Dashboards & Analytics: Build KPI cards, visual charts, searchable data tables, filter tabs, and real-time status badges.
+    - For E-Commerce & Stores: Build product grids, category filtering, cart drawers with badges, and checkout modals.
+    - For Utilities & Tools (e.g. timers, converters, calculators, note apps): Build custom interactive controls, immediate live feedback, and action buttons.
+- AESTHETICS & STYLING:
+  * In HTML files, ALWAYS include Tailwind CSS CDN in <head>:
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  * Use modern, sleek styling with dark/light palettes, clean rounded corners, smooth hover transitions, and accessible typography.
+- COMPLETE INTERACTIVITY & LOGIC:
+  * Write 100% COMPLETE, fully working interactive code. NO TODO stubs or empty handlers.
+  * Ensure all user actions (clicks, keypresses, state changes, game loops) are fully implemented and functional.
+  * Use localStorage for persisting high scores, user preferences, and app state across page refreshes.
+  * Call `lucide.createIcons();` after any DOM update.
 
 Format the response exactly like this, once per file and nothing else:
 
@@ -47,8 +57,8 @@ FILE: path/of/file
 ```
 """
 
-FRONTEND_SINGLE_FILE_TEMPLATE = """You are a Senior Frontend Engineer.
-Write the complete client-side content of ONE file.
+FRONTEND_SINGLE_FILE_TEMPLATE = """You are a Principal Frontend Architect & Senior UI/UX Designer.
+Write the complete, modern, production-ready client-side content of ONE file tailored SPECIFICALLY to the user's request.
 
 User Request: "{user_prompt}"
 Tech Stack: "{tech_stack}"
@@ -56,16 +66,22 @@ All Frontend Files In This Project: {all_files}
 File To Write Now: {file_path}
 Component Tree: {component_tree}
 
-API Contract (backend routes your code should call):
+API Contract:
 {api_contract}
 
 CRITICAL REQUIREMENTS:
-- Write 100% COMPLETE code for {file_path}. No stubs or placeholders.
-- If writing HTML: include all interactive forms, input fields, buttons, and containers for the app.
-- If writing JavaScript/JSX: implement complete event handling (addEventListener for submit/click/change),
-  dynamic DOM node creation/removal, async fetch() calls to backend API routes, full state management.
-- If writing CSS: clean modern responsive layout with all component styles.
-- Keep element IDs, class names, and API route references perfectly aligned with other files.
+- Write 100% COMPLETE, high-polish code for {file_path}. No stubs or placeholders.
+- If writing HTML:
+  * In <head>, ALWAYS include Tailwind CSS CDN:
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  * Structure the layout appropriately for the requested application (e.g. game canvas/board for games, tool workspace for utilities, KPI/table for dashboards, product grid for shops).
+- If writing JavaScript/JSX:
+  * Implement complete, working event handlers, state transitions, game loops, or data flows matching the user prompt.
+  * Guard every DOM selector safely (`if (el) ...`).
+  * Call `lucide.createIcons()` after DOM updates.
+- If writing CSS: provide smooth transitions, custom scrollbars, and keyframe animations.
 
 Return ONLY the complete raw source code of {file_path} inside a single code fence, with no commentary.
 """
@@ -110,7 +126,10 @@ def _generate_frontend_file_by_file(
         except Exception as error:
             logger.warning("FrontendAgent failed on %s: %s", file_path, error)
             last_error = error
+            if is_quota_error(error):
+                break
             continue
+
 
         content = parse_multi_file_response(raw).get(file_path) or strip_code_fence(raw)
         if content:

@@ -7,11 +7,12 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agents.architecture_agent import architecture_agent
+from agents.architecture_agent import DEFAULT_LAYOUTS, architecture_agent
 from agents.doc_agent import doc_agent
 from agents.qa_agent import qa_agent
-from agents.tester_agent import tester_agent
+from agents.tester_agent import tester_agent as run_tester_agent
 from graph.state import AgentState
+
 
 
 def base_state(**overrides) -> AgentState:
@@ -51,7 +52,7 @@ class TestNoLLMCalls(unittest.TestCase):
         )
         self.assertEqual(architected["architecture"]["file_paths"], ["index.html", "app.js"])
 
-        tested = tester_agent(
+        tested = run_tester_agent(
             base_state(files={"index.html": "<html></html>", "app.js": "const x = 1;"})
         )
         self.assertIn("tests/app.test.js", tested["files"])
@@ -74,12 +75,12 @@ class TestArchitectValidation(unittest.TestCase):
     def test_falls_back_to_a_stack_default_when_the_plan_is_empty(self):
         with patch("agents.architecture_agent.get_agent_llm", return_value=None):
             result = architecture_agent(base_state(tech_stack="Python FastAPI"))
-            self.assertEqual(result["architecture"]["file_paths"], ["main.py", "requirements.txt"])
+            self.assertEqual(result["architecture"]["file_paths"], DEFAULT_LAYOUTS["python"])
 
 
 class TestTesterSuite(unittest.TestCase):
     def test_generates_a_python_suite_for_python_projects(self):
-        result = tester_agent(
+        result = run_tester_agent(
             base_state(tech_stack="Python", files={"main.py": "print('hi')"})
         )
         self.assertIn("tests/test_app.py", result["files"])
@@ -87,12 +88,13 @@ class TestTesterSuite(unittest.TestCase):
 
     def test_javascript_suite_lists_every_source_file(self):
         with patch("agents.tester_agent.get_agent_llm", return_value=None):
-            result = tester_agent(
+            result = run_tester_agent(
                 base_state(files={"index.html": "<html></html>", "app.js": "const x = 1;"})
             )
             suite = result["files"]["tests/app.test.js"]
             self.assertIn("'index.html'", suite)
             self.assertIn("'app.js'", suite)
+
 
 
 class TestStaticReview(unittest.TestCase):

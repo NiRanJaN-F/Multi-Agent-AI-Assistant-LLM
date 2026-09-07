@@ -150,3 +150,7 @@ def tester_agent(state: AgentState) -> dict:
         "logs": logs,
         "current_step": "tested",
     }
+
+
+tester_agent.__test__ = False
+
