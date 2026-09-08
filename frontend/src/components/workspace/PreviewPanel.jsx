@@ -115,69 +115,65 @@ function buildBlobUrl(files) {
       componentCodes.push(`// --- Component: ${key} ---\n${code}`);
     }
 
-    // Extract all Lucide and React-Icons imports across all project files
-    const detectedIcons = new Set([
-      'Activity', 'Dumbbell', 'Flame', 'TrendingUp', 'TrendingDown', 'Plus', 'PlusCircle',
-      'Trash', 'Trash2', 'Edit', 'Edit2', 'Calendar', 'Clock', 'Award', 'Target',
-      'Check', 'CheckCircle', 'X', 'XCircle', 'Search', 'Zap', 'User', 'Users', 'Settings',
-      'Heart', 'Star', 'ShoppingBag', 'ShoppingCart', 'Filter', 'ChevronRight', 'ChevronLeft',
-      'ChevronDown', 'ArrowRight', 'RefreshCw', 'BarChart2', 'BarChart3', 'PieChart', 'DollarSign',
-      'Gamepad2', 'Volume2', 'VolumeX', 'Sparkles', 'Play', 'Pause', 'RotateCcw', 'Coffee',
-      'Utensils', 'Phone', 'Mail', 'MessageSquare', 'HelpCircle', 'Trophy', 'Bot', 'Cpu',
-      'Layers', 'Compass', 'MapPin', 'Send', 'Share2', 'Sliders', 'Sun', 'Moon', 'ExternalLink',
-      'Eye', 'EyeOff', 'Copy', 'Download', 'Upload', 'Maximize', 'Minimize', 'Grid', 'List'
-    ]);
-
-    for (const [filePath, content] of Object.entries(files)) {
-      if (typeof content !== 'string') continue;
-      const iconMatches = content.matchAll(/import\s+\{([^}]+)\}\s+from\s+['"](?:lucide-react|react-icons[\w/]*|lucide)['"]/g);
-      for (const match of iconMatches) {
-        match[1].split(',').forEach((rawItem) => {
-          const name = rawItem.trim().split(/\s+as\s+/)[0].trim();
-          if (name && /^[A-Z]\w+$/.test(name)) {
-            detectedIcons.add(name);
-          }
-        });
-      }
-    }
-
-    const iconDeclarations = Array.from(detectedIcons)
-      .map((name) => `const ${name} = _icon('${name}');`)
-      .join('\n  ');
-
     // React CDN dependencies + Babel standalone wrapper
     const reactRuntime = `
-<!-- React, ReactDOM, Babel Standalone CDN -->
+<!-- React & Babel Standalone CDN -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script type="text/babel" data-presets="react">
-  const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext, useReducer } = React;
+  const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
 
-  // Universal Icon Factory
+  // Universal Icon Factory for Lucide Icons
   const _icon = (name) => (props) => (
-    <svg width={props?.size || props?.width || 18} height={props?.size || props?.height || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props?.className || ""} style={props?.style || {display: 'inline-block', verticalAlign: 'middle'}}>
+    <svg width={props?.size || 18} height={props?.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props?.className || ""} style={props?.style || {display: 'inline-block', verticalAlign: 'middle'}}>
       <circle cx="12" cy="12" r="10" />
       <path d="M12 8v8M8 12h8" />
     </svg>
   );
 
-  // Dynamic Icon declarations
-  ${iconDeclarations}
+  // Common Lucide Icon definitions
+  const Activity = _icon('Activity');
+  const Dumbbell = _icon('Dumbbell');
+  const Flame = _icon('Flame');
+  const TrendingUp = _icon('TrendingUp');
+  const TrendingDown = _icon('TrendingDown');
+  const Plus = _icon('Plus');
+  const PlusCircle = _icon('PlusCircle');
+  const Trash = _icon('Trash');
+  const Trash2 = _icon('Trash2');
+  const Edit = _icon('Edit');
+  const Edit2 = _icon('Edit2');
+  const Calendar = _icon('Calendar');
+  const Clock = _icon('Clock');
+  const Award = _icon('Award');
+  const Target = _icon('Target');
+  const Check = _icon('Check');
+  const CheckCircle = _icon('CheckCircle');
+  const X = _icon('X');
+  const XCircle = _icon('XCircle');
+  const Search = _icon('Search');
+  const Zap = _icon('Zap');
+  const User = _icon('User');
+  const Settings = _icon('Settings');
+  const Heart = _icon('Heart');
+  const Star = _icon('Star');
+  const ShoppingBag = _icon('ShoppingBag');
+  const ShoppingCart = _icon('ShoppingCart');
+  const Filter = _icon('Filter');
+  const ChevronRight = _icon('ChevronRight');
+  const ChevronLeft = _icon('ChevronLeft');
+  const ChevronDown = _icon('ChevronDown');
+  const ArrowRight = _icon('ArrowRight');
+  const RefreshCw = _icon('RefreshCw');
+  const BarChart2 = _icon('BarChart2');
+  const BarChart3 = _icon('BarChart3');
+  const PieChart = _icon('PieChart');
+  const DollarSign = _icon('DollarSign');
 
-  // Framer Motion fallbacks
-  const motion = new Proxy({}, {
-    get: (_, tag) => (props) => {
-      const Component = typeof tag === 'string' && tag.length > 0 ? tag : 'div';
-      const { initial, animate, exit, transition, whileHover, whileTap, whileInView, viewport, ...rest } = props || {};
-      return <Component {...rest} />;
-    }
-  });
-  const AnimatePresence = ({ children }) => <>{children}</>;
-
-  // Mock react-chartjs-2 fallbacks
+  // Mock react-chartjs-2 fallbacks if imported
   const Bar = (props) => <div className="mock-chart bar-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>📊 Bar Chart: {props.data?.datasets?.[0]?.label || 'Data'}</div>;
   const Line = (props) => <div className="mock-chart line-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>📈 Line Chart: {props.data?.datasets?.[0]?.label || 'Trend'}</div>;
   const Pie = (props) => <div className="mock-chart pie-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>🥧 Pie Chart: {props.data?.labels?.join(', ') || 'Distribution'}</div>;

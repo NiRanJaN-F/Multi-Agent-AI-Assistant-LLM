@@ -18,6 +18,7 @@ async function persistRun({ prompt, provider, result, durationMs, mode }) {
       tasks: result.tasks,
       savedFiles: result.saved_files,
       changedFiles: result.changed_files ?? [],
+      files: result.files ?? {},
       mode,
       outputDir: result.output_dir,
       reviewResults: result.review_results,

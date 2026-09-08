@@ -16,29 +16,37 @@ from agents.utils import (
 
 logger = logging.getLogger(__name__)
 
-MAX_CONTEXT_CHARS_PER_FILE = 4000
+MAX_CONTEXT_CHARS_PER_FILE = 5000
+MAX_SIBLING_CHARS = 3000
 
-REFINE_PLANNER_PROMPT_TEMPLATE = """You are a Technical Lead planning a change to an existing codebase.
+REFINE_PLANNER_PROMPT_TEMPLATE = """You are a Principal Software Architect planning an incremental modification to an existing codebase.
 
 Change Request: "{change_request}"
 Project Name: "{project_name}"
 Tech Stack: "{tech_stack}"
 
-Existing files:
+Existing Project Files & Contents:
 {files_summary}
 
-Decide the minimal set of files to touch. Return ONLY a valid JSON object matching this schema:
+CRITICAL RULES:
+1. Analyze the existing codebase thoroughly before planning. Identify exact files, functions, DOM IDs, and styles that need adjustment.
+2. Minimize changes: only modify files that directly require updates to implement the change request.
+3. If new files are strictly necessary (e.g. new utility or component), list them under "new_files". Otherwise, prefer editing existing files.
+4. Never break existing features, UI elements, or event bindings.
+
+Return ONLY a valid JSON object matching this schema:
 {{
-  "summary": "One sentence describing the change",
-  "tasks": ["Concrete step 1", "Concrete step 2"],
-  "modify_files": ["existing/path/to/change.js"],
-  "new_files": ["path/of/file/to/create.js"]
+  "summary": "One concise sentence describing the exact technical change",
+  "tasks": ["Step 1: description", "Step 2: description"],
+  "modify_files": ["existing/path/to/file.ext"],
+  "new_files": ["new/path/to/file.ext"]
 }}
-Only list files under "modify_files" that appear in the existing files list.
+Only list files under "modify_files" that exist in the project above.
 """
 
 REFINE_CODER_PROMPT_TEMPLATE = """You are a Principal Software Engineer editing an existing project.
 
+{qa_header}
 Change Request: "{change_request}"
 Tech Stack: "{tech_stack}"
 All Files In Project: {file_paths}
@@ -47,8 +55,14 @@ Files To Rewrite: {targets}
 Current content of the files to rewrite:
 {current_contents}
 
-Rewrite every file listed under "Files To Rewrite" so the change request is satisfied, in a
-single response. Preserve all existing behaviour the change request does not ask you to alter.
+CRITICAL REQUIREMENTS:
+1. PRESERVE ALL EXISTING FUNCTIONALITY: Do NOT remove, break, or omit existing working features, mock datasets, or DOM bindings.
+2. 100% COMPLETE CODE: Return the complete updated file content for each file. No placeholders or `// rest of code`.
+3. DEFENSIVE JS & CROSS-FILE SYNC:
+   - For browser apps, attach shared data/managers to `window` (e.g. `window.PRODUCTS`, `window.Cart`, `window.ThemeManager`).
+   - Do NOT use ES module `export`/`import` statements in plain browser scripts.
+   - Maintain exact DOM element IDs and call `lucide.createIcons();` after dynamic UI updates.
+4. STYLING: Maintain clean Tailwind CSS styling, responsive grid layouts, and smooth transitions.
 
 Format the response exactly like this, once per file and nothing else:
 
@@ -58,22 +72,52 @@ FILE: path/of/file
 ```
 """
 
-REFINE_SINGLE_FILE_PROMPT_TEMPLATE = """You are a Principal Software Engineer editing an existing project.
+REFINE_SINGLE_FILE_PROMPT_TEMPLATE = """You are a Principal Software Engineer incrementally updating an existing file.
 
+{qa_header}
 Change Request: "{change_request}"
 Tech Stack: "{tech_stack}"
-All Files In Project: {file_paths}
-File To Rewrite Now: {file_path}
+File To Update: {file_path}
+All Project Files: {file_paths}
 
-Current content of {file_path}:
+CURRENT CONTENT OF {file_path}:
 ```
 {current_content}
 ```
 
-Rewrite this one file so the change request is satisfied, preserving all existing behaviour it
-does not ask you to alter.
+SIBLING FILES CONTEXT:
+{sibling_context}
 
-Return only the new content of {file_path} inside a single code fence, with no commentary.
+CRITICAL RULES FOR UPDATING {file_path}:
+1. PRESERVE EXISTING FUNCTIONALITY: Do NOT delete, break, or omit existing features, mock data, DOM IDs, or event handlers unless the change request specifically asks to replace them.
+2. COMPLETE OUTPUT: Return the COMPLETE, updated file content. Do NOT use snippets, placeholders, `// ... rest of code`, or truncated code.
+3. DEFENSIVE BROWSER JS & CROSS-FILE SYNC:
+   - If writing JavaScript for the browser, attach shared data, state, or utility objects to `window` (e.g., `window.PRODUCTS`, `window.Cart`, `window.ThemeManager`).
+   - Do NOT use ES module `export` or `import` statements in plain browser scripts.
+   - Guard DOM selections with `if (el) ...` and call `lucide.createIcons();` after rendering dynamic UI.
+4. STYLING: Preserve Tailwind CSS classes, responsive layouts, dark mode classes, and clean visual structure.
+
+Return ONLY the complete updated file content inside a single markdown code fence (```...```), with no commentary.
+"""
+
+REFINE_NEW_FILE_PROMPT_TEMPLATE = """You are a Principal Software Engineer creating a NEW file for an existing codebase.
+
+{qa_header}
+Change Request: "{change_request}"
+Tech Stack: "{tech_stack}"
+New File Path To Create: {file_path}
+All Project Files: {file_paths}
+
+EXISTING SIBLING FILES IN PROJECT:
+{sibling_context}
+
+CRITICAL RULES:
+- Implement the COMPLETE, 100% functional content for {file_path}. No placeholders or TODOs.
+- Match all existing styles, naming conventions, and data structures used in sibling files.
+- If writing browser JavaScript: attach any shared classes or objects to `window` (e.g., `window.ThemeManager = ...`) so other scripts can access them without `import`/`export`.
+- Never throw ReferenceErrors between scripts.
+
+Return ONLY the raw source code for {file_path} inside a single markdown code fence (```...```), with no commentary.
 """
 
 
@@ -90,13 +134,33 @@ def _infer_tech_stack(files: dict[str, str]) -> str:
     return "HTML/CSS/JS"
 
 
-def _files_summary(files: dict[str, str]) -> str:
+def _files_summary(files: dict[str, str], max_per_file: int = 2500) -> str:
     if not files:
         return "(none)"
-    return "\n".join(
-        f"--- {path} ({len(content)} chars) ---\n{content[:400]}"
-        for path, content in files.items()
-    )
+    chunks = []
+    for path, content in sorted(files.items()):
+        if len(content) <= max_per_file:
+            snippet = content
+        else:
+            snippet = content[:max_per_file] + f"\n... [truncated, total {len(content)} chars]"
+        chunks.append(f"--- FILE: {path} ({len(content)} chars) ---\n{snippet}\n")
+    return "\n".join(chunks)
+
+
+def _format_sibling_context(files: dict[str, str], exclude_path: str) -> str:
+    """Provide compact sibling context for cross-file consistency."""
+    snippets = []
+    total = 0
+    for path, content in sorted(files.items()):
+        if path == exclude_path:
+            continue
+        if total >= MAX_SIBLING_CHARS:
+            break
+        head = content[:800]
+        snippet = f"--- {path} ---\n{head}\n"
+        snippets.append(snippet)
+        total += len(snippet)
+    return "\n".join(snippets) if snippets else "(no sibling files)"
 
 
 def _mock_targets(existing_files: dict[str, str], change_request: str) -> list[str]:
@@ -127,37 +191,64 @@ def _mock_refined_content(file_path: str, current_content: str, change_request: 
 
 def _rewrite_file_by_file(
     llm: FallbackLLM,
-    targets: list[str],
+    modify_targets: list[str],
+    new_targets: list[str],
     existing_files: dict[str, str],
     change_request: str,
     tech_stack: str,
+    qa_header: str = "",
 ) -> tuple[dict[str, str], BaseException | None]:
-    """One call per file, so a weak model only has to hold one file's format at a time."""
+    """One call per file, so a model only has to hold one file's content at a time."""
     rewritten: dict[str, str] = {}
     last_error: BaseException | None = None
+    all_paths = list(existing_files) + [p for p in new_targets if p not in existing_files]
 
-    for file_path in targets:
+    # Process modified files
+    for file_path in modify_targets:
         try:
+            sibling_ctx = _format_sibling_context(existing_files, file_path)
             raw = invoke_with_retry(
                 llm,
                 REFINE_SINGLE_FILE_PROMPT_TEMPLATE.format(
+                    qa_header=qa_header,
                     change_request=change_request,
                     tech_stack=tech_stack,
-                    file_paths=list(existing_files),
+                    file_paths=all_paths,
                     file_path=file_path,
-                    current_content=existing_files.get(file_path, "")[
-                        :MAX_CONTEXT_CHARS_PER_FILE
-                    ],
+                    current_content=existing_files.get(file_path, "")[:MAX_CONTEXT_CHARS_PER_FILE],
+                    sibling_context=sibling_ctx,
                 ),
             )
+            content = parse_multi_file_response(raw).get(file_path) or strip_code_fence(raw)
+            if content:
+                rewritten[file_path] = content
         except Exception as error:
             logger.warning("Refine Coder failed on %s: %s", file_path, error)
             last_error = error
             continue
 
-        content = parse_multi_file_response(raw).get(file_path) or strip_code_fence(raw)
-        if content:
-            rewritten[file_path] = content
+    # Process new files
+    for file_path in new_targets:
+        try:
+            sibling_ctx = _format_sibling_context(existing_files, file_path)
+            raw = invoke_with_retry(
+                llm,
+                REFINE_NEW_FILE_PROMPT_TEMPLATE.format(
+                    qa_header=qa_header,
+                    change_request=change_request,
+                    tech_stack=tech_stack,
+                    file_paths=all_paths,
+                    file_path=file_path,
+                    sibling_context=sibling_ctx,
+                ),
+            )
+            content = parse_multi_file_response(raw).get(file_path) or strip_code_fence(raw)
+            if content:
+                rewritten[file_path] = content
+        except Exception as error:
+            logger.warning("Refine Coder failed on new file %s: %s", file_path, error)
+            last_error = error
+            continue
 
     return rewritten, last_error
 
@@ -271,7 +362,16 @@ def refine_coder_agent(state: AgentState) -> dict:
     tech_stack = state.get("tech_stack", "")
     existing_files = dict(state.get("existing_files", {}))
     architecture = state.get("architecture", {})
-    targets = list(architecture.get("modify_files", [])) + list(architecture.get("new_files", []))
+    modify_targets = list(architecture.get("modify_files", []))
+    new_targets = list(architecture.get("new_files", []))
+    targets = modify_targets + new_targets
+
+    qa_fix_instructions = state.get("qa_fix_instructions") or ""
+    qa_header = (
+        f"IMPORTANT — FIX PREVIOUS ISSUES FOUND IN QA REVIEW:\n{qa_fix_instructions}\n"
+        if qa_fix_instructions
+        else ""
+    )
 
     llm = get_agent_llm(state, temperature=0.2, role="coder")
     files = dict(existing_files)
@@ -296,7 +396,7 @@ def refine_coder_agent(state: AgentState) -> dict:
 
     if one_call_per_file(llm):
         rewritten, error = _rewrite_file_by_file(
-            llm, targets, existing_files, change_request, tech_stack
+            llm, modify_targets, new_targets, existing_files, change_request, tech_stack, qa_header
         )
         if not rewritten and error is not None:
             logger.error(f"Refine Coder error: {error}")
@@ -313,9 +413,10 @@ def refine_coder_agent(state: AgentState) -> dict:
             raw = invoke_with_retry(
                 llm,
                 REFINE_CODER_PROMPT_TEMPLATE.format(
+                    qa_header=qa_header,
                     change_request=change_request,
                     tech_stack=tech_stack,
-                    file_paths=list(existing_files),
+                    file_paths=list(existing_files) + new_targets,
                     targets=targets,
                     current_contents=current_contents,
                 ),
@@ -327,6 +428,7 @@ def refine_coder_agent(state: AgentState) -> dict:
             return {"error": str(e), "logs": logs, "current_step": "refine_coding_failed"}
 
         rewritten = parse_multi_file_response(raw)
+
     changed_files = [path for path in targets if rewritten.get(path)]
     for path in changed_files:
         files[path] = rewritten[path]
@@ -349,3 +451,4 @@ def refine_coder_agent(state: AgentState) -> dict:
         "logs": logs,
         "current_step": "refined",
     }
+

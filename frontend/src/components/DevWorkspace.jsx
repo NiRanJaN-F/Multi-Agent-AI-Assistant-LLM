@@ -22,6 +22,8 @@ export default function DevWorkspace({ result, activeProject, onReset }) {
     return t.includes("test") || t.includes("qa");
   }).length;
 
+  const effectiveProject = activeProject || result?.project_name || result?.projectName;
+
   return (
     <section className="ide-right">
       <div className="ide-tabs">
@@ -45,19 +47,19 @@ export default function DevWorkspace({ result, activeProject, onReset }) {
 
       <div className="ide-workspace">
         {activeTab === "preview" && (
-          <PreviewPanel result={result} projectName={activeProject} />
+          <PreviewPanel result={result} projectName={effectiveProject} />
         )}
         {activeTab === "telemetry" && (
           <AgentTelemetryDashboard result={result} />
         )}
         {activeTab === "files" && (
-          <FileExplorer result={result} projectName={activeProject} />
+          <FileExplorer result={result} projectName={effectiveProject} />
         )}
         {activeTab === "tests" && (
           <TestPanel result={result} />
         )}
         {activeTab === "actions" && (
-          <ActionsPanel result={result} activeProject={activeProject} onReset={onReset} />
+          <ActionsPanel result={result} activeProject={effectiveProject} onReset={onReset} />
         )}
       </div>
     </section>

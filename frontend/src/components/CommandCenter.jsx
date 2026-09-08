@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { LLM_PROVIDERS } from "../constants/providers";
 import { getGenerationHistory } from "../services/api";
 
-const TEMPLATES = [
+const APP_TEMPLATES = [
   { emoji: "🛒", label: "E-Commerce", prompt: "Build a full-stack e-commerce store with product listings, a shopping cart, and checkout flow using Express backend and interactive HTML/JS frontend." },
   { emoji: "📊", label: "Dashboard", prompt: "Build a React analytics dashboard with charts, KPI cards, data tables, and a responsive sidebar layout." },
   { emoji: "⚡", label: "FastAPI Service", prompt: "Build a FastAPI REST service with CRUD endpoints, Pydantic models, SQLite database, and auto-generated OpenAPI docs." },
@@ -10,8 +10,24 @@ const TEMPLATES = [
   { emoji: "☁️", label: "SaaS App", prompt: "Build a SaaS task management app with user authentication, team workspaces, kanban board, and real-time updates using Express + HTML/JS." },
 ];
 
-export default function CommandCenter({ stepStates, loading, activeProject, onGenerate, onRefine, onReset, result }) {
+const REFINE_TEMPLATES = [
+  { emoji: "🌓", label: "Dark Mode", prompt: "Add a modern dark mode toggle button in the header with smooth transitions and persistent state in localStorage." },
+  { emoji: "🔍", label: "Search & Filter", prompt: "Add a real-time search bar and category filter tabs with active state highlights." },
+  { emoji: "📥", label: "Export JSON", prompt: "Add an 'Export Data' button that downloads the current dataset as a formatted JSON file." },
+  { emoji: "🏷️", label: "Priority Tags", prompt: "Add priority level badges (High, Medium, Low) with distinct color badges and priority sorting." },
+  { emoji: "✨", label: "Toast Alerts", prompt: "Add interactive toast feedback notifications for user actions with smooth slide-in animations." },
+];
 
+export default function CommandCenter({
+  stepStates,
+  loading,
+  activeProject,
+  onGenerate,
+  onRefine,
+  onLoadProject,
+  onReset,
+  result,
+}) {
   const [prompt, setPrompt] = useState("");
   const [projectName, setProjectName] = useState("");
   const [provider, setProvider] = useState("");
@@ -43,20 +59,61 @@ export default function CommandCenter({ stepStates, loading, activeProject, onGe
   }
 
   function handleKeyDown(e) {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e); }
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   }
 
   function stepStatus(s) {
     return s.status || "pending";
   }
 
+  const templates = activeProject ? REFINE_TEMPLATES : APP_TEMPLATES;
+
   return (
     <aside className="ide-left ide-scroll">
+      {/* Active Project Status Banner */}
+      {activeProject && (
+        <div style={{
+          margin: "12px 14px 4px 14px",
+          padding: "10px 12px",
+          background: "rgba(99, 102, 241, 0.08)",
+          border: "1px solid rgba(99, 102, 241, 0.25)",
+          borderRadius: "8px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          fontSize: "12px",
+        }}>
+          <div>
+            <div style={{ color: "#818cf8", fontWeight: 600, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              ↻ Refining Project
+            </div>
+            <div style={{ color: "#f1f5f9", fontWeight: 500, marginTop: "2px" }}>
+              {activeProject}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="ide-btn ide-btn--ghost ide-btn--sm"
+            onClick={onReset}
+            disabled={loading}
+            style={{ fontSize: "11px", padding: "3px 8px" }}
+            title="Start a new project from scratch"
+          >
+            New Project
+          </button>
+        </div>
+      )}
+
       {/* Templates */}
       <div className="ide-templates-section">
-        <div className="ide-left__label">Quick Templates</div>
+        <div className="ide-left__label">
+          {activeProject ? "Refinement Suggestions" : "Quick Templates"}
+        </div>
         <div className="ide-templates">
-          {TEMPLATES.map((t) => (
+          {templates.map((t) => (
             <button key={t.label} className="ide-template-chip" onClick={() => handleTemplate(t)} type="button">
               {t.emoji} {t.label}
             </button>
@@ -64,7 +121,7 @@ export default function CommandCenter({ stepStates, loading, activeProject, onGe
         </div>
       </div>
 
-      {/* Prompt */}
+      {/* Prompt Area */}
       <form className="ide-prompt-area" onSubmit={handleSubmit}>
         <textarea
           ref={textareaRef}
@@ -72,7 +129,11 @@ export default function CommandCenter({ stepStates, loading, activeProject, onGe
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={activeProject ? `Refine "${activeProject}" — e.g. add dark mode, add search filter…` : "Describe the application you want to build…"}
+          placeholder={
+            activeProject
+              ? `Refine "${activeProject}" — e.g. add dark mode, add search filter, change styling…`
+              : "Describe the application you want to build…"
+          }
           disabled={loading}
           rows={5}
         />
@@ -93,12 +154,17 @@ export default function CommandCenter({ stepStates, loading, activeProject, onGe
           </select>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
-          <button type="submit" className="ide-btn ide-btn--primary" disabled={loading || !prompt.trim()} style={{ flex: 1 }}>
-            {loading ? "⟳ Agents running…" : activeProject ? "✦ Apply Change" : "✦ Generate App"}
+          <button
+            type="submit"
+            className={`ide-btn ${activeProject ? "ide-btn--success" : "ide-btn--primary"}`}
+            disabled={loading || !prompt.trim()}
+            style={{ flex: 1 }}
+          >
+            {loading ? "⟳ Agents running…" : activeProject ? "↻ Apply Change" : "✦ Generate App"}
           </button>
           {activeProject && (
             <button type="button" className="ide-btn ide-btn--ghost" onClick={onReset} disabled={loading}>
-              New
+              Reset
             </button>
           )}
         </div>
@@ -106,7 +172,9 @@ export default function CommandCenter({ stepStates, loading, activeProject, onGe
 
       {/* Agent Stepper */}
       <div className="ide-stepper ide-scroll">
-        <div className="ide-stepper__title">Agent Pipeline</div>
+        <div className="ide-stepper__title">
+          {activeProject ? "Refinement Pipeline" : "Agent Pipeline"}
+        </div>
         {stepStates.map((step, i) => {
           const status = stepStatus(step);
           const isLast = i === stepStates.length - 1;
@@ -135,23 +203,35 @@ export default function CommandCenter({ stepStates, loading, activeProject, onGe
         })}
       </div>
 
-      {/* History */}
+      {/* History / Recent Projects */}
       {history.length > 0 && (
         <div className="ide-history ide-scroll">
           <div className="ide-history__header">
             <span className="ide-history__title">Recent Projects</span>
+            <span style={{ fontSize: "10px", color: "var(--ide-text-muted)" }}>Click to load & refine</span>
           </div>
           {history.map((item) => (
             <button
               key={item.id}
               type="button"
-              className="ide-history-item"
-              onClick={() => {}}
+              className={`ide-history-item ${activeProject === item.projectName ? "ide-history-item--active" : ""}`}
+              onClick={() => onLoadProject?.(item.projectName)}
+              disabled={loading}
+              title={`Load "${item.projectName}" for refinement`}
             >
-              <span className="ide-history-item__name">{item.projectName}</span>
-              <span className="ide-history-item__meta">
-                {new Date(item.createdAt).toLocaleDateString()}
-              </span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "left" }}>
+                <span className="ide-history-item__name">
+                  {item.projectName}
+                  {item.mode === "refine" && (
+                    <span style={{ fontSize: "9px", marginLeft: "6px", color: "#818cf8", background: "rgba(99,102,241,0.15)", padding: "1px 4px", borderRadius: "3px" }}>
+                      refined
+                    </span>
+                  )}
+                </span>
+                <span className="ide-history-item__meta">
+                  {new Date(item.createdAt).toLocaleDateString()} · {item.techStack || "Web"}
+                </span>
+              </div>
             </button>
           ))}
         </div>
@@ -159,3 +239,4 @@ export default function CommandCenter({ stepStates, loading, activeProject, onGe
     </aside>
   );
 }
+

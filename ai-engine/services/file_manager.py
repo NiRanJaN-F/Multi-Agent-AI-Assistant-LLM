@@ -16,7 +16,11 @@ GENERATED_PROJECTS_DIR = REPO_ROOT / "generated-projects"
 
 def resolve_project_dir(project_name: str) -> Path:
     """Resolve a project folder inside generated-projects, rejecting path traversal."""
-    candidate = (GENERATED_PROJECTS_DIR / project_name).resolve()
+    clean_name = str(project_name or "").strip().replace("\\", "/").lstrip("/")
+    if not clean_name:
+        clean_name = "generated-app"
+
+    candidate = (GENERATED_PROJECTS_DIR / clean_name).resolve()
     root = GENERATED_PROJECTS_DIR.resolve()
 
     if candidate == root or root not in candidate.parents:
@@ -27,7 +31,16 @@ def resolve_project_dir(project_name: str) -> Path:
 
 def _resolve_file_path(output_dir: Path, rel_path: str) -> Path:
     """Resolve a generated file path, rejecting anything escaping the project folder."""
-    candidate = (output_dir / rel_path).resolve()
+    # Strip any leading slashes, backslashes, or relative prefixes like ./ or .\
+    clean_path = str(rel_path or "").strip().replace("\\", "/")
+    clean_path = clean_path.lstrip("/")
+    while clean_path.startswith("./"):
+        clean_path = clean_path[2:]
+
+    if not clean_path:
+        raise ValueError(f"Empty or invalid generated file path: '{rel_path}'")
+
+    candidate = (output_dir / clean_path).resolve()
 
     if output_dir.resolve() not in candidate.parents:
         raise ValueError(f"Invalid generated file path: '{rel_path}'")

@@ -20,34 +20,34 @@ from agents.utils import (
 logger = logging.getLogger(__name__)
 
 FRONTEND_PROMPT_TEMPLATE = """You are a Principal Frontend Architect & Senior UI/UX Designer.
-Write clean, gorgeous, fully interactive, production-ready client-side code tailored SPECIFICALLY to the user's request for EVERY frontend file listed below.
+Write clean, gorgeous, fully interactive, production-ready client-side code for EVERY frontend file listed below.
 
 User Request: "{user_prompt}"
 Tech Stack: "{tech_stack}"
 Frontend Files To Write: {file_paths}
 Component Tree: {component_tree}
 
-API Contract:
+API Contract (your frontend MUST call these exact routes):
 {api_contract}
 
 CRITICAL DESIGN & FUNCTIONALITY REQUIREMENTS:
-- PURPOSE-BUILT UI ARCHITECTURE:
-  * Design the exact layout and user interface tailored directly to what the user requested:
-    - For Games & Puzzles (e.g. Snake, Tic-Tac-Toe, Card games, Ludo): Create a dedicated game arena/canvas or interactive board, score/high-score HUD, start/pause/game-over screens, restart buttons, and keyboard/touch event handlers.
-    - For Dashboards & Analytics: Build KPI cards, visual charts, searchable data tables, filter tabs, and real-time status badges.
-    - For E-Commerce & Stores: Build product grids, category filtering, cart drawers with badges, and checkout modals.
-    - For Utilities & Tools (e.g. timers, converters, calculators, note apps): Build custom interactive controls, immediate live feedback, and action buttons.
 - AESTHETICS & STYLING:
   * In HTML files, ALWAYS include Tailwind CSS CDN in <head>:
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  * Use modern, sleek styling with dark/light palettes, clean rounded corners, smooth hover transitions, and accessible typography.
-- COMPLETE INTERACTIVITY & LOGIC:
+  * Use modern, clean styling: sleek cards (`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition`), vibrant accents (`bg-indigo-600 hover:bg-indigo-700 text-white`), status badges, and subtle typography.
+  * For imagery (e.g. products, avatars, banners), use high-quality Unsplash URLs (e.g. `https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80`).
+- COMPLETE INTERACTIVITY:
   * Write 100% COMPLETE, fully working interactive code. NO TODO stubs or empty handlers.
-  * Ensure all user actions (clicks, keypresses, state changes, game loops) are fully implemented and functional.
-  * Use localStorage for persisting high scores, user preferences, and app state across page refreshes.
-  * Call `lucide.createIcons();` after any DOM update.
+  * Populate rich default mock data (at least 6-8 realistic items with images, prices, tags, ratings) so the app looks alive on first render.
+  * Implement live search filtering, category tab switching, interactive modals/drawers (e.g. cart drawer with checkout, detail popup), toast notifications on user actions, and dynamic badge counters.
+  * Async API calls: fetch from API routes defined in the API contract with fallback to localStorage if backend is offline.
+  * Call `lucide.createIcons();` after any DOM update so Lucide icons render properly.
+  * CROSS-FILE SYNCHRONIZATION: If splitting frontend logic into multiple files (products.js, cart.js, app.js, api.js):
+    - In standard browser scripts, NEVER use `export` or `import` keywords (which cause SyntaxError in non-module scripts).
+    - Always attach shared datasets and managers directly to `window` (e.g. `const API = window.API = new ApiClient();`, `const PRODUCTS = window.PRODUCTS = [...];`, `window.Cart = CartManager;`).
+    - Match IDs (`product-grid`, `searchInput`) identically between HTML and JS.
 
 Format the response exactly like this, once per file and nothing else:
 
@@ -58,7 +58,7 @@ FILE: path/of/file
 """
 
 FRONTEND_SINGLE_FILE_TEMPLATE = """You are a Principal Frontend Architect & Senior UI/UX Designer.
-Write the complete, modern, production-ready client-side content of ONE file tailored SPECIFICALLY to the user's request.
+Write the complete, modern, production-ready client-side content of ONE file.
 
 User Request: "{user_prompt}"
 Tech Stack: "{tech_stack}"
@@ -66,7 +66,7 @@ All Frontend Files In This Project: {all_files}
 File To Write Now: {file_path}
 Component Tree: {component_tree}
 
-API Contract:
+API Contract (backend routes your code should call):
 {api_contract}
 
 CRITICAL REQUIREMENTS:
@@ -76,11 +76,12 @@ CRITICAL REQUIREMENTS:
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  * Structure the layout appropriately for the requested application (e.g. game canvas/board for games, tool workspace for utilities, KPI/table for dashboards, product grid for shops).
+  * Include a sticky top navbar with brand badge, search input, and action buttons/cart badge.
+  * Include an inspiring hero header or filter bar, a responsive card grid (`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6`), interactive modal dialogs/drawers, and a clean footer.
 - If writing JavaScript/JSX:
-  * Implement complete, working event handlers, state transitions, game loops, or data flows matching the user prompt.
-  * Guard every DOM selector safely (`if (el) ...`).
-  * Call `lucide.createIcons()` after DOM updates.
+  * Initialize with 6-8 rich mock items (with Unsplash images, prices, categories, ratings).
+  * Implement complete event handlers: live search, category filtering, add-to-cart/item creation, modal open/close, delete, and toast notifications.
+  * Use `lucide.createIcons()` after DOM updates.
 - If writing CSS: provide smooth transitions, custom scrollbars, and keyframe animations.
 
 Return ONLY the complete raw source code of {file_path} inside a single code fence, with no commentary.

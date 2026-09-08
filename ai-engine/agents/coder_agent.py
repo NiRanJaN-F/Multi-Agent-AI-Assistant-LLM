@@ -40,7 +40,7 @@ Write ONLY the missing files now, each prefixed with `FILE: path` on its own lin
 
 
 CODER_PROMPT_TEMPLATE = """You are a Principal Software Engineer and Senior UI/UX Designer.
-Write clean, modern, fully functional, highly interactive, and visually stunning code tailored SPECIFICALLY to the user's request for EVERY file listed below.
+Write clean, modern, fully functional, highly interactive, and visually stunning code for EVERY file listed below.
 
 {qa_header}
 User Request: "{user_prompt}"
@@ -48,23 +48,20 @@ Tech Stack: "{tech_stack}"
 Files To Write: {file_paths}
 
 CRITICAL REQUIREMENTS:
-- PURPOSE-BUILT UI ARCHITECTURE:
-  * Design the exact layout and user interface tailored directly to what the user requested:
-    - For Games & Puzzles (e.g. Snake, Tic-Tac-Toe, Card games, Ludo): Create a dedicated game arena/canvas or interactive board, score/high-score HUD, start/pause/game-over screens, restart buttons, and keyboard/touch event handlers.
-    - For Dashboards & Analytics: Build KPI cards, visual charts, searchable data tables, filter tabs, and real-time status badges.
-    - For E-Commerce & Stores: Build product grids, category filtering, cart drawers with badges, and checkout modals.
-    - For Utilities & Tools (e.g. timers, converters, calculators, note apps): Build custom interactive controls, immediate live feedback, and action buttons.
 - STYLING & AESTHETICS:
   * In HTML files, ALWAYS include Tailwind CSS CDN in <head>:
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  * Design with modern aesthetics: clean surfaces, subtle borders, polished color accents, and responsive layout.
+  * Design with modern aesthetics: clean cards (`bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-2xl shadow-sm hover:shadow-md transition`), vibrant gradient accents, pill badges, and smooth hover states.
+  * For image placeholders, use high-resolution Unsplash URLs (e.g. `https://images.unsplash.com/photo-...`).
 - COMPLETE FUNCTIONALITY:
   * NO TODOs, stubs, or empty handlers. Write 100% production-ready logic.
-  * Implement complete, fully functional event handlers, animations, state transitions, or game loops.
-  * DEFENSIVE JS: guard DOM lookups (`if (el) ...` or `el?.addEventListener`). Call `lucide.createIcons();` after rendering DOM nodes.
-  * Synchronize IDs and class names between HTML and JavaScript files precisely.
+  * Pre-populate rich mock datasets (at least 6 realistic items with images, prices, tags, status).
+  * Implement full interactivity: search bars with real-time filtering, category tabs, modal dialogs/drawers, toast feedback notifications, dynamic counter badges, and localStorage persistence.
+  * DEFENSIVE JS & CROSS-FILE SYNC:
+    - Guard DOM lookups (`if (el) ...` or `el?.addEventListener`). Call `lucide.createIcons();` after rendering DOM nodes.
+    - If logic is split across multiple JS files (e.g. products.js, cart.js, app.js), always attach shared data and managers to the global window object (e.g. `const PRODUCTS = window.PRODUCTS = [...];`, `window.Cart = CartManager;`) and maintain exact matching IDs and case sensitivity so scripts never throw ReferenceError.
 
 FORMAT — EVERY file prefixed like this (no other text):
 FILE: path/of/file.ext
@@ -74,7 +71,7 @@ FILE: path/of/file.ext
 """
 
 SINGLE_FILE_PROMPT_TEMPLATE = """You are a Principal Software Engineer and Senior UI/UX Designer.
-Write the COMPLETE, visually stunning, fully interactive content of ONE file tailored SPECIFICALLY to the user's request. Match all sibling file IDs/classes/imports exactly.
+Write the COMPLETE, visually stunning, fully interactive content of ONE file. Match all sibling file IDs/classes/imports exactly.
 
 {qa_header}
 User Request: "{user_prompt}"
@@ -92,9 +89,10 @@ CRITICAL RULES for {file_path}:
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  * Structure the layout appropriately for the requested application (e.g. game canvas/board for games, tool workspace for utilities, KPI/table for dashboards, product grid for shops).
+  * Structure with sticky navbar (brand logo, search bar, action/cart badge), hero section, responsive card grid (`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6`), modal dialogs/drawers, and footer.
 - If writing JS:
-  * Implement complete event handlers, game loops, or data flows matching the user prompt.
+  * Pre-populate 6+ rich mock items with Unsplash images, prices, ratings, and tags.
+  * Implement complete event handlers: search filtering, category tabs, modal toggling, item creation/deletion, counter updates, and toast alerts.
   * Call `lucide.createIcons();` after updating DOM elements. Guard every selector safely.
 - If writing CSS: provide sleek glassmorphism effects, modern scrollbars, and keyframe animations.
 

@@ -100,6 +100,56 @@ class TestRefinement(MockLLMTestCase):
                 continue
             self.assertEqual(updated[path], content)
 
+    def test_consecutive_multi_turn_refinements(self):
+        """Test 3 consecutive refinements on the same project in sequence."""
+        # Turn 1: Add dark mode
+        res1 = self.client.post(
+            "/api/refine",
+            json={"prompt": "Add a dark mode toggle button", "project_name": PROJECT_NAME},
+        )
+        self.assertEqual(res1.status_code, 200)
+        data1 = res1.json()
+        self.assertEqual(data1["project_name"], PROJECT_NAME)
+        files1 = load_project_files(PROJECT_NAME)
+
+        # Turn 2: Add category filters
+        res2 = self.client.post(
+            "/api/refine",
+            json={"prompt": "Add category filter tabs to index.html and app.js", "project_name": PROJECT_NAME},
+        )
+        self.assertEqual(res2.status_code, 200)
+        data2 = res2.json()
+        self.assertEqual(data2["project_name"], PROJECT_NAME)
+        files2 = load_project_files(PROJECT_NAME)
+
+        # Turn 3: Add export data button
+        res3 = self.client.post(
+            "/api/refine",
+            json={"prompt": "Add an export data feature to app.js", "project_name": PROJECT_NAME},
+        )
+        self.assertEqual(res3.status_code, 200)
+        data3 = res3.json()
+        self.assertEqual(data3["project_name"], PROJECT_NAME)
+        files3 = load_project_files(PROJECT_NAME)
+
+        # Verify all turns operated in-place on the same directory
+        self.assertIn("index.html", files3)
+        self.assertIn("app.js", files3)
+        self.assertIn("src/style.css", files3)
+
+    def test_refine_updates_readme_changelog(self):
+        """Test that refinement generates or updates README.md with changelog."""
+        response = self.client.post(
+            "/api/refine",
+            json={"prompt": "Add dark mode", "project_name": PROJECT_NAME},
+        )
+        self.assertEqual(response.status_code, 200)
+        files = load_project_files(PROJECT_NAME)
+        self.assertIn("README.md", files)
+        readme = files["README.md"]
+        self.assertTrue("Refinement" in readme or "Overview" in readme)
+
 
 if __name__ == "__main__":
     unittest.main()
+

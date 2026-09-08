@@ -16,6 +16,7 @@ function MainIDE() {
     stepStates,
     generate,
     refine,
+    loadProject,
     reset,
   } = useGeneration();
 
@@ -44,6 +45,7 @@ function MainIDE() {
           result={result}
           onGenerate={generate}
           onRefine={refine}
+          onLoadProject={loadProject}
           onReset={reset}
         />
         <DevWorkspace
@@ -55,6 +57,7 @@ function MainIDE() {
     </div>
   );
 }
+
 
 function AuthGate() {
   const { isAuthenticated, loading } = useAuth();

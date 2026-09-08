@@ -4,6 +4,7 @@ The README is assembled from state the earlier agents already produced (plan, ar
 QA results, file tree), so documenting a project costs no additional provider quota.
 """
 
+from datetime import UTC, datetime
 import logging
 
 from graph.state import AgentState
@@ -34,17 +35,39 @@ def _bullets(items: list[str]) -> str:
 
 
 def _build_readme(state: AgentState, file_paths: list[str]) -> str:
-    """Render the project README from the pipeline's own outputs."""
+    """Render the project README from the pipeline's own outputs, preserving history on refinement."""
     project_name = state.get("project_name", "Generated Application")
     user_prompt = state.get("user_prompt", "")
+    change_request = state.get("change_request", "")
     tech_stack = state.get("tech_stack", "HTML/CSS/JS")
     tasks = state.get("tasks", [])
     architecture = state.get("architecture", {})
     review = state.get("review_results", {})
+    changed_files = state.get("changed_files", [])
+
+    existing_readme = state.get("files", {}).get("README.md") or state.get("existing_files", {}).get("README.md")
 
     tree = "\n".join(f"├── {path}" for path in sorted(file_paths))
     issues = review.get("issues", [])
     qa_line = "Passed" if review.get("passed", True) else f"{len(issues)} open issue(s)"
+
+    # If this is a refinement and an existing README exists, append to or update the changelog
+    if change_request and existing_readme:
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+        refine_entry = f"""
+### Refinement — {timestamp}
+- **Change Request:** {change_request}
+- **Files Modified:** {', '.join(f'`{f}`' for f in changed_files) if changed_files else 'None'}
+- **Tasks Applied:**
+{_bullets(tasks)}
+- **QA Review:** {qa_line}
+"""
+        if "## Refinements & Changelog" in existing_readme:
+            # Append entry under the changelog header
+            parts = existing_readme.split("## Refinements & Changelog", 1)
+            return parts[0] + "## Refinements & Changelog\n" + refine_entry + parts[1].strip() + "\n"
+        else:
+            return existing_readme.rstrip() + "\n\n## Refinements & Changelog\n" + refine_entry + "\n"
 
     return f"""# {project_name.replace("-", " ").title()}
 
@@ -100,3 +123,4 @@ def doc_agent(state: AgentState) -> dict:
         "logs": logs,
         "current_step": "completed",
     }
+

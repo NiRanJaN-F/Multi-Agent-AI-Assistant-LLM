@@ -46,7 +46,10 @@ CONFIG_AND_HELPER_FILES = (
     "models/",
     "middleware/",
     "controllers/",
+    "services/",
     "db/",
+    "api/",
+    "backend/",
 )
 
 LLM_QA_REVIEW_PROMPT = """You are a senior code review and QA engineer.
@@ -106,16 +109,24 @@ def _check_file(path: str, content: str) -> list[str]:
 def _check_html_references(files: dict[str, str]) -> list[str]:
     """Flag local assets an HTML file links to that were never generated."""
     issues = []
-    basenames = {path.rsplit("/", 1)[-1] for path in files}
+    basenames = {path.replace("\\", "/").rsplit("/", 1)[-1] for path in files}
 
     for path, content in files.items():
         if not path.endswith(".html"):
             continue
 
         for reference in HTML_REFERENCE_PATTERN.findall(content):
-            if "//" in reference or reference.startswith(("data:", "mailto:")):
+            ref = reference.strip()
+            if (
+                "//" in ref
+                or ref.startswith(("data:", "mailto:", "javascript:", "#"))
+                or "${" in ref
+                or "{{" in ref
+                or ref.startswith("http:")
+                or ref.startswith("https:")
+            ):
                 continue
-            if reference.rsplit("/", 1)[-1] not in basenames:
+            if ref.replace("\\", "/").rsplit("/", 1)[-1] not in basenames:
                 issues.append(f"'{path}' references '{reference}', which was not generated.")
 
     return issues
@@ -125,13 +136,16 @@ def _check_html_references(files: dict[str, str]) -> list[str]:
 def _check_interactivity(files: dict[str, str]) -> list[str]:
     """Check that generated front-end JavaScript files contain interactive logic."""
     issues = []
-    js_files = {
-        path: content
-        for path, content in files.items()
-        if path.endswith((".js", ".jsx", ".ts", ".tsx"))
-        and not path.startswith("tests/")
-        and not any(cfg in path.lower() for cfg in CONFIG_AND_HELPER_FILES)
-    }
+    js_files = {}
+    for path, content in files.items():
+        norm_path = path.replace("\\", "/").lower()
+        if (
+            norm_path.endswith((".js", ".jsx", ".ts", ".tsx"))
+            and not norm_path.startswith("tests/")
+            and not any(cfg in norm_path for cfg in CONFIG_AND_HELPER_FILES)
+        ):
+            js_files[path] = content
+
     html_files = [path for path in files if path.endswith(".html")]
 
     if html_files and js_files:

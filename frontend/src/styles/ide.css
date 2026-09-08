@@ -82,6 +82,8 @@
 .ide-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .ide-btn--primary { background: var(--ide-accent); color: #fff; }
 .ide-btn--primary:not(:disabled):hover { background: var(--ide-accent-hover); }
+.ide-btn--success { background: #059669; color: #fff; }
+.ide-btn--success:not(:disabled):hover { background: #10b981; }
 .ide-btn--ghost { background: transparent; color: var(--ide-text); border: 1px solid var(--ide-border); }
 .ide-btn--ghost:not(:disabled):hover { background: var(--ide-surface); color: var(--ide-text-strong); }
 .ide-btn--danger { background: transparent; color: var(--ide-red); border: 1px solid rgba(239, 68, 68, 0.3); }
@@ -119,8 +121,10 @@
 .ide-history__title { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-text-muted); }
 .ide-history-item { display: flex; align-items: center; gap: 8px; padding: 6px 14px; cursor: pointer; transition: background 0.1s; border: none; background: none; width: 100%; text-align: left; }
 .ide-history-item:hover { background: rgba(255,255,255,0.03); }
+.ide-history-item--active { background: rgba(99, 102, 241, 0.12) !important; border-left: 2px solid var(--ide-accent); }
 .ide-history-item__name { font-size: 12px; font-weight: 600; color: var(--ide-text-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; font-family: var(--ide-mono); }
 .ide-history-item__meta { font-size: 10px; color: var(--ide-text-muted); white-space: nowrap; flex-shrink: 0; }
+
 
 /* Right Panel */
 .ide-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--ide-bg); min-width: 0; }
