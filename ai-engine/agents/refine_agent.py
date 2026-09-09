@@ -1,6 +1,7 @@
 """Refinement agents that modify an existing generated project from a follow-up prompt."""
 
 import logging
+from typing import Any, Dict, List, Tuple
 
 from config.llm import FallbackLLM, invoke_with_retry, is_quota_error
 from graph.state import AgentState
@@ -24,15 +25,17 @@ REFINE_PLANNER_PROMPT_TEMPLATE = """You are a Principal Software Architect plann
 Change Request: "{change_request}"
 Project Name: "{project_name}"
 Tech Stack: "{tech_stack}"
+Refinement Intent: {intent_summary}
 
-Existing Project Files & Contents:
+Existing Project Context & Structure:
 {files_summary}
 
 CRITICAL RULES:
 1. Analyze the existing codebase thoroughly before planning. Identify exact files, functions, DOM IDs, and styles that need adjustment.
 2. Minimize changes: only modify files that directly require updates to implement the change request.
 3. If new files are strictly necessary (e.g. new utility or component), list them under "new_files". Otherwise, prefer editing existing files.
-4. Never break existing features, UI elements, or event bindings.
+4. DO NOT modify any files marked as PROTECTED.
+5. Never break existing features, UI elements, or event bindings.
 
 Return ONLY a valid JSON object matching this schema:
 {{
@@ -163,17 +166,22 @@ def _format_sibling_context(files: dict[str, str], exclude_path: str) -> str:
     return "\n".join(snippets) if snippets else "(no sibling files)"
 
 
-def _mock_targets(existing_files: dict[str, str], change_request: str) -> list[str]:
+def _mock_targets(existing_files: dict[str, str], change_request: str, protected: list[str] | None = None) -> list[str]:
     """Pick target files deterministically when no LLM key is configured."""
-    mentioned = [path for path in existing_files if path.lower() in change_request.lower()]
+    protected_set = set(protected or [])
+    available = {k: v for k, v in existing_files.items() if k not in protected_set}
+    if not available:
+        available = existing_files
+
+    mentioned = [path for path in available if path.lower() in change_request.lower()]
     if mentioned:
         return mentioned
 
-    preferred = [path for path in ("app.js", "index.html") if path in existing_files]
+    preferred = [path for path in ("app.js", "index.html") if path in available]
     if preferred:
         return preferred
 
-    return list(existing_files)[:1]
+    return list(available)[:1]
 
 
 def _mock_refined_content(file_path: str, current_content: str, change_request: str) -> str:
@@ -220,7 +228,7 @@ def _rewrite_file_by_file(
                 ),
             )
             content = parse_multi_file_response(raw).get(file_path) or strip_code_fence(raw)
-            if content:
+            if content and len(content.strip()) > 10:
                 rewritten[file_path] = content
         except Exception as error:
             logger.warning("Refine Coder failed on %s: %s", file_path, error)
@@ -243,7 +251,7 @@ def _rewrite_file_by_file(
                 ),
             )
             content = parse_multi_file_response(raw).get(file_path) or strip_code_fence(raw)
-            if content:
+            if content and len(content.strip()) > 10:
                 rewritten[file_path] = content
         except Exception as error:
             logger.warning("Refine Coder failed on new file %s: %s", file_path, error)
@@ -254,18 +262,26 @@ def _rewrite_file_by_file(
 
 
 def refine_planner_agent(state: AgentState) -> dict:
-    """Plan which files a follow-up change request should touch."""
+    """Plan which files a follow-up change request should touch with protection enforcement."""
     logs = add_log(
         state.get("logs", []),
         "RefinePlannerAgent",
         "started",
-        "Analysing the existing project and planning the requested change...",
+        "Planning minimal targeted patch against existing project...",
     )
 
     change_request = state.get("change_request", "")
     existing_files = state.get("existing_files", {})
     project_name = state.get("project_name", "")
     tech_stack = state.get("tech_stack") or _infer_tech_stack(existing_files)
+
+    intent = state.get("refinement_intent") or {}
+    protected_files = set(state.get("files_protected") or intent.get("files_protected") or [])
+    intent_summary = intent.get("summary") or f"mode={intent.get('mode', 'patch')}, target={intent.get('target_area', 'frontend')}"
+
+    # Use focused context summary from scanner agent if available
+    architecture_in = state.get("architecture", {})
+    files_summary = architecture_in.get("context_summary") or _files_summary(existing_files)
 
     if not existing_files:
         logs = add_log(
@@ -280,19 +296,20 @@ def refine_planner_agent(state: AgentState) -> dict:
             "current_step": "refine_planning_failed",
         }
 
-    llm = get_agent_llm(state, temperature=0.2, role="planner")
+    llm = get_agent_llm(state, temperature=0.1, role="planner")
     if llm is None:
-        targets = _mock_targets(existing_files, change_request)
+        targets = _mock_targets(existing_files, change_request, list(protected_files))
         logs = add_log(
             logs,
             "RefinePlannerAgent",
             "completed",
-            f"Mock plan: update {len(targets)} existing file(s).",
+            f"Mock plan: update {len(targets)} existing file(s) ({', '.join(targets)}).",
         )
         return {
             "tech_stack": tech_stack,
             "tasks": [f"Apply change request to {path}" for path in targets],
             "architecture": {
+                **architecture_in,
                 "design_notes": f"Refinement of existing project '{project_name}'.",
                 "modify_files": targets,
                 "new_files": [],
@@ -308,29 +325,35 @@ def refine_planner_agent(state: AgentState) -> dict:
                 change_request=change_request,
                 project_name=project_name,
                 tech_stack=tech_stack,
-                files_summary=_files_summary(existing_files),
+                intent_summary=intent_summary,
+                files_summary=files_summary,
             ),
         )
         parsed = extract_json_from_llm(raw)
 
-        modify_files = [path for path in parsed.get("modify_files", []) if path in existing_files]
-        new_files = [path for path in parsed.get("new_files", []) if path not in existing_files]
-        if not modify_files and not new_files:
-            modify_files = _mock_targets(existing_files, change_request)
+        # Enforce file protection: filter out any protected files
+        raw_modify = parsed.get("modify_files", [])
+        modify_files = [path for path in raw_modify if path in existing_files and path not in protected_files]
+        raw_new = parsed.get("new_files", [])
+        new_files = [path for path in raw_new if path not in existing_files and path not in protected_files]
 
-        tasks = parsed.get("tasks") or [f"Apply change request to {path}" for path in modify_files]
+        if not modify_files and not new_files:
+            modify_files = _mock_targets(existing_files, change_request, list(protected_files))
+
+        tasks = parsed.get("tasks") or [f"Apply minimal change to {path}" for path in modify_files]
 
         logs = add_log(
             logs,
             "RefinePlannerAgent",
             "completed",
             f"Change plan via {llm_label(llm, state)}: "
-            f"{len(modify_files)} file(s) to modify, {len(new_files)} to create.",
+            f"{len(modify_files)} file(s) to modify ({', '.join(modify_files)}), {len(new_files)} to create.",
         )
         return {
             "tech_stack": tech_stack,
             "tasks": tasks,
             "architecture": {
+                **architecture_in,
                 "design_notes": parsed.get("summary", f"Refinement of '{project_name}'."),
                 "modify_files": modify_files,
                 "new_files": new_files,
@@ -350,20 +373,23 @@ def refine_planner_agent(state: AgentState) -> dict:
 
 
 def refine_coder_agent(state: AgentState) -> dict:
-    """Rewrite the targeted files so they satisfy the change request."""
+    """Rewrite only the targeted files with strict protection enforcement."""
     logs = add_log(
         state.get("logs", []),
         "RefineCoderAgent",
         "started",
-        "Editing the existing source files...",
+        "Applying minimal code patch to target files...",
     )
 
     change_request = state.get("change_request", "")
     tech_stack = state.get("tech_stack", "")
     existing_files = dict(state.get("existing_files", {}))
     architecture = state.get("architecture", {})
-    modify_targets = list(architecture.get("modify_files", []))
-    new_targets = list(architecture.get("new_files", []))
+    protected_files = set(state.get("files_protected") or [])
+
+    # Strictly exclude protected files from targets
+    modify_targets = [p for p in list(architecture.get("modify_files", [])) if p not in protected_files]
+    new_targets = [p for p in list(architecture.get("new_files", [])) if p not in protected_files]
     targets = modify_targets + new_targets
 
     qa_fix_instructions = state.get("qa_fix_instructions") or ""
@@ -373,7 +399,7 @@ def refine_coder_agent(state: AgentState) -> dict:
         else ""
     )
 
-    llm = get_agent_llm(state, temperature=0.2, role="coder")
+    llm = get_agent_llm(state, temperature=0.1, role="coder")
     files = dict(existing_files)
 
     if llm is None:
@@ -421,22 +447,22 @@ def refine_coder_agent(state: AgentState) -> dict:
                     current_contents=current_contents,
                 ),
             )
+            rewritten = parse_multi_file_response(raw)
         except Exception as e:
             logger.error(f"Refine Coder error: {e}")
             status = "quota_exceeded" if is_quota_error(e) else "error"
             logs = add_log(logs, "RefineCoderAgent", status, f"Editing the project failed: {e}")
             return {"error": str(e), "logs": logs, "current_step": "refine_coding_failed"}
 
-        rewritten = parse_multi_file_response(raw)
-
+    # Apply only valid rewritten files
     changed_files = [path for path in targets if rewritten.get(path)]
     for path in changed_files:
         files[path] = rewritten[path]
 
     skipped = [path for path in targets if path not in changed_files]
-    message = f"Updated {len(changed_files)} file(s) via {llm_label(llm, state)}."
+    message = f"Applied code patch to {len(changed_files)} file(s) ({', '.join(changed_files)}) via {llm_label(llm, state)}."
     if skipped:
-        message += f" Kept the previous version of: {', '.join(skipped)}."
+        message += f" Kept previous version of: {', '.join(skipped)}."
 
     logs = add_log(
         logs,
@@ -451,4 +477,3 @@ def refine_coder_agent(state: AgentState) -> dict:
         "logs": logs,
         "current_step": "refined",
     }
-

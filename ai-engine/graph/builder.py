@@ -1,7 +1,8 @@
 """LangGraph StateGraph workflow builder module.
 
 Orchestrates the Multi-Agent AI Software Engineering pipeline across specialist agents:
-Planner → Architect → [Backend + Frontend | Coder] → Tester → QA → DocWriter
+Generation: Planner → Architect → [Backend + Frontend | Coder] → Tester → QA → DocWriter
+Refinement: IntentAnalyzer → ContextScanner → Planner → Coder → Tester → DiffQA → DocWriter
 """
 
 import logging
@@ -12,11 +13,14 @@ from langgraph.graph import END, START, StateGraph
 from agents.architecture_agent import architecture_agent
 from agents.backend_agent import backend_agent
 from agents.coder_agent import coder_agent
+from agents.diff_qa_agent import diff_qa_agent
 from agents.doc_agent import doc_agent
 from agents.frontend_agent import frontend_agent
 from agents.planner_agent import planner_agent
 from agents.qa_agent import qa_agent
 from agents.refine_agent import refine_coder_agent, refine_planner_agent
+from agents.refine_context_agent import refine_context_scanner_agent
+from agents.refine_intent_agent import refine_intent_analyzer_agent
 from agents.tester_agent import tester_agent
 from graph.state import AgentState
 
@@ -64,7 +68,7 @@ def _halt_on_error(next_node: str):
 
 
 def create_agent_graph():
-    """Build and compile the multi-agent execution StateGraph."""
+    """Build and compile the multi-agent execution StateGraph for new project generation."""
     workflow = StateGraph(AgentState)
 
     # Register Nodes
@@ -119,29 +123,36 @@ def create_agent_graph():
 
 
 def should_retry_refine_coder(state: AgentState) -> Literal["coder", "doc_writer"]:
-    """Conditional edge decision function following QA code review during refinement."""
+    """Conditional edge decision function following Diff QA review during refinement."""
     review_results = state.get("review_results", {})
     passed = review_results.get("passed", True)
     retry_count = state.get("retry_count", 0)
 
     if not passed and retry_count <= MAX_CODER_RETRIES:
-        logger.info(f"QA review failed during refinement. Returning to RefineCoder (Retry count: {retry_count})")
+        logger.info(f"Diff QA review failed during refinement. Returning to RefineCoder (Retry count: {retry_count})")
         return "coder"
 
     return "doc_writer"
 
 
 def create_refinement_graph():
-    """Build the graph that edits an already generated project from a follow-up prompt."""
+    """Build the deep refinement graph:
+
+    IntentAnalyzer → ContextScanner → RefinePlanner → RefineCoder → Tester → DiffQA → DocWriter
+    """
     workflow = StateGraph(AgentState)
 
+    workflow.add_node("refine_intent", refine_intent_analyzer_agent)
+    workflow.add_node("refine_context", refine_context_scanner_agent)
     workflow.add_node("refine_planner", refine_planner_agent)
     workflow.add_node("coder", refine_coder_agent)
     workflow.add_node("tester", tester_agent)
-    workflow.add_node("qa", qa_agent)
+    workflow.add_node("qa", diff_qa_agent)
     workflow.add_node("doc_writer", doc_agent)
 
-    workflow.add_edge(START, "refine_planner")
+    workflow.add_edge(START, "refine_intent")
+    workflow.add_conditional_edges("refine_intent", _halt_on_error("refine_context"), {"refine_context": "refine_context", END: END})
+    workflow.add_conditional_edges("refine_context", _halt_on_error("refine_planner"), {"refine_planner": "refine_planner", END: END})
     workflow.add_conditional_edges("refine_planner", _halt_on_error("coder"), {"coder": "coder", END: END})
     workflow.add_conditional_edges("coder", _halt_on_error("tester"), {"tester": "tester", END: END})
     workflow.add_edge("tester", "qa")

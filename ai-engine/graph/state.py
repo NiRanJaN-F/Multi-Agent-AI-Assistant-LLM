@@ -39,6 +39,13 @@ class AgentState(TypedDict):
     change_request: str                # Follow-up instruction
     changed_files: List[str]           # Files modified by a refinement run
 
+    # ── Deep Refinement Architecture ─────────────────────────────────────────
+    refinement_intent: Optional[Dict[str, Any]]   # Intent analyzer output: mode, risk, target_area, etc.
+    files_protected: Optional[List[str]]           # Files that MUST NOT be modified
+    checkpoint_files: Optional[Dict[str, str]]     # Snapshot of existing_files before coder runs (for rollback)
+    diff_report: Optional[Dict[str, Any]]          # Diff QA result: files_changed, unexpected_changes, regression_risk
+    refinement_telemetry: Optional[Dict[str, Any]] # {files_inspected, files_modified, files_created, lines_changed, rollback_triggered}
+
     # ── Quality & docs ───────────────────────────────────────────────────────
     review_results: Dict[str, Any]     # passed: bool, issues: list, recommendations: list
     documentation: str                 # README.md and setup instructions

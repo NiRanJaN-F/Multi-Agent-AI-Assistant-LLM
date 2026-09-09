@@ -83,5 +83,9 @@ class Settings(BaseSettings):
     enable_prompt_cache: bool = Field(default=True, alias="ENABLE_PROMPT_CACHE")
     deepseek_paid_tier: bool = Field(default=False, alias="DEEPSEEK_PAID_TIER")
 
+    # --- Refinement pipeline controls ---
+    enable_refinement_telemetry: bool = Field(default=True, alias="ENABLE_REFINEMENT_TELEMETRY")
+    refinement_rollback_on_regression: bool = Field(default=True, alias="REFINEMENT_ROLLBACK_ON_REGRESSION")
+
 
 settings = Settings()

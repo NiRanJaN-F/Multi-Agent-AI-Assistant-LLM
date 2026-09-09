@@ -73,6 +73,8 @@ class GenerateResponse(BaseModel):
     changed_files: List[str] = []
     mode: str = "generate"
     files: Optional[Dict[str, str]] = Field(default_factory=dict)
+    diff_report: Optional[Dict[str, Any]] = None
+    refinement_telemetry: Optional[Dict[str, Any]] = None
 
 
 
@@ -272,6 +274,8 @@ def refine_project(req: RefineRequest) -> dict:
             "changed_files": changed_files,
             "mode": "refine",
             "files": final_state.get("files", {}),
+            "diff_report": final_state.get("diff_report"),
+            "refinement_telemetry": final_state.get("refinement_telemetry"),
         }
     except HTTPException:
         raise

@@ -12,10 +12,12 @@ const AGENT_STEPS = [
 ];
 
 const REFINE_STEPS = [
+  { key: "refine_intent", label: "Intent Analyzer", icon: "🎯" },
+  { key: "refine_context", label: "Context Scanner", icon: "🔍" },
   { key: "refine_planner", label: "Change Planner", icon: "🧠" },
-  { key: "coder", label: "Coder", icon: "⚡" },
+  { key: "coder", label: "Patch Coder", icon: "⚡" },
   { key: "tester", label: "Tester", icon: "🧪" },
-  { key: "qa", label: "QA Review", icon: "✅" },
+  { key: "qa", label: "Diff QA", icon: "🛡️" },
   { key: "docwriter", label: "Doc Writer", icon: "📝" },
 ];
 
@@ -31,11 +33,13 @@ function mapLogsToSteps(logs, isRefine = false) {
 
   const keywords = isRefine
     ? {
-        refine_planner: ["refineplanner", "change plan", "analysing the existing project", "plan"],
-        coder: ["refinecoder", "editing the existing source", "updated", "coder"],
+        refine_intent: ["refineintent", "intent", "analyzing refinement intent", "scope"],
+        refine_context: ["refinecontext", "context", "scanning project context", "checkpoint"],
+        refine_planner: ["refineplanner", "change plan", "planning minimal", "analysing"],
+        coder: ["refinecoder", "patch", "editing", "applied code patch", "coder"],
         tester: ["test", "tester", "unit test", "test suite"],
-        qa: ["qa", "review", "quality", "interactivity", "issues"],
-        docwriter: ["doc", "readme", "documentation"],
+        qa: ["diffqa", "diff", "qa", "review", "quality", "regressions"],
+        docwriter: ["doc", "readme", "documentation", "changelog"],
       }
     : {
         planner: ["plan", "planner", "planning", "requirement"],
