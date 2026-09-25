@@ -14,8 +14,12 @@ function MainIDE() {
     result,
     activeProject,
     stepStates,
+    currentFile,
+    progressPercent,
+    liveMessage,
     generate,
     refine,
+    stopGeneration,
     loadProject,
     reset,
   } = useGeneration();
@@ -43,8 +47,12 @@ function MainIDE() {
           loading={loading}
           activeProject={activeProject}
           result={result}
+          currentFile={currentFile}
+          progressPercent={progressPercent}
+          liveMessage={liveMessage}
           onGenerate={generate}
           onRefine={refine}
+          onStop={stopGeneration}
           onLoadProject={loadProject}
           onReset={reset}
         />
@@ -99,6 +107,7 @@ function AuthGate() {
   return <MainIDE />;
 }
 
+
 export default function App() {
   return (
     <AuthProvider>
@@ -106,4 +115,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

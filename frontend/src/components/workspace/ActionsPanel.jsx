@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { getAiEngineHealth, getBackendHealth, getBackendStatus, verifyLlmConnection } from "../../services/api";
+import {
+  downloadProjectZip,
+  getAiEngineHealth,
+  getBackendHealth,
+  getBackendStatus,
+  verifyLlmConnection,
+} from "../../services/api";
+import GitHubExportModal from "./GitHubExportModal";
 
 function InfoCard({ rows }) {
   return (
@@ -22,24 +29,51 @@ export default function ActionsPanel({ result, activeProject, onReset }) {
   const [verifyResult, setVerifyResult] = useState(null);
   const [verifying, setVerifying] = useState(false);
   const [syncMsg, setSyncMsg] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+  const [showGithubModal, setShowGithubModal] = useState(false);
 
   const loadHealth = useCallback(async () => {
     setHealthLoading(true);
     try {
       const [bh, bs, ai] = await Promise.all([getBackendHealth(), getBackendStatus(), getAiEngineHealth()]);
       setHealth({ backend: bh, status: bs, ai });
-    } catch { setHealth(null); }
-    finally { setHealthLoading(false); }
+    } catch {
+      setHealth(null);
+    } finally {
+      setHealthLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadHealth(); }, [loadHealth]);
+  useEffect(() => {
+    loadHealth();
+  }, [loadHealth]);
 
   async function handleVerify() {
     setVerifying(true);
     setVerifyResult(null);
-    try { setVerifyResult(await verifyLlmConnection()); }
-    catch (e) { setVerifyResult({ error: e.message }); }
-    finally { setVerifying(false); }
+    try {
+      setVerifyResult(await verifyLlmConnection());
+    } catch (e) {
+      setVerifyResult({ error: e.message });
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  async function handleDownloadZip() {
+    if (!activeProject) return;
+    setDownloading(true);
+    setSyncMsg(null);
+    try {
+      await downloadProjectZip(activeProject);
+      setSyncMsg(`✓ Downloaded "${activeProject}.zip" successfully.`);
+      setTimeout(() => setSyncMsg(null), 5000);
+    } catch (err) {
+      setSyncMsg(`⚠ Download failed: ${err.message}`);
+      setTimeout(() => setSyncMsg(null), 7000);
+    } finally {
+      setDownloading(false);
+    }
   }
 
   function handleSync() {
@@ -58,6 +92,32 @@ export default function ActionsPanel({ result, activeProject, onReset }) {
       <div>
         <div className="ide-actions__section-title">Project Actions</div>
         <div className="ide-action-grid">
+          {/* Download ZIP */}
+          <button
+            type="button"
+            className="ide-action-card"
+            disabled={!activeProject || downloading}
+            onClick={handleDownloadZip}
+            title="Download the full project codebase as a .ZIP archive"
+          >
+            <div className="ide-action-card__icon">📦</div>
+            <div className="ide-action-card__name">{downloading ? "Zipping…" : "Download ZIP"}</div>
+            <div className="ide-action-card__desc">Export clean source archive (.zip)</div>
+          </button>
+
+          {/* Export to GitHub */}
+          <button
+            type="button"
+            className="ide-action-card"
+            disabled={!activeProject}
+            onClick={() => setShowGithubModal(true)}
+            title="Create a new GitHub repository and push project files"
+          >
+            <div className="ide-action-card__icon">🐙</div>
+            <div className="ide-action-card__name">Export to GitHub</div>
+            <div className="ide-action-card__desc">Push project to a GitHub repository</div>
+          </button>
+
           <button
             type="button"
             className="ide-action-card"
@@ -94,17 +154,35 @@ export default function ActionsPanel({ result, activeProject, onReset }) {
         </div>
 
         {syncMsg && (
-          <div style={{ marginTop: "10px", padding: "10px 14px", background: "var(--ide-surface)", border: "1px solid var(--ide-border)", borderRadius: "var(--ide-radius-sm)", fontSize: "12px", fontFamily: "var(--ide-mono)", color: "var(--ide-text)", wordBreak: "break-all" }}>
+          <div
+            style={{
+              marginTop: "10px",
+              padding: "10px 14px",
+              background: "var(--ide-surface)",
+              border: "1px solid var(--ide-border)",
+              borderRadius: "var(--ide-radius-sm)",
+              fontSize: "12px",
+              fontFamily: "var(--ide-mono)",
+              color: "var(--ide-text)",
+              wordBreak: "break-all",
+            }}
+          >
             {syncMsg}
           </div>
         )}
         {verifyResult && (
           <div style={{ marginTop: "10px" }}>
-            <InfoCard rows={[
-              { label: "LLM Reachable", value: verifyResult.error ? "Error" : verifyResult.reachable ? "Yes" : "No", tone: verifyResult.reachable ? "green" : "red" },
-              { label: "Latency", value: verifyResult.latency_ms ? `${verifyResult.latency_ms}ms` : null },
-              { label: "Sample", value: verifyResult.sample || verifyResult.error || null },
-            ]} />
+            <InfoCard
+              rows={[
+                {
+                  label: "LLM Reachable",
+                  value: verifyResult.error ? "Error" : verifyResult.reachable ? "Yes" : "No",
+                  tone: verifyResult.reachable ? "green" : "red",
+                },
+                { label: "Latency", value: verifyResult.latency_ms ? `${verifyResult.latency_ms}ms` : null },
+                { label: "Sample", value: verifyResult.sample || verifyResult.error || null },
+              ]}
+            />
           </div>
         )}
       </div>
@@ -113,25 +191,29 @@ export default function ActionsPanel({ result, activeProject, onReset }) {
       {result && (
         <div>
           <div className="ide-actions__section-title">Project Info</div>
-          <InfoCard rows={[
-            { label: "Project Name", value: result.project_name || result.projectName },
-            { label: "Tech Stack", value: result.tech_stack || result.techStack },
-            { label: "Mode", value: result.mode },
-            { label: "Status", value: result.status, tone: result.status === "completed" ? "green" : "amber" },
-            { label: "Duration", value: result.durationMs ? `${(result.durationMs / 1000).toFixed(1)}s` : null },
-            { label: "LLM Provider", value: result.llm?.provider },
-            { label: "Model", value: result.llm?.model },
-            { label: "LLM Mode", value: result.llm?.mode, tone: result.llm?.mode === "live" ? "green" : "amber" },
-            { label: "Files Generated", value: (result.saved_files || result.savedFiles || []).length || null },
-            { label: "Output Dir", value: outputDir },
-          ].filter((r) => r.value != null)} />
+          <InfoCard
+            rows={[
+              { label: "Project Name", value: result.project_name || result.projectName },
+              { label: "Tech Stack", value: result.tech_stack || result.techStack },
+              { label: "Mode", value: result.mode },
+              { label: "Status", value: result.status, tone: result.status === "completed" ? "green" : "amber" },
+              { label: "Duration", value: result.durationMs ? `${(result.durationMs / 1000).toFixed(1)}s` : null },
+              { label: "LLM Provider", value: result.llm?.provider },
+              { label: "Model", value: result.llm?.model },
+              { label: "LLM Mode", value: result.llm?.mode, tone: result.llm?.mode === "live" ? "green" : "amber" },
+              { label: "Files Generated", value: (result.saved_files || result.savedFiles || []).length || null },
+              { label: "Output Dir", value: outputDir },
+            ].filter((r) => r.value != null)}
+          />
         </div>
       )}
 
       {/* System Health */}
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-          <div className="ide-actions__section-title" style={{ margin: 0 }}>System Health</div>
+          <div className="ide-actions__section-title" style={{ margin: 0 }}>
+            System Health
+          </div>
           <button className="ide-btn ide-btn--ghost ide-btn--sm" onClick={loadHealth} disabled={healthLoading} type="button">
             {healthLoading ? "…" : "Refresh"}
           </button>
@@ -139,26 +221,67 @@ export default function ActionsPanel({ result, activeProject, onReset }) {
         <div className="ide-health-grid">
           <div className="ide-health-card">
             <div className="ide-health-card__title">Backend API</div>
-            <div className="ide-health-row"><span className="ide-health-row__label">Status</span><span className={`ide-health-row__value ide-health-row__value--${health?.backend?.ok ? "green" : "red"}`}>{health?.backend?.data?.status ?? "—"}</span></div>
-            <div className="ide-health-row"><span className="ide-health-row__label">Uptime</span><span className="ide-health-row__value">{health?.status?.data?.uptimeSeconds ? `${health.status.data.uptimeSeconds}s` : "—"}</span></div>
+            <div className="ide-health-row">
+              <span className="ide-health-row__label">Status</span>
+              <span className={`ide-health-row__value ide-health-row__value--${health?.backend?.ok ? "green" : "red"}`}>
+                {health?.backend?.data?.status ?? "—"}
+              </span>
+            </div>
+            <div className="ide-health-row">
+              <span className="ide-health-row__label">Uptime</span>
+              <span className="ide-health-row__value">
+                {health?.status?.data?.uptimeSeconds ? `${health.status.data.uptimeSeconds}s` : "—"}
+              </span>
+            </div>
           </div>
           <div className="ide-health-card">
             <div className="ide-health-card__title">MongoDB</div>
-            <div className="ide-health-row"><span className="ide-health-row__label">Status</span><span className={`ide-health-row__value ide-health-row__value--${dbStatus === "connected" ? "green" : "amber"}`}>{dbStatus}</span></div>
-            <div className="ide-health-row"><span className="ide-health-row__label">DB</span><span className="ide-health-row__value">{health?.status?.data?.database?.name ?? "—"}</span></div>
+            <div className="ide-health-row">
+              <span className="ide-health-row__label">Status</span>
+              <span className={`ide-health-row__value ide-health-row__value--${dbStatus === "connected" ? "green" : "amber"}`}>
+                {dbStatus}
+              </span>
+            </div>
+            <div className="ide-health-row">
+              <span className="ide-health-row__label">DB</span>
+              <span className="ide-health-row__value">{health?.status?.data?.database?.name ?? "—"}</span>
+            </div>
           </div>
           <div className="ide-health-card">
             <div className="ide-health-card__title">AI Engine</div>
-            <div className="ide-health-row"><span className="ide-health-row__label">Reachable</span><span className={`ide-health-row__value ide-health-row__value--${aiReachable ? "green" : "red"}`}>{aiReachable ? "Yes" : "No"}</span></div>
-            <div className="ide-health-row"><span className="ide-health-row__label">Service</span><span className="ide-health-row__value">{health?.ai?.data?.aiEngine?.data?.service ?? "—"}</span></div>
+            <div className="ide-health-row">
+              <span className="ide-health-row__label">Reachable</span>
+              <span className={`ide-health-row__value ide-health-row__value--${aiReachable ? "green" : "red"}`}>
+                {aiReachable ? "Yes" : "No"}
+              </span>
+            </div>
+            <div className="ide-health-row">
+              <span className="ide-health-row__label">Service</span>
+              <span className="ide-health-row__value">{health?.ai?.data?.aiEngine?.data?.service ?? "—"}</span>
+            </div>
           </div>
           <div className="ide-health-card">
             <div className="ide-health-card__title">LLM</div>
-            <div className="ide-health-row"><span className="ide-health-row__label">Mode</span><span className={`ide-health-row__value ide-health-row__value--${llm?.mode === "live" ? "green" : "amber"}`}>{llm?.mode ?? "—"}</span></div>
-            <div className="ide-health-row"><span className="ide-health-row__label">Provider</span><span className="ide-health-row__value">{llm?.provider ?? "—"}</span></div>
+            <div className="ide-health-row">
+              <span className="ide-health-row__label">Mode</span>
+              <span className={`ide-health-row__value ide-health-row__value--${llm?.mode === "live" ? "green" : "amber"}`}>
+                {llm?.mode ?? "—"}
+              </span>
+            </div>
+            <div className="ide-health-row">
+              <span className="ide-health-row__label">Provider</span>
+              <span className="ide-health-row__value">{llm?.provider ?? "—"}</span>
+            </div>
           </div>
         </div>
       </div>
+
+      {showGithubModal && activeProject && (
+        <GitHubExportModal
+          projectName={activeProject}
+          onClose={() => setShowGithubModal(false)}
+        />
+      )}
     </div>
   );
 }

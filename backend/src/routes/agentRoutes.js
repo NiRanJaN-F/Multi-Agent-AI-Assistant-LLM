@@ -6,13 +6,19 @@ import {
   postGenerate,
   postRefine,
 } from "../controllers/agentController.js";
+import { optionalAuth, requireAuth } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-router.post("/generate", postGenerate);
-router.post("/refine", postRefine);
-router.get("/history", getHistory);
-router.get("/history/:id", getHistoryItem);
-router.delete("/history/:id", deleteHistoryItem);
+// Generation & refinement — optional auth so anonymous users can still generate.
+// When authenticated, userId is saved with the run.
+router.post("/generate", optionalAuth, postGenerate);
+router.post("/refine", optionalAuth, postRefine);
+
+// History — always requires authentication.
+// Users can only see, retrieve, and delete their own generations.
+router.get("/history", requireAuth, getHistory);
+router.get("/history/:id", requireAuth, getHistoryItem);
+router.delete("/history/:id", requireAuth, deleteHistoryItem);
 
 export default router;

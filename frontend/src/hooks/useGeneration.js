@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { generateProject, refineProject, getProjectFiles } from "../services/api";
+import { useState, useRef, useCallback } from "react";
+import { generateProjectStream, refineProjectStream, getProjectFiles } from "../services/api";
 
 const AGENT_STEPS = [
   { key: "planner", label: "Planner", icon: "🧠" },
@@ -26,46 +26,6 @@ function buildStepStates(isRefine = false) {
   return steps.map((s) => ({ ...s, status: "pending", log: "", duration: null }));
 }
 
-function mapLogsToSteps(logs, isRefine = false) {
-  if (!Array.isArray(logs) || logs.length === 0) return null;
-  const steps = buildStepStates(isRefine);
-  const logTexts = logs.map((l) => (typeof l === "string" ? l.toLowerCase() : (l.message || "").toLowerCase()));
-
-  const keywords = isRefine
-    ? {
-        refine_intent: ["refineintent", "intent", "analyzing refinement intent", "scope"],
-        refine_context: ["refinecontext", "context", "scanning project context", "checkpoint"],
-        refine_planner: ["refineplanner", "change plan", "planning minimal", "analysing"],
-        coder: ["refinecoder", "patch", "editing", "applied code patch", "coder"],
-        tester: ["test", "tester", "unit test", "test suite"],
-        qa: ["diffqa", "diff", "qa", "review", "quality", "regressions"],
-        docwriter: ["doc", "readme", "documentation", "changelog"],
-      }
-    : {
-        planner: ["plan", "planner", "planning", "requirement"],
-        architect: ["architect", "architecture", "structure", "contract"],
-        backend: ["backend", "server-side", "express", "fastapi", "routes", "server"],
-        frontend: ["frontend", "client-side", "html", "css", "javascript", "react"],
-        tester: ["test", "tester", "unit test", "test suite"],
-        qa: ["qa", "review", "quality", "interactivity", "issues"],
-        docwriter: ["doc", "readme", "documentation"],
-      };
-
-  steps.forEach((step) => {
-    const matchingLogs = logTexts.filter((lt) => keywords[step.key]?.some((kw) => lt.includes(kw)));
-    if (matchingLogs.length > 0) {
-      step.status = "done";
-      step.log = logs.find((l) => {
-        const lt = (typeof l === "string" ? l : l.message || "").toLowerCase();
-        return keywords[step.key]?.some((kw) => lt.includes(kw));
-      }) || "";
-      if (typeof step.log !== "string") step.log = step.log.message || "";
-    }
-  });
-
-  return steps;
-}
-
 export default function useGeneration() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -73,59 +33,122 @@ export default function useGeneration() {
   const [activeProject, setActiveProject] = useState(null);
   const [stepStates, setStepStates] = useState(() => buildStepStates(false));
   const [activeStepIndex, setActiveStepIndex] = useState(0);
-  const intervalRef = useRef(null);
+  const [currentFile, setCurrentFile] = useState(null);
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [liveMessage, setLiveMessage] = useState("");
 
-  function startProgressSim(isRefine = false) {
-    const steps = isRefine ? REFINE_STEPS : AGENT_STEPS;
-    setStepStates(buildStepStates(isRefine));
-    setActiveStepIndex(0);
-    let idx = 0;
-    intervalRef.current = setInterval(() => {
-      idx = Math.min(idx + 1, steps.length - 1);
-      setActiveStepIndex(idx);
-      setStepStates((prev) =>
-        prev.map((s, i) => ({
-          ...s,
-          status: i < idx ? "done" : i === idx ? "running" : "pending",
-        }))
-      );
-    }, 4500);
-  }
+  const abortControllerRef = useRef(null);
 
-  function stopProgressSim(logs, isRefine = false) {
-    clearInterval(intervalRef.current);
-    const steps = isRefine ? REFINE_STEPS : AGENT_STEPS;
-    const mapped = logs ? mapLogsToSteps(logs, isRefine) : null;
-    if (mapped) {
-      const finalized = mapped.map((s) => ({
-        ...s,
-        status: "done",
-      }));
-      setStepStates(finalized);
-    } else {
-      setStepStates((prev) => prev.map((s) => ({ ...s, status: "done" })));
+  const handleSseEvent = useCallback((event, isRefine = false) => {
+    if (!event) return;
+
+    if (event.percent != null) {
+      setProgressPercent(event.percent);
     }
-    setActiveStepIndex(steps.length - 1);
-  }
+    if (event.message) {
+      setLiveMessage(event.message);
+    }
+    if (event.file) {
+      setCurrentFile(event.file);
+    }
+
+    const stageKey = event.stage;
+    const steps = isRefine ? REFINE_STEPS : AGENT_STEPS;
+
+    // Normalize doc_writer to docwriter
+    const normalizedKey = stageKey === "doc_writer" ? "docwriter" : stageKey;
+    const targetIdx = steps.findIndex((s) => s.key === normalizedKey);
+
+    if (targetIdx !== -1) {
+      setActiveStepIndex(targetIdx);
+      setStepStates((prev) =>
+        prev.map((s, i) => {
+          if (i < targetIdx) {
+            return { ...s, status: "done" };
+          }
+          if (i === targetIdx) {
+            return {
+              ...s,
+              status: "running",
+              log: event.message || s.log,
+            };
+          }
+          return s;
+        })
+      );
+    }
+
+    if (stageKey === "coder" && event.file) {
+      setStepStates((prev) =>
+        prev.map((s) => {
+          if (s.key === "coder" || s.key === "frontend" || s.key === "backend") {
+            return {
+              ...s,
+              log: `Generated: ${event.file}`,
+            };
+          }
+          return s;
+        })
+      );
+    }
+  }, []);
+
+  const stopGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+    setLiveMessage("Generation stopped by user.");
+    setStepStates((prev) =>
+      prev.map((s) => (s.status === "running" ? { ...s, status: "pending", log: "Stopped" } : s))
+    );
+  }, []);
 
   async function generate({ prompt, projectName, provider }) {
     setLoading(true);
     setError(null);
     setResult(null);
-    startProgressSim(false);
+    setCurrentFile(null);
+    setProgressPercent(5);
+    setLiveMessage("Starting generation pipeline...");
+    setStepStates(buildStepStates(false));
+    setActiveStepIndex(0);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
-      const data = await generateProject({ prompt, projectName, provider });
-      stopProgressSim(data.logs, false);
+      const data = await generateProjectStream({
+        prompt,
+        projectName,
+        provider,
+        onEvent: (ev) => handleSseEvent(ev, false),
+        signal: controller.signal,
+      });
+
+      setStepStates((prev) => prev.map((s) => ({ ...s, status: "done" })));
+      setProgressPercent(100);
+      setLiveMessage("Generation completed ✓");
+      setCurrentFile(null);
       setResult(data);
-      setActiveProject(data.project_name);
+      if (data?.project_name) {
+        setActiveProject(data.project_name);
+      }
       return data;
     } catch (err) {
-      setError(err.message || "Generation failed");
-      setStepStates((prev) => prev.map((s) => (s.status === "running" ? { ...s, status: "failed" } : s)));
+      if (err.name === "AbortError" || controller.signal.aborted) {
+        setLiveMessage("Generation stopped.");
+      } else {
+        setError(err.message || "Generation failed");
+        setStepStates((prev) =>
+          prev.map((s) => (s.status === "running" ? { ...s, status: "failed" } : s))
+        );
+      }
       throw err;
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
   }
 
@@ -133,19 +156,43 @@ export default function useGeneration() {
     if (!activeProject) throw new Error("No active project to refine");
     setLoading(true);
     setError(null);
-    startProgressSim(true);
+    setCurrentFile(null);
+    setProgressPercent(5);
+    setLiveMessage(`Refining project "${activeProject}"...`);
+    setStepStates(buildStepStates(true));
+    setActiveStepIndex(0);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
-      const data = await refineProject({ prompt, projectName: activeProject, provider });
-      stopProgressSim(data.logs, true);
+      const data = await refineProjectStream({
+        prompt,
+        projectName: activeProject,
+        provider,
+        onEvent: (ev) => handleSseEvent(ev, true),
+        signal: controller.signal,
+      });
+
+      setStepStates((prev) => prev.map((s) => ({ ...s, status: "done" })));
+      setProgressPercent(100);
+      setLiveMessage("Refinement completed ✓");
+      setCurrentFile(null);
       setResult(data);
       return data;
     } catch (err) {
-      setError(err.message || "Refinement failed");
-      setStepStates((prev) => prev.map((s) => (s.status === "running" ? { ...s, status: "failed" } : s)));
+      if (err.name === "AbortError" || controller.signal.aborted) {
+        setLiveMessage("Refinement stopped.");
+      } else {
+        setError(err.message || "Refinement failed");
+        setStepStates((prev) =>
+          prev.map((s) => (s.status === "running" ? { ...s, status: "failed" } : s))
+        );
+      }
       throw err;
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
   }
 
@@ -174,9 +221,16 @@ export default function useGeneration() {
   }
 
   function reset() {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     setResult(null);
     setActiveProject(null);
     setError(null);
+    setCurrentFile(null);
+    setProgressPercent(0);
+    setLiveMessage("");
     setStepStates(buildStepStates(false));
     setActiveStepIndex(0);
   }
@@ -188,12 +242,15 @@ export default function useGeneration() {
     activeProject,
     stepStates,
     activeStepIndex,
+    currentFile,
+    progressPercent,
+    liveMessage,
     generate,
     refine,
+    stopGeneration,
     loadProject,
     reset,
     AGENT_STEPS,
     REFINE_STEPS,
   };
 }
-

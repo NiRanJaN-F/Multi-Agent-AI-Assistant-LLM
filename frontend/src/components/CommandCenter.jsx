@@ -24,9 +24,13 @@ export default function CommandCenter({
   activeProject,
   onGenerate,
   onRefine,
+  onStop,
   onLoadProject,
   onReset,
   result,
+  currentFile,
+  progressPercent,
+  liveMessage,
 }) {
   const [prompt, setPrompt] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -154,21 +158,74 @@ export default function CommandCenter({
           </select>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
-          <button
-            type="submit"
-            className={`ide-btn ${activeProject ? "ide-btn--success" : "ide-btn--primary"}`}
-            disabled={loading || !prompt.trim()}
-            style={{ flex: 1 }}
-          >
-            {loading ? "⟳ Agents running…" : activeProject ? "↻ Apply Change" : "✦ Generate App"}
-          </button>
-          {activeProject && (
-            <button type="button" className="ide-btn ide-btn--ghost" onClick={onReset} disabled={loading}>
+          {loading ? (
+            <button
+              type="button"
+              className="ide-btn ide-btn--danger"
+              onClick={onStop}
+              style={{ flex: 1, background: "#ef4444", color: "#fff", borderColor: "#dc2626" }}
+              title="Stop active agent pipeline execution"
+            >
+              ⏹ Stop Generation
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className={`ide-btn ${activeProject ? "ide-btn--success" : "ide-btn--primary"}`}
+              disabled={!prompt.trim()}
+              style={{ flex: 1 }}
+            >
+              {activeProject ? "↻ Apply Change" : "✦ Generate App"}
+            </button>
+          )}
+          {activeProject && !loading && (
+            <button type="button" className="ide-btn ide-btn--ghost" onClick={onReset}>
               Reset
             </button>
           )}
         </div>
       </form>
+
+      {/* Real-time Progress Card (when running) */}
+      {loading && (
+        <div
+          style={{
+            margin: "12px 14px 0 14px",
+            padding: "12px",
+            background: "var(--ide-surface, #13141f)",
+            border: "1px solid var(--ide-border, #2a2c3d)",
+            borderRadius: "8px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", fontSize: "12px" }}>
+            <span style={{ fontWeight: 600, color: "#818cf8" }}>⚡ Live Agent Stream</span>
+            <span style={{ fontSize: "11px", color: "var(--ide-text-muted)" }}>{progressPercent}%</span>
+          </div>
+
+          {/* Progress bar */}
+          <div style={{ width: "100%", height: "4px", background: "rgba(255,255,255,0.08)", borderRadius: "2px", overflow: "hidden", marginBottom: "8px" }}>
+            <div
+              style={{
+                width: `${Math.max(5, progressPercent)}%`,
+                height: "100%",
+                background: "linear-gradient(90deg, #6366f1, #a855f7)",
+                transition: "width 0.4s ease-in-out",
+              }}
+            />
+          </div>
+
+          <div style={{ fontSize: "12px", color: "var(--ide-text)", lineHeight: 1.4 }}>
+            {liveMessage || "Processing stage..."}
+          </div>
+
+          {currentFile && (
+            <div style={{ marginTop: "6px", fontSize: "11px", color: "#38bdf8", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span>📄</span>
+              <span style={{ fontFamily: "var(--ide-mono)" }}>Writing {currentFile}...</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Agent Stepper */}
       <div className="ide-stepper ide-scroll">
@@ -239,4 +296,3 @@ export default function CommandCenter({
     </aside>
   );
 }
-

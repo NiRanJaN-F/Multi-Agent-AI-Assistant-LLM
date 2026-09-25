@@ -85,6 +85,8 @@ services:
       AI_ENGINE_URL: http://ai-engine:8000
     ports:
       - "5000:5000"
+    volumes:
+      - ./generated-projects:/app/generated-projects
     depends_on:
       mongodb:
         condition: service_healthy

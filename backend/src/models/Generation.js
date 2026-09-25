@@ -12,6 +12,13 @@ const logEntrySchema = new mongoose.Schema(
 
 const generationSchema = new mongoose.Schema(
   {
+    // Owner — null for anonymous / legacy generations
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
     prompt: { type: String, required: true },
     projectName: { type: String, required: true, index: true },
     provider: { type: String, default: null },
@@ -32,6 +39,8 @@ const generationSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Per-user reverse-chronological history — most common query pattern
+generationSchema.index({ userId: 1, createdAt: -1 });
 generationSchema.index({ createdAt: -1 });
 
 export const Generation = mongoose.model("Generation", generationSchema);

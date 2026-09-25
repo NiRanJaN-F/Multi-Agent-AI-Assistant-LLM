@@ -78,21 +78,33 @@ User Request: "{user_prompt}"
 Tech Stack: "{tech_stack}"
 All Project Files: {file_paths}
 File To Write: {file_path}
+App Category Hint: {app_category}
 
 ALREADY-WRITTEN SIBLING FILES (use their exact IDs, classNames, function names, import paths):
 {sibling_context}
 
 CRITICAL RULES for {file_path}:
 - 100% COMPLETE implemented code. No TODOs, stubs, or placeholders.
+- BUILD EXACTLY WHAT WAS REQUESTED. The user asked for: "{user_prompt}". Do not substitute a
+  generic card-grid store or dashboard if that is not what was requested.
 - If writing HTML:
   * In <head>, ALWAYS include Tailwind CSS CDN:
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  * Structure with sticky navbar (brand logo, search bar, action/cart badge), hero section, responsive card grid (`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6`), modal dialogs/drawers, and footer.
+  * Design the layout to match the app's PURPOSE:
+    - tool/utility (calculator, timer, converter): centered card or two-panel layout with large interactive controls
+    - game (chess, snake, ludo, tic-tac-toe): full-screen game canvas or board grid, scoreboard, restart button
+    - form/auth (login, register, survey): centered card form with clean field layout and submit CTA
+    - dashboard/analytics: sidebar nav + KPI cards + data table or chart
+    - e-commerce/store: sticky navbar, hero, responsive product card grid, cart drawer
+    - todo/task: clean list with add-form, filter tabs, inline edit/delete
+    - landing page/portfolio: hero section, features, testimonials, CTA, footer
+    - social/feed: card feed with like/comment, user avatars, search bar
+    - other: use the most natural layout for the request
 - If writing JS:
-  * Pre-populate 6+ rich mock items with Unsplash images, prices, ratings, and tags.
-  * Implement complete event handlers: search filtering, category tabs, modal toggling, item creation/deletion, counter updates, and toast alerts.
+  * Pre-populate realistic mock data that MATCHES THE APP TYPE (not generic products with Unsplash images unless it's a store).
+  * Implement ALL event handlers the app needs: the exact interactions the user requested.
   * Call `lucide.createIcons();` after updating DOM elements. Guard every selector safely.
 - If writing CSS: provide sleek glassmorphism effects, modern scrollbars, and keyframe animations.
 
@@ -101,6 +113,53 @@ Return ONLY the raw source code inside a SINGLE markdown code fence (```...```),
 
 
 LOCAL_PROVIDERS = {"ollama"}
+
+_APP_CATEGORY_KEYWORDS = {
+    "game": (
+        "game", "chess", "snake", "ludo", "tic-tac-toe", "tictactoe",
+        "tetris", "sudoku", "quiz", "puzzle", "pacman", "2048", "checkers",
+        "battleship", "hangman", "wordle", "minesweeper",
+    ),
+    "tool": (
+        "calculator", "timer", "stopwatch", "converter", "clock",
+        "pomodoro", "countdown", "unit converter", "currency converter",
+        "bmi", "age calculator", "password generator", "qr code",
+    ),
+    "form": (
+        "login", "register", "signup", "sign up", "authentication",
+        "contact form", "survey", "questionnaire", "booking form",
+        "enrollment", "registration form",
+    ),
+    "dashboard": (
+        "dashboard", "analytics", "metrics", "admin panel", "crm",
+        "reporting", "kpi", "stats", "monitoring", "control panel",
+    ),
+    "store": (
+        "ecommerce", "e-commerce", "store", "shop", "marketplace",
+        "product catalog", "cart", "shopping", "inventory",
+    ),
+    "todo": (
+        "todo", "to-do", "task manager", "checklist", "kanban",
+        "habit tracker", "planner", "notes app",
+    ),
+    "landing": (
+        "landing page", "portfolio", "personal website", "saas landing",
+        "company website", "marketing page", "homepage",
+    ),
+    "social": (
+        "social", "feed", "blog", "forum", "chat", "messaging",
+        "news feed", "twitter clone", "reddit clone",
+    ),
+}
+
+
+def _detect_app_category(user_prompt: str) -> str:
+    """Return a layout-hint category string based on the user prompt keywords."""
+    lower = user_prompt.lower()
+    for category, keywords in _APP_CATEGORY_KEYWORDS.items():
+        if any(kw in lower for kw in keywords):
+            return category
+    return "other"
 
 
 def one_call_per_file(llm: FallbackLLM) -> bool:
@@ -163,6 +222,7 @@ def _generate_file_by_file(
     file_paths: list[str],
     user_prompt: str,
     tech_stack: str,
+    app_category: str = "other",
     qa_header: str = "",
     call_budget_remaining: int = 50,
 ) -> tuple[dict[str, str], BaseException | None, int]:
@@ -185,6 +245,7 @@ def _generate_file_by_file(
                     tech_stack=tech_stack,
                     file_paths=file_paths,
                     file_path=file_path,
+                    app_category=app_category,
                     sibling_context=sibling_context,
                 ),
             )
@@ -203,6 +264,7 @@ def _generate_file_by_file(
             generated[file_path] = content
 
     return generated, last_error, budget
+
 
 
 def _get_fallback_code(file_path: str, user_prompt: str) -> str:
@@ -937,6 +999,7 @@ def coder_agent(state: AgentState) -> dict:
         qa_header = ""
 
     llm = get_agent_llm(state, temperature=0.2, role="coder")
+    app_category = _detect_app_category(user_prompt)
 
     if llm is None:
         generated_files = {path: _get_fallback_code(path, user_prompt) for path in file_paths}
@@ -944,7 +1007,7 @@ def coder_agent(state: AgentState) -> dict:
             logs,
             "CoderAgent",
             "completed",
-            f"Generated code for {len(generated_files)} files via mock templates.",
+            f"Generated code for {len(generated_files)} files via mock templates (category={app_category}).",
         )
         return {"files": generated_files, "logs": logs, "current_step": "coded"}
 
@@ -953,7 +1016,7 @@ def coder_agent(state: AgentState) -> dict:
 
     if per_file:
         generated_files, error, budget_left = _generate_file_by_file(
-            llm, file_paths, user_prompt, tech_stack, qa_header, call_budget
+            llm, file_paths, user_prompt, tech_stack, app_category, qa_header, call_budget
         )
         if not generated_files and error is not None:
             logger.error(f"Coder Agent error: {error}")

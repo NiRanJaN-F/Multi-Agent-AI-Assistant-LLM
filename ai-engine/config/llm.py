@@ -495,7 +495,8 @@ def get_llm(
             model=target_model,
             google_api_key=api_key,
             temperature=temperature,
-            timeout=30.0,
+            max_output_tokens=8192,
+            timeout=120.0,
             max_retries=0,
         )
 
@@ -517,7 +518,8 @@ def get_llm(
             api_key=profile.api_key,
             base_url=profile.base_url,
             temperature=temperature,
-            request_timeout=30.0,
+            max_tokens=8192,
+            request_timeout=120.0,
             max_retries=0,
         )
 

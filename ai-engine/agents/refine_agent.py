@@ -261,6 +261,38 @@ def _rewrite_file_by_file(
     return rewritten, last_error
 
 
+def resolve_target_path(candidate: str, existing_files: dict[str, str]) -> str | None:
+    """Resolve a candidate file path against existing files.
+    
+    Checks:
+    1. Exact match
+    2. Normalized path (stripping ./, leading slashes, backslashes)
+    3. Case-insensitive exact match
+    4. Suffix match (e.g. 'js/app.js' -> 'public/js/app.js')
+    5. Basename match (e.g. 'app.js' -> 'public/js/app.js')
+    """
+    clean = candidate.strip().replace("\\", "/").lstrip("./").lstrip("/")
+    if not clean:
+        return None
+    if clean in existing_files:
+        return clean
+    
+    for path in existing_files:
+        if path.lower() == clean.lower():
+            return path
+            
+    suffix_matches = [p for p in existing_files if p.endswith(f"/{clean}")]
+    if len(suffix_matches) == 1:
+        return suffix_matches[0]
+        
+    basename = clean.split("/")[-1]
+    basename_matches = [p for p in existing_files if p == basename or p.endswith(f"/{basename}")]
+    if len(basename_matches) == 1:
+        return basename_matches[0]
+        
+    return None
+
+
 def refine_planner_agent(state: AgentState) -> dict:
     """Plan which files a follow-up change request should touch with protection enforcement."""
     logs = add_log(
@@ -331,11 +363,28 @@ def refine_planner_agent(state: AgentState) -> dict:
         )
         parsed = extract_json_from_llm(raw)
 
-        # Enforce file protection: filter out any protected files
+        # Enforce file protection and robust path matching:
         raw_modify = parsed.get("modify_files", [])
-        modify_files = [path for path in raw_modify if path in existing_files and path not in protected_files]
+        resolved_modify = []
+        for p in raw_modify:
+            resolved = resolve_target_path(p, existing_files)
+            if resolved and resolved not in protected_files and resolved not in resolved_modify:
+                resolved_modify.append(resolved)
+
         raw_new = parsed.get("new_files", [])
-        new_files = [path for path in raw_new if path not in existing_files and path not in protected_files]
+        resolved_new = []
+        for p in raw_new:
+            existing_match = resolve_target_path(p, existing_files)
+            if existing_match:
+                if existing_match not in protected_files and existing_match not in resolved_modify:
+                    resolved_modify.append(existing_match)
+            else:
+                clean_p = p.strip().replace("\\", "/").lstrip("./").lstrip("/")
+                if clean_p and clean_p not in protected_files and clean_p not in resolved_new:
+                    resolved_new.append(clean_p)
+
+        modify_files = resolved_modify
+        new_files = resolved_new
 
         if not modify_files and not new_files:
             modify_files = _mock_targets(existing_files, change_request, list(protected_files))

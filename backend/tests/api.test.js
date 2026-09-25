@@ -82,13 +82,34 @@ describe("backend API", () => {
     assert.equal(body.message, "projectName is required to refine an existing project");
   });
 
-  it("returns 503 for history when MongoDB is not connected", async () => {
+  it("requires authentication for history endpoint", async () => {
     const response = await fetch(`${baseUrl}/api/agents/history`);
     const body = await response.json();
 
-    assert.equal(response.status, 503);
-    assert.equal(body.status, "unavailable");
-    assert.deepEqual(body.items, []);
+    assert.equal(response.status, 401);
+    assert.equal(body.status, "error");
+    assert.equal(body.message, "Authentication required.");
+  });
+
+  it("rejects invalid project download paths", async () => {
+    const response = await fetch(`${baseUrl}/api/ai/projects/..%2F..%2Fetc/download`);
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.status, "error");
+  });
+
+  it("rejects GitHub export without token", async () => {
+    const response = await fetch(`${baseUrl}/api/ai/projects/test-project/github`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repoName: "test-repo" }),
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.status, "error");
+    assert.equal(body.message, "githubToken is required.");
   });
 
   it("returns a JSON 404 for unknown routes", async () => {

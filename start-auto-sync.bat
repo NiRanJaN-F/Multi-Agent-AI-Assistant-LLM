@@ -8,6 +8,6 @@ echo ======================================================================
 echo.
 
 :loop
-docker cp maa-ai-engine:/app/generated-projects/. "%~dp0generated-projects\" 2>nul
+docker cp maa-ai-engine:/app/generated-projects/. "%~dp0generated-projects" 2>nul
 timeout /t 2 /nobreak >nul
 goto loop
