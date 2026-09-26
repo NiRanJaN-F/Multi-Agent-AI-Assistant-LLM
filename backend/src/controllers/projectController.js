@@ -114,7 +114,7 @@ export async function downloadProject(req, res) {
     return res.status(404).json({ status: "error", message: "Project not found." });
   }
 
-  // Fetch project files from AI Engine service
+  // Fetch project files from AI Engine service or MongoDB
   let projectFiles = null;
   try {
     const data = await fetchProjectFiles(projectName);
@@ -122,7 +122,20 @@ export async function downloadProject(req, res) {
       projectFiles = data.files;
     }
   } catch (err) {
-    // If AI engine files endpoint is not reachable, fallback to disk check
+    // If AI engine files endpoint is not reachable, fallback
+  }
+
+  if (!projectFiles && isDatabaseReady()) {
+    try {
+      const gen = await Generation.findOne({ projectName, status: "completed" })
+        .sort({ createdAt: -1 })
+        .lean();
+      if (gen && gen.files && Object.keys(gen.files).length > 0) {
+        projectFiles = gen.files;
+      }
+    } catch {
+      // ignore
+    }
   }
 
   const safeName = projectName.replace(/[^a-zA-Z0-9_\-]/g, "-");
@@ -223,13 +236,26 @@ export async function exportToGithub(req, res) {
     return res.status(404).json({ status: "error", message: "Project not found." });
   }
 
-  // Fetch project files from AI engine
-  let projectFiles;
+  // Fetch project files from AI engine or MongoDB
+  let projectFiles = {};
   try {
     const data = await fetchProjectFiles(projectName);
     projectFiles = data.files || {};
-  } catch (err) {
-    return res.status(404).json({ status: "error", message: `Could not load project files: ${err.message}` });
+  } catch {
+    projectFiles = {};
+  }
+
+  if (Object.keys(projectFiles).length === 0 && isDatabaseReady()) {
+    try {
+      const gen = await Generation.findOne({ projectName, status: "completed" })
+        .sort({ createdAt: -1 })
+        .lean();
+      if (gen && gen.files && Object.keys(gen.files).length > 0) {
+        projectFiles = gen.files;
+      }
+    } catch {
+      // ignore
+    }
   }
 
   if (Object.keys(projectFiles).length === 0) {

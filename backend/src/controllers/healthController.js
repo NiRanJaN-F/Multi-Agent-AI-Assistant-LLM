@@ -51,16 +51,64 @@ export async function getLlmVerify(req, res) {
   res.status(result.reachable ? 200 : 503).json(result);
 }
 
+import { Generation } from "../models/Generation.js";
+import { isDatabaseReady } from "../services/generationService.js";
+
 export async function getProjectsList(_req, res) {
-  const result = await fetchProjectsList();
-  res.json(result);
+  let diskProjects = [];
+  try {
+    const result = await fetchProjectsList();
+    diskProjects = result?.projects || [];
+  } catch {
+    diskProjects = [];
+  }
+
+  let dbProjects = [];
+  if (isDatabaseReady()) {
+    try {
+      dbProjects = await Generation.distinct("projectName", { status: "completed" });
+    } catch {
+      dbProjects = [];
+    }
+  }
+
+  const allProjects = Array.from(new Set([...diskProjects, ...dbProjects])).sort();
+  res.json({ projects: allProjects });
 }
 
 export async function getProjectFiles(req, res) {
+  const projectName = req.params.name;
+
+  // 1. Try fetching from AI Engine disk first
   try {
-    const result = await fetchProjectFiles(req.params.name);
-    res.json(result);
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ message: error.message });
+    const result = await fetchProjectFiles(projectName);
+    if (result && result.files && Object.keys(result.files).length > 0) {
+      return res.json(result);
+    }
+  } catch {
+    // Fall through to database check
   }
+
+  // 2. Fallback to MongoDB history document
+  if (isDatabaseReady()) {
+    try {
+      const generation = await Generation.findOne({
+        projectName,
+        status: "completed",
+      })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      if (generation && generation.files && Object.keys(generation.files).length > 0) {
+        return res.json({
+          project_name: projectName,
+          files: generation.files,
+        });
+      }
+    } catch (dbErr) {
+      console.warn("[getProjectFiles] DB fallback error:", dbErr.message);
+    }
+  }
+
+  res.status(404).json({ message: `Project '${projectName}' not found or has no files.` });
 }
