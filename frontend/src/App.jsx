@@ -60,6 +60,16 @@ function MainIDE() {
           result={result}
           activeProject={activeProject}
           onReset={reset}
+          onAutoFix={(errorMessage) => {
+            const effectiveName = activeProject || result?.project_name || result?.projectName;
+            if (!effectiveName) return;
+            refine({
+              projectName: effectiveName,
+              prompt: `Fix the following runtime preview error in the project:\n${errorMessage}\nEnsure all props, null-checks, types, and event handlers are robustly guarded.`
+            }).catch((err) => {
+              console.error("Auto-fix refinement failed:", err);
+            });
+          }}
         />
       </div>
     </div>

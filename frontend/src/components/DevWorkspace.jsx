@@ -13,7 +13,7 @@ const TABS = [
   { id: "actions",   label: "Actions",   icon: "⚡" },
 ];
 
-export default function DevWorkspace({ result, activeProject, onReset }) {
+export default function DevWorkspace({ result, activeProject, onReset, onAutoFix }) {
   const [activeTab, setActiveTab] = useState("preview");
 
   const savedFiles = result?.saved_files || result?.savedFiles || [];
@@ -47,7 +47,7 @@ export default function DevWorkspace({ result, activeProject, onReset }) {
 
       <div className="ide-workspace">
         {activeTab === "preview" && (
-          <PreviewPanel result={result} projectName={effectiveProject} />
+          <PreviewPanel result={result} projectName={effectiveProject} onAutoFix={onAutoFix} />
         )}
         {activeTab === "telemetry" && (
           <AgentTelemetryDashboard result={result} />

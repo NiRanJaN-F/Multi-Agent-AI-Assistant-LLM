@@ -152,13 +152,16 @@ export default function useGeneration() {
     }
   }
 
-  async function refine({ prompt, provider }) {
-    if (!activeProject) throw new Error("No active project to refine");
+  async function refine({ prompt, provider, projectName }) {
+    const targetProject = projectName || activeProject || result?.project_name || result?.projectName;
+    if (!targetProject) throw new Error("No active project to refine");
+    if (!activeProject) setActiveProject(targetProject);
+
     setLoading(true);
     setError(null);
     setCurrentFile(null);
     setProgressPercent(5);
-    setLiveMessage(`Refining project "${activeProject}"...`);
+    setLiveMessage(`Refining project "${targetProject}"...`);
     setStepStates(buildStepStates(true));
     setActiveStepIndex(0);
 
@@ -168,7 +171,7 @@ export default function useGeneration() {
     try {
       const data = await refineProjectStream({
         prompt,
-        projectName: activeProject,
+        projectName: targetProject,
         provider,
         onEvent: (ev) => handleSseEvent(ev, true),
         signal: controller.signal,

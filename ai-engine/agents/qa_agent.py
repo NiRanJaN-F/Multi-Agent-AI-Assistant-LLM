@@ -218,6 +218,127 @@ def _qa_file_snippets(files: dict[str, str], max_chars: int = 3000) -> str:
     return "\n".join(chunks)
 
 
+def _check_runtime_smells(files: dict[str, str]) -> list[str]:
+    """Scan JS/JSX source for 7 high-risk runtime patterns that cause preview crashes.
+
+    Returns a list of warning strings (empty = clean). Each pattern targets a class of
+    bug that static bracket/syntax checks cannot catch.
+    """
+    issues: list[str] = []
+
+    # Pattern 1 — nullable function return accessed without optional chain
+    # e.g. checkWinner(board).winner  →  must be checkWinner(board)?.winner
+    nullable_access = re.compile(
+        r"\b([a-zA-Z_$][a-zA-Z0-9_$]*\s*\([^)]*\))\s*\.\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\b"
+    )
+
+    # Pattern 2 — .find(...).property without optional chain
+    find_unguarded = re.compile(
+        r"\.find\s*\([^)]*\)\s*\.\s*[a-zA-Z_$][a-zA-Z0-9_$]*(?!\?)"
+    )
+
+    # Pattern 3 — .split called directly on a prop value (not inside Array.isArray guard)
+    # catches: prop.split(...) or someVar.split(...) where someVar may be an array
+    split_on_prop = re.compile(
+        r"\b(?:props\.|this\.props\.)?([a-zA-Z_$][a-zA-Z0-9_$]*)\.split\s*\(",
+    )
+
+    # Pattern 4 — action/toggle prop passed as non-function literal
+    # catches: isFavorite={true}  isLiked={false}  onToggle={undefined}
+    non_function_action_prop = re.compile(
+        r'\b(?:is[A-Z][a-zA-Z]+|on[A-Z][a-zA-Z]+|toggle[A-Z][a-zA-Z]*)\s*=\s*\{\s*(?:true|false|undefined|null)\s*\}'
+    )
+
+    # Pattern 5 — JSON.parse(localStorage.getItem(...)) without wrapping try/catch
+    # simple heuristic: the parse call appears but no try{ is within 3 lines before
+    json_parse_unsafe = re.compile(
+        r"JSON\.parse\s*\(\s*localStorage\.getItem\s*\("
+    )
+
+    # Pattern 6 — <canvas element without tabindex attribute
+    canvas_no_tabindex = re.compile(
+        r"<canvas(?![^>]*tabindex)[^>]*>",
+        re.IGNORECASE,
+    )
+
+    # Pattern 7 — fetch(...) call without .catch chained anywhere nearby
+    fetch_no_catch = re.compile(
+        r"\bfetch\s*\([^)]+\)(?:[^;{}\n]*\n?[^;{}\n]*)?(?!\.catch)"
+    )
+
+    # Helper: check if a line is inside a try block (crude but effective)
+    def _in_try_block(lines: list[str], line_idx: int, lookahead: int = 5) -> bool:
+        window = lines[max(0, line_idx - lookahead): line_idx + 1]
+        return any("try" in ln and "{" in ln for ln in window)
+
+    for path, content in files.items():
+        norm = path.replace("\\", "/").lower()
+
+        # Only scan front-end JS/JSX files; skip server/config/test files
+        is_frontend_js = norm.endswith((".js", ".jsx", ".ts", ".tsx"))
+        if not is_frontend_js:
+            continue
+        if any(seg in norm for seg in (
+            "server", "routes/", "models/", "middleware/", "controllers/",
+            "tests/", "vite.config", "tailwind.config", "postcss.config",
+        )):
+            continue
+
+        lines = content.splitlines()
+        content_strip = content
+
+        # --- Pattern 2: unguarded .find(...).prop ---
+        for match in find_unguarded.finditer(content_strip):
+            snippet = match.group(0)[:60]
+            issues.append(
+                f"'{path}': Unguarded .find() result accessed directly — "
+                f"add optional chain (?.) to avoid TypeError. Snippet: `{snippet}`"
+            )
+            break  # one warning per file is enough
+
+        # --- Pattern 4: non-function action prop ---
+        for match in non_function_action_prop.finditer(content_strip):
+            snippet = match.group(0)[:80]
+            issues.append(
+                f"'{path}': Action/toggle prop passed as a literal value instead of a "
+                f"function — this will cause 'is not a function' errors. Snippet: `{snippet}`"
+            )
+            break
+
+        # --- Pattern 5: JSON.parse without try/catch ---
+        for i, line in enumerate(lines):
+            if json_parse_unsafe.search(line) and not _in_try_block(lines, i):
+                issues.append(
+                    f"'{path}' line {i + 1}: JSON.parse(localStorage.getItem(...)) without "
+                    f"try/catch — wrap in try/catch to prevent SyntaxError crash."
+                )
+                break
+
+        # --- Pattern 6: <canvas> without tabindex (HTML files too) ---
+        if norm.endswith(".html"):
+            for i, line in enumerate(lines):
+                if canvas_no_tabindex.search(line):
+                    issues.append(
+                        f"'{path}' line {i + 1}: <canvas> element missing tabindex='0' — "
+                        f"keyboard events won't fire in the sandboxed preview."
+                    )
+                    break
+
+        # --- Pattern 7: fetch without .catch ---
+        for i, line in enumerate(lines):
+            if "fetch(" in line and ".catch" not in line:
+                # Check the next 4 lines for .catch
+                window_after = " ".join(lines[i: i + 5])
+                if ".catch" not in window_after:
+                    issues.append(
+                        f"'{path}' line {i + 1}: fetch() call without .catch() fallback — "
+                        f"unhandled rejections will crash the preview in strict mode."
+                    )
+                    break
+
+    return issues
+
+
 def qa_agent(state: AgentState) -> dict:
     """Executes static quality analysis + optional LLM review (gated by ENABLE_LLM_QA_REVIEW=false default)."""
     logs = add_log(state.get("logs", []), "QAAgent", "started", "Performing code review and quality verification...")
@@ -235,6 +356,7 @@ def qa_agent(state: AgentState) -> dict:
         issues.extend(_check_html_references(files))
         issues.extend(_check_interactivity(files))
         issues.extend(_check_contract_alignment(files, api_contract))
+        issues.extend(_check_runtime_smells(files))
 
         if not any(path.startswith("tests/") for path in files):
             recommendations.append("Add an automated test suite under tests/.")

@@ -246,10 +246,37 @@ function buildBlobUrl(files) {
     }
     render() {
       if (this.state.hasError) {
+        const errMsg = this.state.error?.message || 'A runtime error occurred in this component.';
         return (
           <div style={{ padding: '24px', color: '#f87171', fontFamily: 'sans-serif', background: '#181926', border: '1px solid #ef4444', borderRadius: '12px', margin: '20px' }}>
             <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>⚠️ React Preview Notice</h3>
-            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>{this.state.error?.message || 'A runtime error occurred in this component.'}</p>
+            <p style={{ margin: '0 0 16px 0', fontSize: '14px', opacity: 0.9 }}>{errMsg}</p>
+            <button
+              onClick={() => {
+                try {
+                  window.parent.postMessage({ type: 'PREVIEW_AUTO_FIX_REQUEST', error: errMsg }, '*');
+                } catch(e) {
+                  console.error("Auto-Fix postMessage failed:", e);
+                }
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 18px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                letterSpacing: '0.02em',
+                boxShadow: '0 2px 8px rgba(99,102,241,0.4)'
+              }}
+            >
+              🤖 Auto-Fix with AI
+            </button>
           </div>
         );
       }
@@ -289,7 +316,8 @@ function buildBlobUrl(files) {
     console.error("Preview Render Error:", err);
     const target = document.getElementById("root") || document.body;
     if (target) {
-      target.innerHTML = '<div style="padding:24px;color:#f87171;font-family:sans-serif;background:#181926;border:1px solid #ef4444;border-radius:12px;margin:20px;"><h3 style="margin:0 0 8px 0;">Preview Render Note</h3><p style="margin:0;">' + err.message + '</p></div>';
+      const escapedMsg = JSON.stringify(err.message || String(err));
+      target.innerHTML = '<div style="padding:24px;color:#f87171;font-family:sans-serif;background:#181926;border:1px solid #ef4444;border-radius:12px;margin:20px;"><h3 style="margin:0 0 8px 0;">Preview Render Note</h3><p style="margin:0 0 16px 0;">' + (err.message || String(err)) + '</p><button onclick="window.parent.postMessage({ type: \\'PREVIEW_AUTO_FIX_REQUEST\\', error: ' + escapedMsg + ' }, \\'*\\')" style="background:linear-gradient(135deg, #6366f1, #8b5cf6);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">🤖 Auto-Fix with AI</button></div>';
     }
   }
 </script>
@@ -394,13 +422,26 @@ function buildBlobUrl(files) {
   return URL.createObjectURL(blob);
 }
 
-export default function PreviewPanel({ result, projectName }) {
+export default function PreviewPanel({ result, projectName, onAutoFix }) {
   const [blobUrl, setBlobUrl] = useState(null);
   const [isBackend, setIsBackend] = useState(false);
   const [loading, setLoading] = useState(false);
   const [device, setDevice] = useState("desktop");
   const iframeRef = useRef(null);
   const prevUrlRef = useRef(null);
+
+  useEffect(() => {
+    function handleMessage(event) {
+      if (event.data && event.data.type === "PREVIEW_AUTO_FIX_REQUEST") {
+        const error = event.data.error;
+        if (typeof onAutoFix === "function" && error) {
+          onAutoFix(error);
+        }
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [onAutoFix]);
 
   useEffect(() => {
     let cancelled = false;
