@@ -238,58 +238,76 @@ function buildBlobUrl(files) {
   }
 
   // ─── 3. Handling Vanilla HTML / JS Bundling ─────────────────────────────────
-  const jsMatches = [...html.matchAll(/<script[^>]+src=["']([^"']*\.js)["'][^>]*>\s*<\/script>/gi)];
-  const inlinedJs = new Set();
+  // Remove local script tags from HTML to prevent failed relative network requests in blob iframe
+  html = html.replace(/<script[^>]+src=["'](?:\.?\/?(?:js\/|public\/|src\/)?(?!(?:https?:|\/\/))[^"']+\.js)["'][^>]*>\s*<\/script>/gi, "");
 
-  for (const match of jsMatches) {
-    const rawSrc = match[1];
-    const cleanPath = rawSrc.replace(/^\.\//, "").replace(/^\//, "");
-    const jsContent =
-      files[cleanPath] ||
-      files[`public/${cleanPath}`] ||
-      files[`src/${cleanPath}`] ||
-      Object.entries(files).find(([k]) => k.endsWith(`/${cleanPath}`) || k === cleanPath)?.[1];
+  // Identify all client-side JavaScript files
+  const isExcludedServer = (k) =>
+    k.includes("server.js") ||
+    k.includes("routes/") ||
+    k.includes("models/") ||
+    k.includes("middleware/") ||
+    k.includes("controllers/") ||
+    k.includes("tests/") ||
+    k.includes("vite.config") ||
+    k.includes("tailwind.config");
 
-    if (jsContent) {
-      html = html.replace(match[0], `<script>\n/* Inlined: ${cleanPath} */\n${jsContent}\n</script>`);
-      inlinedJs.add(cleanPath);
-    }
-  }
+  const clientJsEntries = Object.entries(files).filter(
+    ([k]) => k.endsWith(".js") && !isExcludedServer(k)
+  );
 
-  // Inject standalone client JS (excluding server/test/config files)
-  const isClientJs = (k) =>
-    k.endsWith(".js") &&
-    !k.includes("server") &&
-    !k.includes("test") &&
-    !k.includes("routes/") &&
-    !k.includes("models/") &&
-    !k.includes("vite.config") &&
-    !inlinedJs.has(k);
+  // Sort by dependency rank: constants -> utils/helpers -> models/classes -> engine/managers -> app/game entry
+  const getScriptRank = (path) => {
+    const p = path.toLowerCase();
+    if (p.includes("constant") || p.includes("config") || p.includes("type") || p.includes("setting")) return 0;
+    if (p.includes("util") || p.includes("helper") || p.includes("storage") || p.includes("data") || p.includes("audio") || p.includes("sound")) return 1;
+    if (p.includes("snake") || p.includes("food") || p.includes("board") || p.includes("player") || p.includes("cell") || p.includes("item") || p.includes("card")) return 2;
+    if (p.includes("engine") || p.includes("manager") || p.includes("controller") || p.includes("ui") || p.includes("api")) return 3;
+    if (p.includes("game") || p.includes("app") || p.includes("main") || p.includes("index") || p.includes("script")) return 4;
+    return 2;
+  };
 
-  const remainingJs = Object.entries(files)
-    .filter(([k]) => isClientJs(k))
-    .map(([k, c]) => `<script>\n/* Auto-injected: ${k} */\n${c}\n</script>`)
-    .join("\n");
+  clientJsEntries.sort(([a], [b]) => getScriptRank(a) - getScriptRank(b));
 
-  const loaderDismissScript = `
+  const bundledScripts = clientJsEntries
+    .map(([k, c]) => `// ─── Module: ${k} ───\n${c || ""}`)
+    .join("\n\n");
+
+  const clientRuntime = `
 <script>
-  window.addEventListener('DOMContentLoaded', () => {
+  try {
+    ${bundledScripts}
+
+    // Auto-initialize Lucide icons if loaded
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+
+    // Ensure keyboard focus for game canvases
+    window.addEventListener('load', () => {
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        canvas.setAttribute('tabindex', '0');
+        canvas.focus();
+      }
+    });
+
+    // Dismiss loading screen if present
     const loader = document.getElementById("loading-screen") || document.querySelector(".loading-screen");
     if (loader) {
       loader.style.display = "none";
       loader.classList.add("hidden");
     }
-  });
+  } catch (err) {
+    console.error("Preview Script Error:", err);
+  }
 </script>
 `;
 
-  if (remainingJs || loaderDismissScript) {
-    const injection = `${remainingJs}\n${loaderDismissScript}`;
-    if (html.includes("</body>")) {
-      html = html.replace("</body>", `${injection}\n</body>`);
-    } else {
-      html = `${html}\n${injection}`;
-    }
+  if (html.includes("</body>")) {
+    html = html.replace("</body>", `${clientRuntime}\n</body>`);
+  } else {
+    html = `${html}\n${clientRuntime}`;
   }
 
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
