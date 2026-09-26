@@ -182,6 +182,27 @@ function buildBlobUrl(files) {
   // Dynamic Lucide & UI Component Definitions
   ${iconDeclarations}
 
+  // Universal React Hooks & Utility Fallbacks
+  const useFavorites = () => ({
+    favorites: [],
+    isFavorite: (id) => false,
+    toggleFavorite: (id) => {},
+    addFavorite: (id) => {},
+    removeFavorite: (id) => {},
+  });
+  const useTheme = () => ({ theme: 'dark', toggleTheme: () => {}, isDark: true });
+  const useAudio = () => ({ isPlaying: false, play: () => {}, pause: () => {}, toggle: () => {}, progress: 0, duration: 180, setVolume: () => {} });
+  const usePlayer = () => ({ currentTrack: null, isPlaying: false, play: () => {}, pause: () => {}, next: () => {}, prev: () => {} });
+  const isFavorite = (id) => false;
+  const toggleFavorite = (id) => {};
+  const formatTime = (secs) => {
+    if (!secs || isNaN(secs)) return "0:00";
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  };
+  const formatDuration = formatTime;
+
   // Mock chart components if imported
   const Bar = (props) => <div className="mock-chart bar-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>📊 Bar Chart: {props.data?.datasets?.[0]?.label || 'Data'}</div>;
   const Line = (props) => <div className="mock-chart line-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>📈 Line Chart: {props.data?.datasets?.[0]?.label || 'Trend'}</div>;
