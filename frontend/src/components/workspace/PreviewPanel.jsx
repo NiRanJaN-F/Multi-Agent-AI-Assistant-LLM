@@ -115,6 +115,40 @@ function buildBlobUrl(files) {
       componentCodes.push(`// --- Component: ${key} ---\n${code}`);
     }
 
+    // Extract all imported icons across all source files
+    const importedIcons = new Set([
+      "Play", "Pause", "PlayCircle", "PauseCircle", "SkipForward", "SkipBack", "FastForward", "Rewind",
+      "Volume", "Volume1", "Volume2", "VolumeX", "Mute", "Music", "Radio", "Disc", "Headphones", "Mic", "MicOff",
+      "Sliders", "SlidersHorizontal", "Shuffle", "Repeat", "Repeat1", "List", "ListMusic", "Maximize", "Maximize2",
+      "Minimize", "Minimize2", "Activity", "Dumbbell", "Flame", "TrendingUp", "TrendingDown", "Plus", "PlusCircle",
+      "Trash", "Trash2", "Edit", "Edit2", "Edit3", "Calendar", "Clock", "Award", "Target", "Check", "CheckCircle",
+      "CheckCircle2", "X", "XCircle", "Search", "Zap", "User", "Users", "UserPlus", "UserCheck", "Settings",
+      "Heart", "Star", "ShoppingBag", "ShoppingCart", "Filter", "ChevronRight", "ChevronLeft", "ChevronDown",
+      "ChevronUp", "ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown", "RefreshCw", "RotateCw", "RotateCcw",
+      "BarChart", "BarChart2", "BarChart3", "PieChart", "DollarSign", "CreditCard", "Sun", "Moon", "Eye",
+      "EyeOff", "Lock", "Unlock", "Key", "Shield", "ShieldCheck", "ShieldAlert", "Mail", "Phone", "MapPin",
+      "Compass", "Globe", "Send", "Share", "Share2", "Download", "Upload", "Folder", "File", "FileText",
+      "Image", "Video", "Camera", "Layers", "Cpu", "HardDrive", "Server", "Database", "Terminal", "Code",
+      "GitBranch", "Sparkles", "Smile", "HelpCircle", "Gamepad2", "VolumeX"
+    ]);
+
+    for (const code of Object.values(files)) {
+      if (typeof code !== "string") continue;
+      const iconMatches = [...code.matchAll(/import\s*\{([^}]+)\}\s*from\s*['"](?:lucide-react|lucide|react-icons[^'"]*|@heroicons[^'"]*)['"]/g)];
+      for (const m of iconMatches) {
+        m[1].split(",").forEach((icon) => {
+          const clean = icon.trim().split(/\s+as\s+/)[0].trim();
+          if (clean && /^[A-Z][A-Za-z0-9_]*$/.test(clean)) {
+            importedIcons.add(clean);
+          }
+        });
+      }
+    }
+
+    const iconDeclarations = Array.from(importedIcons)
+      .map((name) => `const ${name} = _icon('${name}');`)
+      .join("\n  ");
+
     // React CDN dependencies + Babel standalone wrapper
     const reactRuntime = `
 <!-- React & Babel Standalone CDN -->
@@ -123,63 +157,63 @@ function buildBlobUrl(files) {
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<script type="text/babel" data-presets="react">
+<script type="text/babel" data-presets="react,env">
   const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
 
   // Universal Icon Factory for Lucide Icons
   const _icon = (name) => (props) => (
-    <svg width={props?.size || 18} height={props?.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props?.className || ""} style={props?.style || {display: 'inline-block', verticalAlign: 'middle'}}>
-      <circle cx="12" cy="12" r="10" />
+    <svg
+      width={props?.size || 20}
+      height={props?.size || 20}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={props?.strokeWidth || 2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={props?.className || ""}
+      style={{ display: 'inline-block', verticalAlign: 'middle', ...(props?.style || {}) }}
+    >
+      <circle cx="12" cy="12" r="9" opacity="0.15" />
       <path d="M12 8v8M8 12h8" />
     </svg>
   );
 
-  // Common Lucide Icon definitions
-  const Activity = _icon('Activity');
-  const Dumbbell = _icon('Dumbbell');
-  const Flame = _icon('Flame');
-  const TrendingUp = _icon('TrendingUp');
-  const TrendingDown = _icon('TrendingDown');
-  const Plus = _icon('Plus');
-  const PlusCircle = _icon('PlusCircle');
-  const Trash = _icon('Trash');
-  const Trash2 = _icon('Trash2');
-  const Edit = _icon('Edit');
-  const Edit2 = _icon('Edit2');
-  const Calendar = _icon('Calendar');
-  const Clock = _icon('Clock');
-  const Award = _icon('Award');
-  const Target = _icon('Target');
-  const Check = _icon('Check');
-  const CheckCircle = _icon('CheckCircle');
-  const X = _icon('X');
-  const XCircle = _icon('XCircle');
-  const Search = _icon('Search');
-  const Zap = _icon('Zap');
-  const User = _icon('User');
-  const Settings = _icon('Settings');
-  const Heart = _icon('Heart');
-  const Star = _icon('Star');
-  const ShoppingBag = _icon('ShoppingBag');
-  const ShoppingCart = _icon('ShoppingCart');
-  const Filter = _icon('Filter');
-  const ChevronRight = _icon('ChevronRight');
-  const ChevronLeft = _icon('ChevronLeft');
-  const ChevronDown = _icon('ChevronDown');
-  const ArrowRight = _icon('ArrowRight');
-  const RefreshCw = _icon('RefreshCw');
-  const BarChart2 = _icon('BarChart2');
-  const BarChart3 = _icon('BarChart3');
-  const PieChart = _icon('PieChart');
-  const DollarSign = _icon('DollarSign');
+  // Dynamic Lucide & UI Component Definitions
+  ${iconDeclarations}
 
-  // Mock react-chartjs-2 fallbacks if imported
+  // Mock chart components if imported
   const Bar = (props) => <div className="mock-chart bar-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>📊 Bar Chart: {props.data?.datasets?.[0]?.label || 'Data'}</div>;
   const Line = (props) => <div className="mock-chart line-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>📈 Line Chart: {props.data?.datasets?.[0]?.label || 'Trend'}</div>;
   const Pie = (props) => <div className="mock-chart pie-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>🥧 Pie Chart: {props.data?.labels?.join(', ') || 'Distribution'}</div>;
   const Doughnut = (props) => <div className="mock-chart doughnut-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>🍩 Chart: {props.data?.labels?.join(', ') || 'Distribution'}</div>;
   const ChartJS = { register: () => {} };
   const CategoryScale = {}; const LinearScale = {}; const BarElement = {}; const PointElement = {}; const LineElement = {}; const ArcElement = {}; const Title = {}; const Tooltip = {}; const Legend = {};
+
+  // Simple React Error Boundary Component
+  class ErrorBoundary extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error) {
+      return { hasError: true, error };
+    }
+    componentDidCatch(error, errorInfo) {
+      console.error("Preview React Caught Error:", error, errorInfo);
+    }
+    render() {
+      if (this.state.hasError) {
+        return (
+          <div style={{ padding: '24px', color: '#f87171', fontFamily: 'sans-serif', background: '#181926', border: '1px solid #ef4444', borderRadius: '12px', margin: '20px' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>⚠️ React Preview Notice</h3>
+            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>{this.state.error?.message || 'A runtime error occurred in this component.'}</p>
+          </div>
+        );
+      }
+      return this.props.children;
+    }
+  }
 
   try {
     ${helperCodes.join("\n\n")}
@@ -196,7 +230,11 @@ function buildBlobUrl(files) {
 
     if (typeof App !== 'undefined') {
       const root = ReactDOM.createRoot(mountTarget);
-      root.render(<App />);
+      root.render(
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      );
     }
 
     // Dismiss loading screen if present
@@ -209,7 +247,7 @@ function buildBlobUrl(files) {
     console.error("Preview Render Error:", err);
     const target = document.getElementById("root") || document.body;
     if (target) {
-      target.innerHTML = '<div style="padding:24px;color:#f87171;font-family:sans-serif;background:#181926;border:1px solid #ef4444;border-radius:8px;margin:20px;"><h3>Preview Note</h3><p>' + err.message + '</p></div>';
+      target.innerHTML = '<div style="padding:24px;color:#f87171;font-family:sans-serif;background:#181926;border:1px solid #ef4444;border-radius:12px;margin:20px;"><h3 style="margin:0 0 8px 0;">Preview Render Note</h3><p style="margin:0;">' + err.message + '</p></div>';
     }
   }
 </script>
