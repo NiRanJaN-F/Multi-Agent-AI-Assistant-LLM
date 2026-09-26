@@ -106,6 +106,10 @@ CRITICAL RULES for {file_path}:
   * Pre-populate realistic mock data that MATCHES THE APP TYPE (not generic products with Unsplash images unless it's a store).
   * Implement ALL event handlers the app needs: the exact interactions the user requested.
   * Call `lucide.createIcons();` after updating DOM elements. Guard every selector safely.
+- If writing React / JSX (.jsx):
+  * Ensure 100% prop alignment with sibling components. If a component expects tracks, lyrics, or favorites, ensure App.jsx passes matching types and functions.
+  * Use defensive access: e.g. `(Array.isArray(track?.lyrics) ? track.lyrics : (track?.lyrics || '').split('\\n'))`.
+  * Pass real handler functions (not just booleans) for toggle/action props (e.g. `isFavorite={(id) => favorites.includes(id)}`).
 - If writing CSS: provide sleek glassmorphism effects, modern scrollbars, and keyframe animations.
 
 Return ONLY the raw source code inside a SINGLE markdown code fence (```...```), no commentary.

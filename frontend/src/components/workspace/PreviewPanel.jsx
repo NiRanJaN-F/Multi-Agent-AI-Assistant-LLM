@@ -182,6 +182,27 @@ function buildBlobUrl(files) {
   // Dynamic Lucide & UI Component Definitions
   ${iconDeclarations}
 
+  // ─── Defensive Runtime Polyfills for Generated Code ───
+  try {
+    if (!Array.prototype.split) {
+      Array.prototype.split = function() { return this; };
+    }
+    if (!String.prototype.join) {
+      String.prototype.join = function() { return String(this); };
+    }
+    if (!Number.prototype.toLowerCase) {
+      Number.prototype.toLowerCase = function() { return String(this); };
+    }
+    if (!Number.prototype.includes) {
+      Number.prototype.includes = function(x) { return String(this).includes(x); };
+    }
+    if (!Number.prototype.split) {
+      Number.prototype.split = function(delim) { return String(this).split(delim); };
+    }
+  } catch (polyErr) {
+    console.warn("Polyfill warning:", polyErr);
+  }
+
   // Universal React Hooks & Utility Fallbacks
   const useFavorites = () => ({
     favorites: [],
