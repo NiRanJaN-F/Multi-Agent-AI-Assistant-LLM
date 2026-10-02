@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { generateProjectStream, refineProjectStream, getProjectFiles } from "../services/api";
+import { generateProjectStream, refineProjectStream, getProjectFiles, getGeneration } from "../services/api";
 
 const AGENT_STEPS = [
   { key: "planner", label: "Planner", icon: "🧠" },
@@ -38,10 +38,11 @@ export default function useGeneration() {
   const [liveMessage, setLiveMessage] = useState("");
 
   const abortControllerRef = useRef(null);
-  // capturedResultRef stores the result from the SSE `complete` event as soon as
-  // handleSseEvent fires — this is the source-of-truth fallback in case streamPipeline
-  // returns null due to any remaining parsing edge-case.
+  // capturedResultRef: result from the SSE `complete` event (set immediately when it fires).
   const capturedResultRef = useRef(null);
+  // savedGenerationIdRef: MongoDB document ID from the SSE `saved` event.
+  // Used as iron-clad fallback: even if `complete` is dropped, we can fetch files by ID.
+  const savedGenerationIdRef = useRef(null);
 
   const handleSseEvent = useCallback((event, isRefine = false) => {
     if (!event) return;
@@ -91,6 +92,11 @@ export default function useGeneration() {
       }
     }
 
+    // `saved` fires after MongoDB persist — capture the document ID for fallback fetching.
+    if (stageKey === "saved" && event.history?.id) {
+      savedGenerationIdRef.current = event.history.id;
+    }
+
     if (stageKey === "coder" && event.file) {
       setStepStates((prev) =>
         prev.map((s) => {
@@ -127,7 +133,8 @@ export default function useGeneration() {
     setLiveMessage("Starting generation pipeline...");
     setStepStates(buildStepStates(false));
     setActiveStepIndex(0);
-    capturedResultRef.current = null; // Reset before each run
+    capturedResultRef.current = null;
+    savedGenerationIdRef.current = null;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -146,22 +153,52 @@ export default function useGeneration() {
       setLiveMessage("Generation completed ✓");
       setCurrentFile(null);
 
-      // Use streamData if available; fall back to what handleSseEvent captured via the SSE
-      // complete event (capturedResultRef) — this covers the case where streamPipeline returns
-      // null due to a buffer-parse edge case but handleSseEvent already received the payload.
-      const data = (streamData && Object.keys(streamData).length > 0)
+      // Priority 1: streamPipeline return value
+      // Priority 2: capturedResultRef (set by handleSseEvent when complete event fires)
+      let data = (streamData && Object.keys(streamData).length > 0)
         ? streamData
         : capturedResultRef.current;
+
+      // Priority 3 (iron-clad fallback): the `saved` event gave us a MongoDB ID —
+      // fetch the full generation document including files directly from the API.
+      // This fires when the complete event JSON was too large and got dropped by the
+      // network or proxy, but the backend still saved everything to MongoDB.
+      if ((!data || Object.keys(data).length === 0) && savedGenerationIdRef.current) {
+        setLiveMessage("Loading project from database...");
+        try {
+          const gen = await getGeneration(savedGenerationIdRef.current);
+          if (gen) {
+            data = {
+              status: gen.status || "completed",
+              project_name: gen.projectName || gen.project_name,
+              projectName: gen.projectName || gen.project_name,
+              tech_stack: gen.techStack || gen.tech_stack || "",
+              files: gen.files || {},
+              saved_files: gen.savedFiles || Object.keys(gen.files || {}),
+              changed_files: gen.changedFiles || [],
+              tasks: gen.tasks || [],
+              review_results: gen.reviewResults || {},
+              documentation: gen.documentation || "",
+              logs: gen.logs || [],
+              llm: gen.llm || {},
+              durationMs: gen.durationMs || 0,
+              mode: gen.mode || "generate",
+            };
+          }
+        } catch {
+          // silent — fall through to projectName-based fetch
+        }
+      }
 
       const effectiveName = data?.project_name || data?.projectName || data?.name || projectName;
 
       if (data && Object.keys(data).length > 0) {
         setResult(data);
       } else if (effectiveName) {
-        // Stream complete event was dropped (too large). Fetch files directly.
+        // Last resort: fetch files from disk-based API using project name
         try {
           const filesData = await getProjectFiles(effectiveName);
-          const syntheticResult = {
+          data = {
             status: "completed",
             project_name: effectiveName,
             tech_stack: "",
@@ -170,17 +207,16 @@ export default function useGeneration() {
             mode: "generate",
             logs: [],
           };
-          setResult(syntheticResult);
+          setResult(data);
         } catch {
           setResult({ status: "completed", project_name: effectiveName, files: {}, saved_files: [], mode: "generate", logs: [] });
         }
       }
-      // Note: if data is null AND no effectiveName, handleSseEvent already called setResult()
-      // directly, so the UI is already correct — no overwrite needed here.
+      // Note: if all fallbacks fail, handleSseEvent already called setResult() directly when
+      // the complete event fired — so the UI is already correct.
 
-      if (effectiveName) {
-        setActiveProject(effectiveName);
-      }
+      if (effectiveName) setActiveProject(effectiveName);
+      setLiveMessage("Generation completed ✓");
       return data;
     } catch (err) {
       if (err.name === "AbortError" || controller.signal.aborted) {
