@@ -39,6 +39,8 @@ MODEL_UNAVAILABLE_MARKERS = (
     "unsupported model",
     "model_not_found",
     "invalid model",
+    "not available",
+    "404",
 )
 
 
@@ -443,25 +445,29 @@ def verify_llm_connection(provider: str | None = None) -> dict[str, Any]:
             "message": "API key not configured — agents will use mock templates.",
         }
 
-    try:
-        llm = get_llm(provider=provider)
-        if llm is None:
-            return {
-                **status,
-                "reachable": False,
-                "message": "LLM client could not be initialized.",
-            }
+    candidates = get_model_candidates(provider)
+    if not candidates:
+        return {
+            **status,
+            "reachable": False,
+            "message": "No available model candidates found for provider.",
+        }
 
+    try:
+        fallback_llm = FallbackLLM(candidates, temperature=0.0)
         started = time.perf_counter()
-        text = invoke_with_retry(llm, "Reply with exactly: OK", max_retries=0)
+        response = fallback_llm.invoke("Reply with exactly: OK")
         elapsed_ms = round((time.perf_counter() - started) * 1000)
+        text = response.content if hasattr(response, "content") else str(response)
 
         return {
             **status,
             "reachable": True,
-            "message": "LLM connection verified.",
+            "message": f"LLM connection verified via {fallback_llm.label}.",
             "latency_ms": elapsed_ms,
             "sample": text.strip()[:80],
+            "active_model": fallback_llm.last_model,
+            "active_provider": fallback_llm.last_provider,
         }
     except Exception as error:
         logger.error("LLM verification failed: %s", error)

@@ -23,9 +23,9 @@ class Settings(BaseSettings):
 
     # --- Gemini ---
     gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
-    gemini_model: str = Field(default="gemini-flash-latest", alias="GEMINI_MODEL")
+    gemini_model: str = Field(default="gemini-1.5-flash", alias="GEMINI_MODEL")
     gemini_fallback_models: str = Field(
-        default="gemini-2.5-flash-lite,gemini-3-flash-preview",
+        default="gemini-2.0-flash,gemini-1.5-pro,gemini-2.5-flash-lite,gemini-flash-latest",
         alias="GEMINI_FALLBACK_MODELS",
     )
 
