@@ -38,6 +38,10 @@ export default function useGeneration() {
   const [liveMessage, setLiveMessage] = useState("");
 
   const abortControllerRef = useRef(null);
+  // capturedResultRef stores the result from the SSE `complete` event as soon as
+  // handleSseEvent fires — this is the source-of-truth fallback in case streamPipeline
+  // returns null due to any remaining parsing edge-case.
+  const capturedResultRef = useRef(null);
 
   const handleSseEvent = useCallback((event, isRefine = false) => {
     if (!event) return;
@@ -79,6 +83,7 @@ export default function useGeneration() {
     }
 
     if (stageKey === "complete" && event.result) {
+      capturedResultRef.current = event.result;
       setResult(event.result);
       const pName = event.result.project_name || event.result.projectName;
       if (pName) {
@@ -122,12 +127,13 @@ export default function useGeneration() {
     setLiveMessage("Starting generation pipeline...");
     setStepStates(buildStepStates(false));
     setActiveStepIndex(0);
+    capturedResultRef.current = null; // Reset before each run
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
-      const data = await generateProjectStream({
+      const streamData = await generateProjectStream({
         prompt,
         projectName,
         provider,
@@ -139,6 +145,13 @@ export default function useGeneration() {
       setProgressPercent(100);
       setLiveMessage("Generation completed ✓");
       setCurrentFile(null);
+
+      // Use streamData if available; fall back to what handleSseEvent captured via the SSE
+      // complete event (capturedResultRef) — this covers the case where streamPipeline returns
+      // null due to a buffer-parse edge case but handleSseEvent already received the payload.
+      const data = (streamData && Object.keys(streamData).length > 0)
+        ? streamData
+        : capturedResultRef.current;
 
       const effectiveName = data?.project_name || data?.projectName || data?.name || projectName;
 
@@ -161,9 +174,9 @@ export default function useGeneration() {
         } catch {
           setResult({ status: "completed", project_name: effectiveName, files: {}, saved_files: [], mode: "generate", logs: [] });
         }
-      } else {
-        setResult(data);
       }
+      // Note: if data is null AND no effectiveName, handleSseEvent already called setResult()
+      // directly, so the UI is already correct — no overwrite needed here.
 
       if (effectiveName) {
         setActiveProject(effectiveName);
