@@ -1,4 +1,4 @@
-/* ─── Obsidian Glassmorphism IDE Design System ────────────────────────────── */
+﻿/* ─── Obsidian Glassmorphism IDE Design System ────────────────────────────── */
 :root {
   --ide-bg: #08090b;
   --ide-navbar: rgba(18, 20, 26, 0.85);
@@ -1058,4 +1058,9 @@
   .ide-body { flex-direction: column; }
   .ide-left { width: 100%; height: 50vh; border-right: none; border-bottom: 1px solid var(--ide-border); }
   .ide-right { height: 50vh; }
+}
+
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

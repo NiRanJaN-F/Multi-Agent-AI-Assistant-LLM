@@ -1,172 +1,129 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import express from 'express';
-import request from 'supertest';
-import sqlite3 from 'sqlite3';
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 
-// Setup an in-memory database and test Express server to mirror app functionality
-const setupTestApp = () => {
-  const app = express();
-  app.use(express.json());
+// Import components and services
+import Navbar from './src/components/Navbar';
+import WorkoutForm from './src/components/WorkoutForm';
+import WorkoutList from './src/components/WorkoutList';
+import * as api from './src/services/api';
 
-  // In-memory SQLite DB for testing routes
-  const db = new sqlite3.Database(':memory:');
-  
-  db.serialize(() => {
-    db.run(`CREATE TABLE workouts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      exercise TEXT NOT NULL,
-      duration INTEGER NOT NULL,
-      calories INTEGER NOT NULL,
-      date TEXT NOT NULL
-    )`);
-  });
+// ==========================================
+// MOCK API MODULE
+// ==========================================
+test('API Service Integration Mocks', async () => {
+  const mockWorkouts = [
+    { id: 1, exercise: 'Running', duration: 30, calories: 300, date: '2023-10-01' }
+  ];
 
-  // Mocking routes/workouts.js logic directly for test execution reliability
-  app.get('/api/workouts', (req, res) => {
-    const query = 'SELECT * FROM workouts ORDER BY date DESC, id DESC';
-    db.all(query, [], (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: 'Internal server error' });
-      }
-      res.json(rows);
+  // Mock global fetch
+  const originalFetch = global.fetch;
+  global.fetch = async (url, options) => {
+    if (url.includes('/api/workouts') && (!options || options.method === 'GET')) {
+      return {
+        ok: true,
+        json: async () => mockWorkouts
+      };
+    }
+    if (options && options.method === 'POST') {
+      const body = JSON.parse(options.body);
+      return {
+        ok: true,
+        json: async () => ({ id: 2, ...body })
+      };
+    }
+    if (options && options.method === 'DELETE') {
+      return {
+        ok: true,
+        json: async () => ({ message: 'Deleted successfully' })
+      };
+    }
+    return { ok: false };
+  };
+
+  const workouts = await api.getWorkouts();
+  assert.equal(workouts.length, 1);
+  assert.equal(workouts[0].exercise, 'Running');
+
+  const newWorkout = await api.createWorkout({ exercise: 'Cycling', duration: 45, calories: 400, date: '2023-10-02' });
+  assert.equal(newWorkout.id, 2);
+  assert.equal(newWorkout.exercise, 'Cycling');
+
+  const deleteRes = await api.deleteWorkout(1);
+  assert.equal(deleteRes.message, 'Deleted successfully');
+
+  global.fetch = originalFetch;
+});
+
+// ==========================================
+// COMPONENT UNIT TESTS
+// ==========================================
+
+test('Navbar Component renders title and tabs correctly', () => {
+  const setActiveTab = () => {};
+  render(
+    <Navbar 
+      activeTab="dashboard" 
+      setActiveTab={setActiveTab} 
+      totalWorkouts={5} 
+      totalCalories={1500} 
+    />
+  );
+
+  const brandElement = screen.getByText(/ApexFit/i);
+  assert.ok(brandElement, 'Navbar should display ApexFit brand name');
+
+  const workoutsBadge = screen.getByText('5');
+  assert.ok(workoutsBadge, 'Navbar should show total workouts');
+});
+
+test('WorkoutForm Component validates inputs and submits data', async () => {
+  let submittedData = null;
+  const onSubmitMock = async (data) => {
+    submittedData = data;
+  };
+
+  render(<WorkoutForm onAddWorkout={onSubmitMock} onClose={() => {}} />);
+
+  const exerciseInput = screen.getByLabelText(/Exercise Name/i);
+  const durationInput = screen.getByLabelText(/Duration/i);
+  const caloriesInput = screen.getByLabelText(/Calories Burned/i);
+  const submitButton = screen.getByRole('button', { name: /Add Workout/i });
+
+  fireEvent.change(exerciseInput, { target: { value: 'Pushups' } });
+  fireEvent.change(durationInput, { target: { value: '20' } });
+  fireEvent.change(caloriesInput, { target: { value: '150' } });
+
+  fireEvent.click(submitButton);
+
+  await waitFor(() => {
+    assert.deepEqual(submittedData, {
+      exercise: 'Pushups',
+      duration: 20,
+      calories: 150,
+      date: new Date().toISOString().split('T')[0]
     });
   });
+});
 
-  app.post('/api/workouts', (req, res) => {
-    const { exercise, duration, calories, date } = req.body;
+test('WorkoutList Component renders workouts and handles deletion', () => {
+  const mockWorkouts = [
+    { id: 10, exercise: 'Swimming', duration: 45, calories: 400, date: '2023-10-05' }
+  ];
+  let deletedId = null;
+  const onDeleteMock = (id) => {
+    deletedId = id;
+  };
 
-    if (!exercise || typeof exercise !== 'string' || exercise.trim() === '') {
-      return res.status(400).json({ error: 'Exercise name is required and must be a string.' });
-    }
+  render(<WorkoutList workouts={mockWorkouts} onDeleteWorkout={onDeleteMock} />);
 
-    if (duration === undefined || typeof duration !== 'number' || duration <= 0) {
-      return res.status(400).json({ error: 'Duration is required and must be a positive number.' });
-    }
+  const exerciseItem = screen.getByText(/Swimming/i);
+  assert.ok(exerciseItem, 'Workout list should render the exercise item');
 
-    if (calories === undefined || typeof calories !== 'number' || calories < 0) {
-      return res.status(400).json({ error: 'Calories are required and must be a non-negative number.' });
-    }
+  const deleteButton = screen.getByRole('button', { name: /delete/i });
+  fireEvent.click(deleteButton);
 
-    if (!date || typeof date !== 'string') {
-      return res.status(400).json({ error: 'Date is required.' });
-    }
-
-    const query = `INSERT INTO workouts (exercise, duration, calories, date) VALUES (?, ?, ?, ?)`;
-    db.run(query, [exercise.trim(), duration, calories, date], function (err) {
-      if (err) {
-        return res.status(500).json({ error: 'Internal server error' });
-      }
-      res.status(201).json({
-        id: this.lastID,
-        exercise: exercise.trim(),
-        duration,
-        calories,
-        date
-      });
-    });
-  });
-
-  app.delete('/api/workouts/:id', (req, res) => {
-    const { id } = req.params;
-    const query = `DELETE FROM workouts WHERE id = ?`;
-    db.run(query, [id], function (err) {
-      if (err) {
-        return res.status(500).json({ error: 'Internal server error' });
-      }
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'Workout not found' });
-      }
-      res.json({ message: 'Workout deleted successfully', id: Number(id) });
-    });
-  });
-
-  return app;
-};
-
-test('Fitness Tracker API Integration Tests', async (t) => {
-  const app = setupTestApp();
-
-  await t.test('GET /api/workouts should return an empty array initially', async () => {
-    const response = await request(app).get('/api/workouts');
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, []);
-  });
-
-  let createdWorkoutId;
-
-  await t.test('POST /api/workouts should create a valid workout', async () => {
-    const newWorkout = {
-      exercise: 'Running',
-      duration: 30,
-      calories: 300,
-      date: '2023-10-25'
-    };
-
-    const response = await request(app)
-      .post('/api/workouts')
-      .send(newWorkout);
-
-    assert.equal(response.status, 201);
-    assert.equal(response.body.exercise, 'Running');
-    assert.equal(response.body.duration, 30);
-    assert.equal(response.body.calories, 300);
-    assert.equal(response.body.date, '2023-10-25');
-    assert.ok(response.body.id);
-    
-    createdWorkoutId = response.body.id;
-  });
-
-  await t.test('POST /api/workouts should fail validation when exercise is missing', async () => {
-    const invalidWorkout = {
-      duration: 30,
-      calories: 300,
-      date: '2023-10-25'
-    };
-
-    const response = await request(app)
-      .post('/api/workouts')
-      .send(invalidWorkout);
-
-    assert.equal(response.status, 400);
-    assert.ok(response.body.error);
-  });
-
-  await t.test('POST /api/workouts should fail validation when duration is invalid', async () => {
-    const invalidWorkout = {
-      exercise: 'Swimming',
-      duration: -10,
-      calories: 200,
-      date: '2023-10-25'
-    };
-
-    const response = await request(app)
-      .post('/api/workouts')
-      .send(invalidWorkout);
-
-    assert.equal(response.status, 400);
-    assert.ok(response.body.error);
-  });
-
-  await t.test('GET /api/workouts should retrieve created workouts', async () => {
-    const response = await request(app).get('/api/workouts');
-    assert.equal(response.status, 200);
-    assert.equal(response.body.length, 1);
-    assert.equal(response.body[0].exercise, 'Running');
-  });
-
-  await t.test('DELETE /api/workouts/:id should remove the workout', async () => {
-    const response = await request(app).delete(`/api/workouts/${createdWorkoutId}`);
-    assert.equal(response.status, 200);
-    assert.equal(response.body.message, 'Workout deleted successfully');
-
-    // Verify it's gone
-    const getResponse = await request(app).get('/api/workouts');
-    assert.equal(getResponse.body.length, 0);
-  });
-
-  await t.test('DELETE /api/workouts/:id should return 404 for non-existent workout', async () => {
-    const response = await request(app).delete('/api/workouts/9999');
-    assert.equal(response.status, 404);
-  });
+  assert.equal(deletedId, 10, 'Clicking delete should trigger deletion callback with correct ID');
 });

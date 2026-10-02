@@ -38,9 +38,40 @@ function cleanJsxCode(rawCode, filename = "") {
   code = code.replace(/^\s*export\s+default\s+.*$/gm, "");
   code = code.replace(/^\s*export\s+.*$/gm, "");
 
+
+  // 3. Strip TypeScript-specific syntax that Babel needs 'typescript' preset for
+  // Remove standalone interface declarations
+  code = code.replace(/^[ \t]*(?:export\s+)?interface\s+\w[\w\s<>,]*\{[^{}]*(?:\{[^{}]*\}[^{}]*)?\}/gm, '');
+  // Remove type alias declarations
+  code = code.replace(/^[ \t]*(?:export\s+)?type\s+\w+\s*(?:<[^>]*>)?\s*=[^;]+;?/gm, '');
+  // Remove enum declarations (convert to object)
+  code = code.replace(/(?:export\s+)?(?:const\s+)?enum\s+(\w+)\s*\{([^}]*)\}/g, function(_, name, body) {
+    var entries = body.split(',').map(function(e){var k=(e.split('=')[0]||'').trim();return k?'"'+k+'":\\"'+k+'\\"':''}).filter(Boolean).join(',');
+    return 'const '+name+' = {'+entries+'};';
+  });
+  // Remove TypeScript decorators
+  code = code.replace(/^\s*@\w[\w.]*(?:\([^)]*\))?\s*$/gm, '');
   return code;
 }
 
+// Names already declared in the JSX runtime block (Recharts, hooks, utilities)
+// — must NOT be re-declared as Lucide icon stubs or Babel will error.
+const RESERVED_NAMES = new Set([
+  // Recharts chart components
+  "ResponsiveContainer","AreaChart","LineChart","BarChart","PieChart","ComposedChart",
+  "ScatterChart","RadarChart","RadialBarChart","FunnelChart","Treemap","Sankey",
+  "Area","Bar","Line","Pie","Scatter","Radar","RadialBar","Funnel","Cell",
+  "XAxis","YAxis","ZAxis","CartesianGrid","Tooltip","Legend",
+  "ReferenceLine","ReferenceArea","ReferenceDot",
+  "PolarGrid","PolarAngleAxis","PolarRadiusAxis","Label","LabelList","Brush","ErrorBar",
+  // React hooks (destructured from React)
+  "useState","useEffect","useRef","useMemo","useCallback",
+  "createContext","useContext","useReducer","useId",
+  // Custom utility fallbacks in the JSX block
+  "useFavorites","useTheme","useAudio","usePlayer",
+  "isFavorite","toggleFavorite","formatTime","formatDuration",
+  "ErrorBoundary",
+]);
 function buildBlobUrl(rawFiles) {
   if (!rawFiles || typeof rawFiles !== "object") return null;
 
@@ -65,32 +96,35 @@ function buildBlobUrl(rawFiles) {
   const jsxFiles = fileKeys.filter((k) => k.endsWith(".jsx") || k.endsWith(".tsx"));
   const isReact = jsxFiles.length > 0 || Object.values(files).some((c) => typeof c === "string" && (c.includes("import React") || c.includes("from \"react\"") || c.includes("from 'react'")));
 
-  // ─── 0. Ensure Global Error Catcher in Head ──────────────────────────────
+  // --- 0. Fallback error catcher for vanilla HTML (non-React) projects -------
+  // React projects use __showPreviewError + manual Babel.transform() instead.
   const errorCatcherTag = `
 <script>
   window.addEventListener('error', function(e) {
-    console.error("Preview Global Error:", e.error || e.message);
-    var root = document.getElementById("root") || document.body;
-    if (root && (!root.innerText || root.innerText.trim() === "" || root.innerHTML.indexOf("Preview Runtime Notice") === -1)) {
-      var errDiv = document.createElement("div");
-      errDiv.style = "padding:24px;margin:20px;background:#16181f;border:1px solid #ef4444;border-radius:12px;color:#fca5a5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,0.5);";
-      var msg = e.message || (e.error ? e.error.message : "A runtime error occurred in preview.");
-      errDiv.innerHTML = "<h3 style='margin:0 0 8px 0;color:#f87171;font-size:16px;'>⚠️ Preview Runtime Notice</h3><p style='margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#e2e4f0;'>" + msg + "</p><button onclick=\\"window.parent.postMessage({ type: 'PREVIEW_AUTO_FIX_REQUEST', error: " + JSON.stringify(msg) + " }, '*')\\" style='background:linear-gradient(180deg,#818693,#595e69);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;'>🤖 Auto-Fix with AI</button>";
-      root.appendChild(errDiv);
+    if (!e.message || e.message === 'Script error.') return;
+    if (typeof window.__showPreviewError === 'function') {
+      window.__showPreviewError(e.message || String(e.error)); return;
     }
+    var root = document.getElementById('root') || document.body;
+    if (!root || root.innerHTML.indexOf('Preview Runtime Notice') !== -1) return;
+    var msg = e.message || 'A runtime error occurred.';
+    var escaped = JSON.stringify(msg);
+    var div = document.createElement('div');
+    div.style = 'padding:24px;margin:16px;background:#16181f;border:1px solid #ef4444;border-radius:12px;color:#fca5a5;font-family:-apple-system,sans-serif;max-width:680px;';
+    div.innerHTML = '<h3 style="color:#f87171;margin:0 0 10px;font-size:15px;">&#9888;&#65039; Preview Runtime Notice</h3><pre style="font-size:12px;color:#e2e4f0;white-space:pre-wrap;background:rgba(255,255,255,0.04);border-radius:6px;padding:10px;margin:0 0 16px;">' + msg.replace(/</g,'&lt;') + '</pre><button onclick="window.parent.postMessage({type:\'PREVIEW_AUTO_FIX_REQUEST\',error:' + escaped + '},\'*\')" style="background:linear-gradient(180deg,#818693,#595e69);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">&#129302; Auto-Fix with AI</button>';
+    root.appendChild(div);
   });
-</script>
+<\/script>
 `;
   if (html.includes("<head>")) {
-    html = html.replace("<head>", `<head>\n${errorCatcherTag}`);
+    html = html.replace("<head>", () => `<head>\n${errorCatcherTag}`);
   } else {
     html = `<head>${errorCatcherTag}</head>\n${html}`;
   }
-
   // ─── 1. Ensure Tailwind CSS & Font CDN in head ───────────────────────────
   if (!html.includes("cdn.tailwindcss.com")) {
     const tailwindTag = '<script src="https://cdn.tailwindcss.com"></script>';
-    html = html.replace("</head>", `  ${tailwindTag}\n</head>`);
+    html = html.replace("</head>", () => `  ${tailwindTag}\n</head>`);
   }
 
   // ─── 2. Inlining All CSS ───────────────────────────────────────────────────
@@ -127,7 +161,7 @@ function buildBlobUrl(rawFiles) {
     .join("\n");
 
   if (remainingCss) {
-    html = html.replace("</head>", `${remainingCss}\n</head>`);
+    html = html.replace("</head>", () => `${remainingCss}\n</head>`);
   }
 
   // ─── 3. Handling React / JSX Bundling ──────────────────────────────────────
@@ -211,19 +245,78 @@ function buildBlobUrl(rawFiles) {
     }
 
     const iconDeclarations = Array.from(importedIcons)
+      .filter((name) => !RESERVED_NAMES.has(name))
       .map((name) => `const ${name} = _icon('${name}');`)
       .join("\n  ");
 
-    // React CDN dependencies + Babel standalone wrapper
+    // React CDN dependencies – Babel is invoked MANUALLY so real errors surface
     const reactRuntime = `
 <!-- React & Babel Standalone CDN -->
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+<script src="https://unpkg.com/recharts/umd/Recharts.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
 
-<script type="text/babel" data-presets="react,env">
+<script>
+// ── Shared error UI – same-origin, so real error messages are visible ──
+window.__showPreviewError = function(msg) {
+  var target = document.getElementById('root') || document.body;
+  if (!target) return;
+  var escaped = JSON.stringify(String(msg));
+  target.innerHTML =
+    '<div style="padding:24px;margin:16px;background:#16181f;border:1px solid #ef4444;border-radius:12px;color:#fca5a5;font-family:-apple-system,BlinkMacSystemFont,\\'Segoe UI\\',sans-serif;box-shadow:0 10px 30px rgba(0,0,0,0.5);max-width:680px;">' +
+    '<h3 style="margin:0 0 10px;color:#f87171;font-size:15px;">\\u26a0\\ufe0f Preview Runtime Notice<\\/h3>' +
+    '<pre style="margin:0 0 16px;font-size:12px;line-height:1.6;color:#e2e4f0;white-space:pre-wrap;word-break:break-word;background:rgba(255,255,255,0.04);border-radius:6px;padding:10px;">' + String(msg).replace(/</g,'&lt;').replace(/>/g,'&gt;') + '<\\/pre>' +
+    '<button onclick="window.parent.postMessage({type:\\'PREVIEW_AUTO_FIX_REQUEST\\',error:' + escaped + '},\\'*\\')" ' +
+    'style="background:linear-gradient(180deg,#818693,#595e69);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">' +
+    '\\ud83e\\udd16 Auto-Fix with AI<\\/button><\\/div>';
+};
+
+// ── Run after ALL CDN scripts have loaded ──
+window.addEventListener('load', function() {
+  try {
+    if (typeof Babel === 'undefined') {
+      window.__showPreviewError('Babel CDN failed to load. Check your internet connection and refresh.');
+      return;
+    }
+    if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+      window.__showPreviewError('React CDN failed to load. Check your internet connection and refresh.');
+      return;
+    }
+
+    var src = document.getElementById('__jsx_source__');
+    if (!src) { window.__showPreviewError('Internal error: JSX source block missing.'); return; }
+    var rawCode = src.textContent;
+
+    // ── Step 1: Babel transform (same-origin → real error messages) ──
+    var transformed;
+    try {
+      transformed = Babel.transform(rawCode, {
+        presets: ['typescript', ['react', { runtime: 'classic' }], 'env'],
+        filename: 'preview.tsx',
+        sourceType: 'module',
+      });
+    } catch (babelErr) {
+      window.__showPreviewError('JSX Compilation Error:\\n' + (babelErr.message || String(babelErr)));
+      return;
+    }
+
+    // ── Step 2: eval compiled JS (same-origin → real error messages) ──
+    try {
+      // eslint-disable-next-line no-new-func
+      new Function(transformed.code)();
+    } catch (evalErr) {
+      window.__showPreviewError('Runtime Error:\\n' + (evalErr.stack || evalErr.message || String(evalErr)));
+    }
+  } catch (outerErr) {
+    window.__showPreviewError('Unexpected preview error:\\n' + (outerErr.message || String(outerErr)));
+  }
+});
+<\/script>
+
+<!-- JSX source – type=text/plain so browser never auto-executes it -->
+<script type="text/plain" id="__jsx_source__">
   const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext, useReducer, useId } = React;
 
   // Universal Icon Factory for Lucide Icons
@@ -249,24 +342,13 @@ function buildBlobUrl(rawFiles) {
   ${iconDeclarations}
 
   // Universal React Hooks & Utility Fallbacks
-  const useFavorites = () => ({
-    favorites: [],
-    isFavorite: () => false,
-    toggleFavorite: () => {},
-    addFavorite: () => {},
-    removeFavorite: () => {},
-  });
+  const useFavorites = () => ({ favorites: [], isFavorite: () => false, toggleFavorite: () => {}, addFavorite: () => {}, removeFavorite: () => {} });
   const useTheme = () => ({ theme: 'dark', toggleTheme: () => {}, isDark: true });
   const useAudio = () => ({ isPlaying: false, play: () => {}, pause: () => {}, toggle: () => {}, progress: 0, duration: 180, setVolume: () => {} });
   const usePlayer = () => ({ currentTrack: null, isPlaying: false, play: () => {}, pause: () => {}, next: () => {}, prev: () => {} });
   const isFavorite = () => false;
   const toggleFavorite = () => {};
-  const formatTime = (secs) => {
-    if (!secs || isNaN(secs)) return "0:00";
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return m + ":" + (s < 10 ? "0" : "") + s;
-  };
+  const formatTime = (secs) => { if (!secs || isNaN(secs)) return "0:00"; const m = Math.floor(secs / 60); const s = Math.floor(secs % 60); return m + ":" + (s < 10 ? "0" : "") + s; };
   const formatDuration = formatTime;
 
   // Recharts Bindings
@@ -277,93 +359,62 @@ function buildBlobUrl(rawFiles) {
       {Array.isArray(data) && <span style={{ opacity: 0.5, fontSize: '11px' }}>{data.length} data points</span>}
     </div>
   );
-
   const ResponsiveContainer = _R.ResponsiveContainer || (({ children, width, height, style }) => (
-    <div style={{ width: width || '100%', height: typeof height === 'number' ? height : 300, position: 'relative', ...style }}>
-      {children}
-    </div>
+    <div style={{ width: width || '100%', height: typeof height === 'number' ? height : 300, position: 'relative', ...style }}>{children}</div>
   ));
-  const AreaChart     = _R.AreaChart    || _chartPlaceholder('📈 Area Chart',    '#818693');
-  const LineChart     = _R.LineChart    || _chartPlaceholder('📉 Line Chart',    '#10b981');
-  const BarChart      = _R.BarChart     || _chartPlaceholder('📊 Bar Chart',     '#3b82f6');
-  const PieChart      = _R.PieChart     || _chartPlaceholder('🥧 Pie Chart',     '#f59e0b');
-  const ComposedChart = _R.ComposedChart|| _chartPlaceholder('📊 Composed Chart','#8b5cf6');
-  const ScatterChart  = _R.ScatterChart || _chartPlaceholder('🔵 Scatter Chart', '#06b6d4');
-  const RadarChart    = _R.RadarChart   || _chartPlaceholder('🕸 Radar Chart',   '#ec4899');
-  const RadialBarChart= _R.RadialBarChart|| _chartPlaceholder('🔴 Radial Chart', '#ef4444');
-  const FunnelChart   = _R.FunnelChart  || _chartPlaceholder('🔺 Funnel Chart',  '#f97316');
-  const Treemap       = _R.Treemap      || _chartPlaceholder('🗂 Treemap',        '#14b8a6');
-  const Sankey        = _R.Sankey       || _chartPlaceholder('〰 Sankey',         '#a78bfa');
-
-  const Area        = _R.Area        || (() => null);
-  const Bar         = _R.Bar         || ((props) => <div style={{padding:'12px',background:'rgba(255,255,255,0.05)',borderRadius:'6px',textAlign:'center',fontSize:'12px'}}>📊 {props.name || 'Bar'}</div>);
-  const Line        = _R.Line        || (() => null);
-  const Pie         = _R.Pie         || (() => null);
-  const Scatter     = _R.Scatter     || (() => null);
-  const Radar       = _R.Radar       || (() => null);
-  const RadialBar   = _R.RadialBar   || (() => null);
-  const Funnel      = _R.Funnel      || (() => null);
-  const Cell        = _R.Cell        || (() => null);
-  const XAxis       = _R.XAxis       || (() => null);
-  const YAxis       = _R.YAxis       || (() => null);
-  const ZAxis       = _R.ZAxis       || (() => null);
-  const CartesianGrid = _R.CartesianGrid || (() => null);
-  const Tooltip     = _R.Tooltip     || (() => null);
-  const Legend      = _R.Legend      || (() => null);
-  const ReferenceLine = _R.ReferenceLine || (() => null);
-  const ReferenceArea = _R.ReferenceArea || (() => null);
-  const ReferenceDot  = _R.ReferenceDot  || (() => null);
-  const PolarGrid   = _R.PolarGrid   || (() => null);
-  const PolarAngleAxis = _R.PolarAngleAxis || (() => null);
-  const PolarRadiusAxis = _R.PolarRadiusAxis || (() => null);
-  const Label       = _R.Label       || (() => null);
-  const LabelList   = _R.LabelList   || (() => null);
-  const Brush       = _R.Brush       || (() => null);
-  const ErrorBar    = _R.ErrorBar    || (() => null);
+  const AreaChart      = _R.AreaChart      || _chartPlaceholder('📈 Area Chart',     '#818693');
+  const LineChart      = _R.LineChart      || _chartPlaceholder('📉 Line Chart',     '#10b981');
+  const BarChart       = _R.BarChart       || _chartPlaceholder('📊 Bar Chart',      '#3b82f6');
+  const PieChart       = _R.PieChart       || _chartPlaceholder('🥧 Pie Chart',      '#f59e0b');
+  const ComposedChart  = _R.ComposedChart  || _chartPlaceholder('📊 Composed Chart', '#8b5cf6');
+  const ScatterChart   = _R.ScatterChart   || _chartPlaceholder('🔵 Scatter Chart',  '#06b6d4');
+  const RadarChart     = _R.RadarChart     || _chartPlaceholder('🕸 Radar Chart',    '#ec4899');
+  const RadialBarChart = _R.RadialBarChart || _chartPlaceholder('🔴 Radial Chart',   '#ef4444');
+  const FunnelChart    = _R.FunnelChart    || _chartPlaceholder('🔺 Funnel Chart',   '#f97316');
+  const Treemap        = _R.Treemap        || _chartPlaceholder('🗂 Treemap',         '#14b8a6');
+  const Sankey         = _R.Sankey         || _chartPlaceholder('〰 Sankey',          '#a78bfa');
+  const Area           = _R.Area           || (() => null);
+  const Bar            = _R.Bar            || (() => null);
+  const Line           = _R.Line           || (() => null);
+  const Pie            = _R.Pie            || (() => null);
+  const Scatter        = _R.Scatter        || (() => null);
+  const Radar          = _R.Radar          || (() => null);
+  const RadialBar      = _R.RadialBar      || (() => null);
+  const Funnel         = _R.Funnel         || (() => null);
+  const Cell           = _R.Cell           || (() => null);
+  const XAxis          = _R.XAxis          || (() => null);
+  const YAxis          = _R.YAxis          || (() => null);
+  const ZAxis          = _R.ZAxis          || (() => null);
+  const CartesianGrid  = _R.CartesianGrid  || (() => null);
+  const Tooltip        = _R.Tooltip        || (() => null);
+  const Legend         = _R.Legend         || (() => null);
+  const ReferenceLine  = _R.ReferenceLine  || (() => null);
+  const ReferenceArea  = _R.ReferenceArea  || (() => null);
+  const ReferenceDot   = _R.ReferenceDot   || (() => null);
+  const PolarGrid         = _R.PolarGrid         || (() => null);
+  const PolarAngleAxis    = _R.PolarAngleAxis    || (() => null);
+  const PolarRadiusAxis   = _R.PolarRadiusAxis   || (() => null);
+  const Label             = _R.Label             || (() => null);
+  const LabelList         = _R.LabelList         || (() => null);
+  const Brush             = _R.Brush             || (() => null);
+  const ErrorBar          = _R.ErrorBar          || (() => null);
 
   // Error Boundary Component
   class ErrorBoundary extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = { hasError: false, error: null };
-    }
-    static getDerivedStateFromError(error) {
-      return { hasError: true, error };
-    }
-    componentDidCatch(error, errorInfo) {
-      console.error("Preview React Error:", error, errorInfo);
-    }
+    constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+    static getDerivedStateFromError(error) { return { hasError: true, error }; }
+    componentDidCatch(error, info) { console.error("Preview React Error:", error, info); }
     render() {
       if (this.state.hasError) {
         const errMsg = this.state.error?.message || 'A runtime error occurred in this component.';
         return (
           <div style={{ padding: '24px', color: '#fca5a5', fontFamily: '-apple-system,sans-serif', background: '#16181f', border: '1px solid #ef4444', borderRadius: '12px', margin: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#f87171' }}>⚠️ React Preview Notice</h3>
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', lineHeight: '1.5', color: '#e2e4f0' }}>{errMsg}</p>
+            <h3 style={{ margin: '0 0 8px', fontSize: '16px', color: '#f87171' }}>⚠️ React Preview Notice</h3>
+            <pre style={{ margin: '0 0 16px', fontSize: '12px', lineHeight: '1.6', color: '#e2e4f0', whiteSpace: 'pre-wrap', background: 'rgba(255,255,255,0.04)', borderRadius: '6px', padding: '10px' }}>{errMsg}</pre>
             <button
-              onClick={() => {
-                try {
-                  window.parent.postMessage({ type: 'PREVIEW_AUTO_FIX_REQUEST', error: errMsg }, '*');
-                } catch(e) {
-                  console.error("Auto-Fix postMessage failed:", e);
-                }
-              }}
-              style={{
-                background: 'linear-gradient(180deg, #818693, #595e69)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '8px',
-                padding: '8px 16px',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              🤖 Auto-Fix with AI
-            </button>
+              onClick={() => { try { window.parent.postMessage({ type: 'PREVIEW_AUTO_FIX_REQUEST', error: errMsg }, '*'); } catch(e) {} }}
+              style={{ background: 'linear-gradient(180deg,#818693,#595e69)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 16px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+            >🤖 Auto-Fix with AI</button>
           </div>
         );
       }
@@ -371,51 +422,37 @@ function buildBlobUrl(rawFiles) {
     }
   }
 
-  try {
-    ${helperCodes.join("\n\n")}
+  ${helperCodes.join("\n\n")}
 
-    ${componentCodes.join("\n\n")}
+  ${componentCodes.join("\n\n")}
 
-    // Mount to #root
-    let mountTarget = document.getElementById("root");
-    if (!mountTarget) {
-      mountTarget = document.createElement("div");
-      mountTarget.id = "root";
-      document.body.prepend(mountTarget);
-    }
+  // Mount to #root
+  let mountTarget = document.getElementById('root');
+  if (!mountTarget) { mountTarget = document.createElement('div'); mountTarget.id = 'root'; document.body.prepend(mountTarget); }
 
-    const _RootComp = 
-      (typeof App !== 'undefined' && App) ||
-      (typeof Game !== 'undefined' && Game) ||
-      (typeof TicTacToe !== 'undefined' && TicTacToe) ||
-      (typeof Main !== 'undefined' && Main) ||
-      (typeof Board !== 'undefined' && Board);
+  const _RootComp =
+    (typeof App          !== 'undefined' && App)          ||
+    (typeof Game         !== 'undefined' && Game)         ||
+    (typeof TicTacToe    !== 'undefined' && TicTacToe)    ||
+    (typeof Main         !== 'undefined' && Main)         ||
+    (typeof Board        !== 'undefined' && Board)        ||
+    (typeof Dashboard    !== 'undefined' && Dashboard)    ||
+    (typeof HomePage     !== 'undefined' && HomePage)     ||
+    (typeof LandingPage  !== 'undefined' && LandingPage)  ||
+    (typeof Index        !== 'undefined' && Index);
 
-    if (_RootComp) {
-      const root = ReactDOM.createRoot(mountTarget);
-      root.render(
-        <ErrorBoundary>
-          <_RootComp />
-        </ErrorBoundary>
-      );
-    }
-
-    // Dismiss loading screen if present
-    const loader = document.getElementById("loading-screen") || document.querySelector(".loading-screen");
-    if (loader) {
-      loader.style.display = "none";
-      loader.classList.add("hidden");
-    }
-  } catch (err) {
-    console.error("Preview Render Error:", err);
-    const target = document.getElementById("root") || document.body;
-    if (target) {
-      const escapedMsg = JSON.stringify(err.message || String(err));
-      target.innerHTML = '<div style="padding:24px;color:#fca5a5;font-family:-apple-system,sans-serif;background:#16181f;border:1px solid #ef4444;border-radius:12px;margin:20px;"><h3 style="margin:0 0 8px 0;color:#f87171;font-size:16px;">Preview Render Note</h3><p style="margin:0 0 16px 0;font-size:13px;color:#e2e4f0;">' + (err.message || String(err)) + '</p><button onclick="window.parent.postMessage({ type: \\'PREVIEW_AUTO_FIX_REQUEST\\', error: ' + escapedMsg + ' }, \\'*\\')" style="background:linear-gradient(180deg,#818693,#595e69);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">🤖 Auto-Fix with AI</button></div>';
-    }
+  if (_RootComp) {
+    const _reactRoot = ReactDOM.createRoot(mountTarget);
+    _reactRoot.render(<ErrorBoundary><_RootComp /></ErrorBoundary>);
+  } else {
+    window.__showPreviewError('No root component found.\nExpected one of: App, Game, TicTacToe, Main, Board, Dashboard, HomePage, LandingPage');
   }
-</script>
-`;
+
+  // Dismiss loading screen if present
+  const loader = document.getElementById('loading-screen') || document.querySelector('.loading-screen');
+  if (loader) { loader.style.display = 'none'; loader.classList.add('hidden'); }
+<\/script>
+`
 
     // Remove any local relative script tags to prevent 404s in blob URL
     html = html.replace(/<script[^>]+src=["'](?:\.?\/?(?:js\/|public\/|src\/)?(?!(?:https?:|\/\/))[^"']+)["'][^>]*>\s*<\/script>/gi, "");
@@ -430,7 +467,7 @@ function buildBlobUrl(rawFiles) {
     }
 
     if (html.includes("</body>")) {
-      html = html.replace("</body>", `${reactRuntime}\n</body>`);
+      html = html.replace("</body>", () => `${reactRuntime}\n</body>`);
     } else {
       html = `${html}\n${reactRuntime}`;
     }
@@ -507,7 +544,7 @@ function buildBlobUrl(rawFiles) {
 `;
 
   if (html.includes("</body>")) {
-    html = html.replace("</body>", `${clientRuntime}\n</body>`);
+    html = html.replace("</body>", () => `${clientRuntime}\n</body>`);
   } else {
     html = `${html}\n${clientRuntime}`;
   }
@@ -520,22 +557,33 @@ export default function PreviewPanel({ result, projectName, onAutoFix }) {
   const [blobUrl, setBlobUrl] = useState(null);
   const [isBackend, setIsBackend] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [autoFixing, setAutoFixing] = useState(false);
   const [device, setDevice] = useState("desktop");
   const iframeRef = useRef(null);
   const prevUrlRef = useRef(null);
+  // Keep a stable ref to onAutoFix so the message handler never goes stale
+  const onAutoFixRef = useRef(onAutoFix);
+  useEffect(() => { onAutoFixRef.current = onAutoFix; }, [onAutoFix]);
 
   useEffect(() => {
-    function handleMessage(event) {
+    async function handleMessage(event) {
       if (event.data && event.data.type === "PREVIEW_AUTO_FIX_REQUEST") {
         const error = event.data.error;
-        if (typeof onAutoFix === "function" && error) {
-          onAutoFix(error);
+        if (typeof onAutoFixRef.current === "function" && error) {
+          setAutoFixing(true);
+          try {
+            await onAutoFixRef.current(error);
+          } catch (err) {
+            console.error("Auto-Fix failed:", err);
+          } finally {
+            setAutoFixing(false);
+          }
         }
       }
     }
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [onAutoFix]);
+  }, []); // stable — uses ref
 
   useEffect(() => {
     let cancelled = false;
@@ -648,6 +696,33 @@ export default function PreviewPanel({ result, projectName, onAutoFix }) {
         </div>
       </div>
 
+      {/* Auto-Fix in-progress banner */}
+      {autoFixing && (
+        <div style={{
+          padding: "8px 14px",
+          background: "linear-gradient(90deg, rgba(99,102,241,0.18), rgba(139,92,246,0.18))",
+          borderBottom: "1px solid rgba(99,102,241,0.4)",
+          color: "#c4b5fd",
+          fontSize: "12px",
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          flexShrink: 0,
+        }}>
+          <span style={{
+            display: "inline-block",
+            width: "10px",
+            height: "10px",
+            borderRadius: "50%",
+            border: "2px solid #818cf8",
+            borderTopColor: "transparent",
+            animation: "spin 0.7s linear infinite",
+          }} />
+          🤖 Auto-Fix with AI running — analyzing error and patching project files…
+        </div>
+      )}
+
       <div style={{ flex: 1, display: "flex", justifyContent: "center", background: "#080a0f", overflow: "hidden", position: "relative" }}>
         {loading ? (
           <div className="ide-preview__empty">
@@ -664,7 +739,8 @@ export default function PreviewPanel({ result, projectName, onAutoFix }) {
               height: "100%",
               boxShadow: device !== "desktop" ? "0 0 32px rgba(0,0,0,0.8)" : "none",
               border: device !== "desktop" ? "1px solid var(--ide-border)" : "none",
-              transition: "width 0.2s ease-in-out",
+              transition: "width 0.2s ease-in-out, opacity 0.3s ease",
+              opacity: autoFixing ? 0.4 : 1,
             }}
             src={blobUrl}
             title="Live Preview"

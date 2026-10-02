@@ -1,82 +1,96 @@
 /* =================================================================at
- * LUSH & MODERN E-COMMERCE STYLING ENGINE
- * Principal Frontend Architecture & UI/UX Design System
- * ================================================================= */
+   AURA E-COMMERCE - DESIGN SYSTEM & STYLESHEET
+   Principal Architecture & UI/UX Styling
+   ================================================================ */
 
-/* --- Custom CSS Variables & Design Tokens --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   
+  /* Color Palette */
   --color-primary: #4f46e5;
   --color-primary-hover: #4338ca;
-  --color-primary-light: #e0e7ff;
+  --color-primary-light: #eef2ff;
+  --color-accent: #f43f5e;
   
-  --color-surface: #ffffff;
-  --color-background: #f8fafc;
-  --color-text-main: #0f172a;
-  --color-text-muted: #64748b;
-  --color-border: #e2e8f0;
+  --color-bg-base: #f9fafb;
+  --color-bg-surface: #ffffff;
+  --color-text-main: #111827;
+  --color-text-muted: #4b5563;
+  --color-border: #e5e7eb;
   
-  --color-success: #10b981;
-  --color-success-light: #d1fae5;
-  --color-error: #ef4444;
-  --color-error-light: #fee2e2;
-
+  /* UI Metrics */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+  
+  /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-bounce: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* --- Global Resets & Typography --- */
+/* Base Setup */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  border-color: var(--color-border);
+}
+
+html {
+  font-family: var(--font-inter);
+  scroll-behavior: smooth;
+  color: var(--color-text-main);
+  background-color: var(--color-bg-base);
 }
 
 body {
-  font-family: var(--font-sans);
-  background-color: var(--color-background);
-  color: var(--color-text-main);
-  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
 }
 
-/* --- Custom Scrollbar Styling --- */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-background);
+  background: var(--color-bg-base);
 }
 
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 4px;
+  border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
-/* --- Keyframe Animations --- */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+/* Typography Enhancements */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
-@keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes slideInRight {
@@ -89,206 +103,106 @@ body {
   to { transform: translateX(100%); }
 }
 
-@keyframes scaleUp {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+@keyframes slideInUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-@keyframes pulseSubtle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(79, 70, 229, 0); }
 }
 
-@keyframes bounceBadge {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.25); }
-}
-
-/* --- Animation Utility Classes --- */
 .animate-fade-in {
-  animation: fadeIn var(--transition-normal) forwards;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-fade-out {
-  animation: fadeOut var(--transition-normal) forwards;
+.animate-scale-in {
+  animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slide-in-right {
-  animation: slideInRight var(--transition-bounce) forwards;
+  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-slide-out-right {
-  animation: slideOutRight var(--transition-normal) forwards;
+.animate-slide-in-up {
+  animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-scale-up {
-  animation: scaleUp var(--transition-normal) forwards;
-}
+/* Component Overrides & Polishing */
 
-.badge-bounce {
-  animation: bounceBadge 300ms ease-in-out;
-}
-
-/* --- Component Specific UI Enhancements --- */
-
-/* Store App Container */
-#StoreApp {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-/* Header & Navbar */
-header {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background-color: rgba(255, 255, 255, 0.85);
-  border-bottom: 1px solid var(--color-border);
-  transition: box-shadow var(--transition-normal);
-}
-
-header.scrolled {
-  box-shadow: var(--shadow-md);
-}
-
-/* Product Card Polish */
+/* Product Card Interactions */
 .product-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 1rem;
-  overflow: hidden;
-  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
-  display: flex;
-  flex-direction: column;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
 }
 
 .product-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-xl);
-  border-color: #cbd5e1;
+  box-shadow: var(--shadow-lg);
 }
 
-.product-image-container {
-  position: relative;
-  width: 100%;
-  padding-top: 100%; /* 1:1 Aspect Ratio */
-  background: #f1f5f9;
+.product-image-wrapper {
   overflow: hidden;
+  position: relative;
 }
 
-.product-image-container img {
+.product-image-wrapper img {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card:hover .product-image-wrapper img {
+  transform: scale(1.06);
+}
+
+/* Badge & Indicator Styles */
+.badge-pulse {
+  position: relative;
+}
+.badge-pulse::after {
+  content: '';
   position: absolute;
   top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-accent);
+  border-radius: 50%;
+  animation: pulseGlow 2s infinite;
 }
 
-.product-card:hover .product-image-container img {
-  transform: scale(1.08);
+/* Glassmorphism Effects */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-/* Cart Sidebar Overlay & Drawer */
-#CartSidebar {
-  transition: visibility var(--transition-normal);
+.glass-dark {
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-#CartSidebar.open {
-  visibility: visible;
-}
-
-#CartSidebar .sidebar-backdrop {
-  background-color: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  opacity: 0;
-  transition: opacity var(--transition-normal);
-}
-
-#CartSidebar.open .sidebar-backdrop {
-  opacity: 1;
-}
-
-#CartSidebar .sidebar-panel {
-  transform: translateX(100%);
-  transition: transform var(--transition-bounce);
-}
-
-#CartSidebar.open .sidebar-panel {
-  transform: translateX(0);
-}
-
-/* Checkout Modal Backdrop & Content */
-#CheckoutModal {
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity var(--transition-normal), visibility var(--transition-normal);
-}
-
-#CheckoutModal.open {
-  opacity: 1;
-  visibility: visible;
-}
-
-#CheckoutModal .modal-content {
-  transform: scale(0.95) translateY(10px);
-  transition: transform var(--transition-bounce);
-}
-
-#CheckoutModal.open .modal-content {
-  transform: scale(1) translateY(0);
-}
-
-/* Form Controls & Inputs */
-input[type="text"],
-input[type="search"],
-input[type="email"],
-input[type="number"],
-select,
-textarea {
-  outline: none;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-surface);
-  color: var(--color-text-main);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
-}
-
-/* Interactive Buttons */
-button {
+/* Interactive States */
+button, .interactive {
   cursor: pointer;
   user-select: none;
-  font-family: inherit;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
 }
 
 button:active {
   transform: scale(0.98);
 }
 
-.btn-primary {
-  background-color: var(--color-primary);
-  color: #ffffff;
-  font-weight: 500;
-  border-radius: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  box-shadow: var(--shadow-sm);
+/* Form Elements Focus Rings */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
-.btn-primary:hover {
-  background-color: var(--color-primary-hover);
-  box-shadow: var(--shadow-md);
-}
-
-/* Toast Notifications Stack */
+/* Toast Notification Container */
 #toast-container {
   position: fixed;
   bottom: 1.5rem;
@@ -298,39 +212,50 @@ button:active {
   flex-direction: column;
   gap: 0.75rem;
   pointer-events: none;
-  max-width: 400px;
-  width: 100%;
 }
 
 .toast {
   pointer-events: auto;
-  background: var(--color-surface);
-  color: var(--color-text-main);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-xl);
-  padding: 1rem 1.25rem;
-  border-radius: 0.75rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  animation: slideInRight var(--transition-bounce) forwards;
-  position: relative;
-  overflow: hidden;
+  padding: 1rem 1.25rem;
+  background: var(--color-bg-surface);
+  color: var(--color-text-main);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border);
+  animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  max-width: 24rem;
 }
 
 .toast.success {
-  border-left: 4px solid var(--color-success);
+  border-left: 4px solid #10b981;
 }
 
 .toast.error {
-  border-left: 4px solid var(--color-error);
+  border-left: 4px solid var(--color-accent);
 }
 
-.toast.hiding {
-  animation: slideOutRight var(--transition-normal) forwards;
+/* Drawer Backdrop */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-/* Skeleton Loading Shimmer */
+.drawer-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Skeleton Loading State */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -340,12 +265,20 @@ button:active {
   background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 0.375rem;
+  border-radius: var(--radius-md);
 }
 
-/* Responsive adjustments */
-@media (max-width: 640px) {
-  #CartSidebar .sidebar-panel {
-    width: 100% !important;
-  }
+/* Utility layout helpers */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

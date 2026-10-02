@@ -8,25 +8,25 @@ build a snake game
 
 ## Tech Stack
 
-HTML5 Canvas+CSS3+Vanilla JavaScript
+HTML5 Canvas + Vanilla JavaScript + CSS3
 
-A lightweight, single-page Snake game architecture utilizing HTML5 Canvas for high-performance rendering and CSS3 for modern styling. Vanilla JavaScript manages the state machine (start, playing, game over), grid-based movement mathematics, collision detection, and requestAnimationFrame game loops. No backend or external APIs are required since the application runs entirely client-side.
+This architecture leverages HTML5 Canvas and Vanilla JavaScript for a high-performance, zero-dependency browser-based Snake game. CSS3 styles a clean retro layout containing the scoreboard and game canvas. The client-side script handles the core game loop, input listeners, collision detection, and dynamic state rendering entirely within the browser.
 
 ## Implementation Plan
 
-- Set up HTML structure with a canvas element and score display.
-- Implement core game loop and grid-based movement logic.
-- Add collision detection for walls, self, and food generation.
-- Handle keyboard event listeners and game state management (start, game over, restart).
+- Set up HTML layout with Canvas and scoreboard
+- Implement core Snake movement and keyboard controls
+- Add food generation, collision detection, and score tracking
+- Implement game loop, game over states, and restart logic
 
 ## Project Structure
 
 ```text
 snake-game/
 ├── package.json
-├── public/css/style.css
+├── public/app.js
 ├── public/index.html
-├── public/js/game.js
+├── public/style.css
 ├── server.js
 ├── tests/app.test.js
 ```
@@ -38,3 +38,21 @@ Install dependencies with `npm install`, then start the app with `npm start`.
 ## Quality Review
 
 - Static review: Passed
+
+## Refinements & Changelog
+
+### Refinement — 2026-10-02 13:12 UTC
+- **Change Request:** the game is still isnt playable can u fix that
+- **Files Modified:** `public/app.js`
+- **Tasks Applied:**
+- Verify canvas dimensions and ensure start button properly resets game state, snake coordinates, and game loop interval.
+- Correct directional key event listeners and touch control bindings to prevent default scrolling and reliably update nextDirection.
+- **QA Review:** Passed
+### Refinement — 2026-10-02 13:11 UTC
+- **Change Request:** the game isnt playable can make the game playable
+- **Files Modified:** `public/app.js`
+- **Tasks Applied:**
+- Inspect and correct game initialization, startBtn click handler, and gameInterval setup in public/app.js
+- Ensure keydown event listeners and D-pad button bindings update snake movement direction correctly
+- Verify canvas rendering and food collision detection logic function without errors
+- **QA Review:** Passed

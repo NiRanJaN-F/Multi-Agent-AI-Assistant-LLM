@@ -1,21 +1,22 @@
 {
   "name": "arcade-snake-game",
   "version": "1.0.0",
-  "description": "A visually stunning, fully interactive Snake game built with HTML5 Canvas, CSS3, and Vanilla JavaScript",
+  "description": "A visually stunning, fully interactive Snake game built with HTML5 Canvas, Vanilla JavaScript, and Tailwind CSS.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "keywords": [
+    "snake",
+    "game",
+    "html5",
+    "canvas",
+    "vanilla-js",
+    "tailwindcss"
+  ],
+  "author": "Principal Software Engineer & UI/UX Designer",
+  "license": "MIT",
   "dependencies": {
     "express": "^4.18.2"
-  },
-  "keywords": [
-    "game",
-    "snake",
-    "canvas",
-    "arcade",
-    "vanilla-js"
-  ],
-  "author": "Principal Engineer",
-  "license": "MIT"
+  }
 }

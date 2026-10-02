@@ -1,249 +1,313 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberSnake 2077 // Neon Arcade</title>
+    <title>CyberSnake Neo - Arcade Experience</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        arcade: ['Orbitron', 'sans-serif'],
+                        sans: ['Outfit', 'sans-serif'],
+                        arcade: ['"Press Start 2P"', 'monospace'],
                     },
                     colors: {
                         cyber: {
-                            50: '#f0fdf4',
-                            500: '#10b981',
-                            900: '#064e3b',
-                            950: '#022c22',
+                            900: '#0a0b10',
+                            800: '#121526',
+                            700: '#1c2038',
+                            600: '#2b3154',
+                            accent: '#00f0ff',
+                            secondary: '#7000ff',
+                            pink: '#ff007f',
+                            neonGreen: '#39ff14',
                         }
+                    },
+                    boxShadow: {
+                        'neon': '0 0 20px rgba(0, 240, 255, 0.4)',
+                        'neon-pink': '0 0 20px rgba(255, 0, 127, 0.4)',
+                        'neon-green': '0 0 20px rgba(57, 255, 20, 0.4)',
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-between font-sans selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+<body class="h-full bg-cyber-900 text-white font-sans antialiased overflow-x-hidden selection:bg-cyber-accent selection:text-black">
 
-    <!-- Glowing Background Grid & Ambient Orbs -->
-    <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none"></div>
-    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="absolute bottom-10 right-10 w-[400px] h-[400px] bg-cyan-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+    <!-- Background Ambient Glows -->
+    <div class="fixed top-0 left-1/4 w-96 h-96 bg-cyber-secondary/20 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-cyber-accent/15 rounded-full blur-[120px] pointer-events-none"></div>
 
-    <!-- Top Navigation / Header -->
-    <header class="w-full max-w-5xl px-6 py-6 flex items-center justify-between z-10">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <i data-lucide="gamepad-2" class="w-6 h-6 text-slate-950 stroke-[2.5]"></i>
-            </div>
-            <div>
-                <h1 class="font-arcade text-xl tracking-wider font-black bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-                    CYBERSNAKE
-                </h1>
-                <p class="text-xs text-slate-400 tracking-widest uppercase">Arcade Edition v2.5</p>
-            </div>
-        </div>
-
-        <!-- Quick Controls Header -->
-        <div class="flex items-center gap-3">
-            <button id="soundToggle" class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/50 transition-all shadow-sm" title="Toggle Sound">
-                <i data-lucide="volume-2" class="w-5 h-5"></i>
-            </button>
-            <button id="themeToggle" class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 transition-all shadow-sm" title="Toggle Neon Glow">
-                <i data-lucide="sparkles" class="w-5 h-5"></i>
-            </button>
-            <button id="helpBtn" class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/50 transition-all shadow-sm" title="Controls & Rules">
-                <i data-lucide="help-circle" class="w-5 h-5"></i>
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Game Container -->
-    <main class="w-full max-w-5xl px-4 flex flex-col items-center justify-center flex-grow z-10 my-2">
+    <div class="min-h-full flex flex-col justify-between relative z-10">
         
-        <!-- Scoreboard Bar -->
-        <div class="w-full max-w-[620px] grid grid-cols-3 gap-4 mb-4">
-            <div class="bg-slate-900/80 border border-slate-800/80 backdrop-blur-md rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg relative overflow-hidden group">
-                <div class="absolute inset-0 bg-gradient-to-t from-emerald-500/5 to-transparent pointer-events-none"></div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                    <i data-lucide="zap" class="w-3.5 h-3.5 text-emerald-400"></i> Score
-                </span>
-                <span id="currentScore" class="font-arcade text-3xl font-bold text-emerald-400">0000</span>
-            </div>
-
-            <div class="bg-slate-900/80 border border-slate-800/80 backdrop-blur-md rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg relative overflow-hidden">
-                <div class="absolute inset-0 bg-gradient-to-t from-cyan-500/5 to-transparent pointer-events-none"></div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                    <i data-lucide="trophy" class="w-3.5 h-3.5 text-cyan-400"></i> High Score
-                </span>
-                <span id="highScore" class="font-arcade text-3xl font-bold text-cyan-400">0000</span>
-            </div>
-
-            <div class="bg-slate-900/80 border border-slate-800/80 backdrop-blur-md rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg relative overflow-hidden">
-                <div class="absolute inset-0 bg-gradient-to-t from-purple-500/5 to-transparent pointer-events-none"></div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                    <i data-lucide="gauge" class="w-3.5 h-3.5 text-purple-400"></i> Speed
-                </span>
-                <span id="speedIndicator" class="font-arcade text-3xl font-bold text-purple-400">1x</span>
-            </div>
-        </div>
-
-        <!-- Canvas Wrapper & Overlays -->
-        <div class="relative rounded-3xl p-3 bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl group">
-            
-            <!-- Corner Cyber Accents -->
-            <div class="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-emerald-500 rounded-tl-lg"></div>
-            <div class="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-emerald-500 rounded-tr-lg"></div>
-            <div class="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-emerald-500 rounded-bl-lg"></div>
-            <div class="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-emerald-500 rounded-br-lg"></div>
-
-            <!-- HTML5 Canvas -->
-            <canvas id="gameCanvas" width="600" height="600" class="rounded-2xl block bg-slate-950 cursor-crosshair"></canvas>
-
-            <!-- Start / Menu Overlay -->
-            <div id="startOverlay" class="absolute inset-3 rounded-2xl bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 z-20 transition-all duration-300">
-                <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center mb-6 shadow-xl shadow-emerald-500/30 animate-bounce">
-                    <i data-lucide="play" class="w-10 h-10 text-slate-950 fill-slate-950 ml-1"></i>
+        <!-- Header / Navbar -->
+        <header class="w-full border-b border-white/10 bg-cyber-800/80 backdrop-blur-md sticky top-0 z-50">
+            <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyber-accent to-cyber-secondary p-[2px] shadow-neon">
+                        <div class="w-full h-full bg-cyber-900 rounded-[10px] flex items-center justify-center">
+                            <i data-lucide="gamepad-2" class="w-5 h-5 text-cyber-accent"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg tracking-wider bg-gradient-to-r from-white via-cyber-accent to-cyber-pink bg-clip-text text-transparent">CYBERSNAKE</h1>
+                        <span class="text-[10px] text-cyber-accent uppercase tracking-widest block font-mono -mt-1">Neo Arcade v1.0</span>
+                    </div>
                 </div>
-                <h2 class="font-arcade text-3xl font-black mb-2 bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-                    READY TO PLAY?
-                </h2>
-                <p class="text-slate-400 max-w-sm text-sm mb-8">
-                    Guide your cyber snake to devour neon nodes, collect power-ups, and avoid collisions with walls or yourself.
-                </p>
-                <div class="flex flex-col sm:flex-row gap-4 w-full max-w-xs">
-                    <button id="startBtn" class="flex-1 py-4 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold font-arcade tracking-wider transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 group">
-                        <span>START GAME</span>
-                        <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+
+                <!-- Navigation Controls / Modals triggers -->
+                <div class="flex items-center space-x-3">
+                    <button id="soundToggleBtn" class="p-2 rounded-xl bg-cyber-700/50 hover:bg-cyber-600/50 border border-white/10 transition-all text-cyber-accent" title="Toggle Sound">
+                        <i data-lucide="volume-2" id="soundIcon" class="w-5 h-5"></i>
+                    </button>
+                    <button id="themeToggleBtn" class="p-2 rounded-xl bg-cyber-700/50 hover:bg-cyber-600/50 border border-white/10 transition-all text-cyber-pink" title="Toggle Theme/Mode">
+                        <i data-lucide="palette" class="w-5 h-5"></i>
+                    </button>
+                    <button id="helpBtn" class="p-2 rounded-xl bg-cyber-700/50 hover:bg-cyber-600/50 border border-white/10 transition-all text-white hover:text-cyber-accent" title="How to Play">
+                        <i data-lucide="help-circle" class="w-5 h-5"></i>
                     </button>
                 </div>
-                <div class="mt-6 flex items-center gap-4 text-xs text-slate-500">
-                    <span class="flex items-center gap-1"><kbd class="px-2 py-1 rounded bg-slate-800 text-slate-300 font-mono">WASD</kbd> or <kbd class="px-2 py-1 rounded bg-slate-800 text-slate-300 font-mono">ARROWS</kbd> to move</span>
-                    <span>•</span>
-                    <span class="flex items-center gap-1"><kbd class="px-2 py-1 rounded bg-slate-800 text-slate-300 font-mono">SPACE</kbd> pause</span>
-                </div>
             </div>
+        </header>
 
-            <!-- Game Over Overlay -->
-            <div id="gameOverOverlay" class="absolute inset-3 rounded-2xl bg-slate-950/95 backdrop-blur-lg flex flex-col items-center justify-center text-center p-6 z-20 hidden transition-all duration-300 opacity-0">
-                <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center mb-6 shadow-xl shadow-rose-500/30">
-                    <i data-lucide="skull" class="w-10 h-10 text-slate-950"></i>
-                </div>
-                <h2 class="font-arcade text-3xl font-black mb-1 text-rose-500 tracking-wider">
-                    SYSTEM CRASH
-                </h2>
-                <p class="text-slate-400 text-sm mb-6">Your neural link was severed.</p>
+        <!-- Main Content Area -->
+        <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8 flex flex-col items-center justify-center">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full max-w-5xl items-start">
                 
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 w-full max-w-xs mb-8 flex justify-around">
-                    <div>
-                        <span class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Final Score</span>
-                        <span id="finalScore" class="font-arcade text-2xl font-bold text-emerald-400">0</span>
+                <!-- Left Sidebar / Stats & Controls -->
+                <div class="lg:col-span-4 flex flex-col space-y-6">
+                    
+                    <!-- Score Card -->
+                    <div class="bg-cyber-800/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                        <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-cyber-accent/10 rounded-full blur-2xl group-hover:bg-cyber-accent/20 transition-all"></div>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-mono uppercase tracking-wider text-gray-400">Current Score</span>
+                            <i data-lucide="zap" class="w-4 h-4 text-cyber-accent"></i>
+                        </div>
+                        <div id="currentScore" class="font-arcade text-4xl text-cyber-accent drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">0000</div>
+                        
+                        <div class="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
+                            <span class="text-xs font-mono uppercase tracking-wider text-gray-400">High Score</span>
+                            <span id="highScore" class="font-arcade text-lg text-cyber-pink drop-shadow-[0_0_10px_rgba(255,0,127,0.5)]">0000</span>
+                        </div>
                     </div>
-                    <div class="w-px bg-slate-800"></div>
-                    <div>
-                        <span class="block text-xs text-slate-400 uppercase tracking-wider mb-1">High Score</span>
-                        <span id="finalHighScore" class="font-arcade text-2xl font-bold text-cyan-400">0</span>
+
+                    <!-- Game Parameters / Status -->
+                    <div class="bg-cyber-800/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl">
+                        <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4 flex items-center gap-2">
+                            <i data-lucide="sliders" class="w-4 h-4 text-cyber-secondary"></i>
+                            Mission Status
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-xs font-mono mb-1">
+                                    <span class="text-gray-400">Speed Level</span>
+                                    <span id="levelDisplay" class="text-cyber-accent font-bold">1</span>
+                                </div>
+                                <div class="w-full bg-cyber-900 rounded-full h-2 border border-white/10 overflow-hidden">
+                                    <div id="levelBar" class="bg-gradient-to-r from-cyber-secondary to-cyber-accent h-full w-[20%] transition-all duration-300"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3 pt-2">
+                                <div class="bg-cyber-900/50 p-3 rounded-xl border border-white/5">
+                                    <span class="text-[10px] uppercase font-mono text-gray-400 block">Orbs Eaten</span>
+                                    <span id="orbsEaten" class="text-lg font-bold font-arcade text-white">0</span>
+                                </div>
+                                <div class="bg-cyber-900/50 p-3 rounded-xl border border-white/5">
+                                    <span class="text-[10px] uppercase font-mono text-gray-400 block">Multiplier</span>
+                                    <span id="multiplier" class="text-lg font-bold font-arcade text-cyber-neonGreen">1x</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Desktop Controls Info -->
+                    <div class="hidden lg:block bg-cyber-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl">
+                        <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-3 flex items-center gap-2">
+                            <i data-lucide="keyboard" class="w-4 h-4 text-cyber-pink"></i>
+                            Keyboard Controls
+                        </h3>
+                        <ul class="space-y-2 text-xs text-gray-400 font-mono">
+                            <li class="flex justify-between items-center py-1 border-b border-white/5">
+                                <span>Steer</span>
+                                <span class="bg-cyber-700 px-2 py-1 rounded text-white">Arrow Keys / WASD</span>
+                            </li>
+                            <li class="flex justify-between items-center py-1 border-b border-white/5">
+                                <span>Pause Game</span>
+                                <span class="bg-cyber-700 px-2 py-1 rounded text-white">Spacebar</span>
+                            </li>
+                            <li class="flex justify-between items-center py-1">
+                                <span>Quick Restart</span>
+                                <span class="bg-cyber-700 px-2 py-1 rounded text-white">Enter</span>
+                            </li>
+                        </ul>
+                    </div>
+
                 </div>
 
-                <button id="restartBtn" class="py-4 px-8 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold font-arcade tracking-wider transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 group w-full max-w-xs">
-                    <i data-lucide="rotate-ccw" class="w-5 h-5 group-hover:-rotate-45 transition-transform"></i>
-                    <span>PLAY AGAIN</span>
-                </button>
-            </div>
+                <!-- Center / Game Canvas Container -->
+                <div class="lg:col-span-8 flex flex-col items-center">
+                    
+                    <div class="relative group p-3 bg-gradient-to-b from-cyber-800/80 to-cyber-900/90 rounded-3xl border border-white/15 shadow-2xl backdrop-blur-xl">
+                        
+                        <!-- Canvas Header Info -->
+                        <div class="flex items-center justify-between px-3 pb-3 mb-2 border-b border-white/10">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+                                <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                                <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                                <span id="gameModeBadge" class="ml-2 text-xs font-mono uppercase px-2 py-0.5 rounded bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/30">Classic Mode</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <select id="modeSelector" class="bg-cyber-900 text-xs font-mono text-gray-300 border border-white/10 rounded-lg px-2 py-1 focus:outline-none focus:border-cyber-accent cursor-pointer">
+                                    <option value="classic">Classic Grid</option>
+                                    <option value="walls">Obstacle Maze</option>
+                                    <option value="speed">Hyper Speed</option>
+                                </select>
+                            </div>
+                        </div>
 
-            <!-- Pause Overlay -->
-            <div id="pauseOverlay" class="absolute inset-3 rounded-2xl bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 z-20 hidden">
-                <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mb-4 text-emerald-400">
-                    <i data-lucide="pause" class="w-8 h-8"></i>
+                        <!-- Canvas Wrapper -->
+                        <div id="canvasWrapper" class="relative rounded-2xl overflow-hidden border border-white/10 bg-cyber-900 shadow-inner flex items-center justify-center">
+                            <canvas id="gameCanvas" width="480" height="480" class="block w-full max-w-[480px] aspect-square"></canvas>
+
+                            <!-- Start Overlay -->
+                            <div id="startOverlay" class="absolute inset-0 bg-cyber-900/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 transition-all duration-300">
+                                <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-cyber-accent to-cyber-secondary flex items-center justify-center mb-6 shadow-neon animate-bounce">
+                                    <i data-lucide="play" class="w-10 h-10 text-black fill-black ml-1"></i>
+                                </div>
+                                <h2 class="font-arcade text-2xl md:text-3xl text-white mb-2 tracking-wide">CYBERSNAKE</h2>
+                                <p class="text-sm text-gray-400 max-w-xs mb-8">Navigate the neon grid, consume data nodes, and avoid catastrophic collisions.</p>
+                                <button id="startBtn" class="px-8 py-4 bg-gradient-to-r from-cyber-accent to-cyber-secondary text-black font-bold uppercase tracking-wider rounded-xl shadow-neon hover:opacity-90 transition-all transform hover:scale-105 active:scale-95 font-arcade text-xs">
+                                    Initialize Game
+                                </button>
+                            </div>
+
+                            <!-- Pause Overlay -->
+                            <div id="pauseOverlay" class="absolute inset-0 bg-cyber-900/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 hidden transition-all">
+                                <div class="w-16 h-16 rounded-2xl bg-cyber-700/50 border border-white/10 flex items-center justify-center mb-4">
+                                    <i data-lucide="pause" class="w-8 h-8 text-cyber-accent"></i>
+                                </div>
+                                <h2 class="font-arcade text-xl text-white mb-2">GAME PAUSED</h2>
+                                <p class="text-xs text-gray-400 mb-6">Take a breath, agent. Ready to resume?</p>
+                                <button id="resumeBtn" class="px-6 py-3 bg-cyber-accent text-black font-bold uppercase tracking-wider rounded-xl shadow-neon hover:opacity-90 transition-all font-arcade text-xs">
+                                    Resume Session
+                                </button>
+                            </div>
+
+                            <!-- Game Over Overlay -->
+                            <div id="gameOverOverlay" class="absolute inset-0 bg-cyber-900/95 backdrop-blur-lg flex flex-col items-center justify-center p-6 text-center z-20 hidden transition-all">
+                                <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-red-500 to-cyber-pink flex items-center justify-center mb-6 shadow-neon-pink">
+                                    <i data-lucide="skull" class="w-10 h-10 text-white"></i>
+                                </div>
+                                <h2 class="font-arcade text-2xl md:text-3xl text-red-500 mb-2">SYSTEM CRASH</h2>
+                                <p class="text-sm text-gray-400 mb-6">Your snake terminated into a wall or itself.</p>
+                                
+                                <div class="bg-cyber-800/80 border border-white/10 rounded-xl p-4 w-48 mb-6">
+                                    <span class="text-[10px] font-mono text-gray-400 uppercase block">Final Score</span>
+                                    <span id="finalScore" class="font-arcade text-2xl text-cyber-accent">0000</span>
+                                </div>
+
+                                <button id="restartBtn" class="px-8 py-4 bg-gradient-to-r from-cyber-pink to-cyber-secondary text-white font-bold uppercase tracking-wider rounded-xl shadow-neon-pink hover:opacity-90 transition-all transform hover:scale-105 active:scale-95 font-arcade text-xs flex items-center gap-2">
+                                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Re-Initialize
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <!-- Canvas Footer / On-screen D-Pad for Mobile -->
+                        <div class="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <button id="pauseGameBtn" class="px-3 py-1.5 rounded-lg bg-cyber-700/50 hover:bg-cyber-600/50 text-xs font-mono border border-white/10 text-gray-300 flex items-center gap-1.5 transition-all">
+                                    <i data-lucide="pause" class="w-3.5 h-3.5"></i> Pause
+                                </button>
+                            </div>
+
+                            <!-- Mobile Virtual D-Pad -->
+                            <div class="grid grid-cols-3 gap-1 md:hidden">
+                                <div></div>
+                                <button id="btnUp" class="w-10 h-10 rounded bg-cyber-700/80 flex items-center justify-center active:bg-cyber-accent active:text-black text-white">
+                                    <i data-lucide="chevron-up" class="w-5 h-5"></i>
+                                </button>
+                                <div></div>
+                                <button id="btnLeft" class="w-10 h-10 rounded bg-cyber-700/80 flex items-center justify-center active:bg-cyber-accent active:text-black text-white">
+                                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                                </button>
+                                <button id="btnDown" class="w-10 h-10 rounded bg-cyber-700/80 flex items-center justify-center active:bg-cyber-accent active:text-black text-white">
+                                    <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                                </button>
+                                <button id="btnRight" class="w-10 h-10 rounded bg-cyber-700/80 flex items-center justify-center active:bg-cyber-accent active:text-black text-white">
+                                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+
+                            <div class="hidden md:flex items-center space-x-2 text-xs font-mono text-gray-400">
+                                <span class="flex items-center gap-1">
+                                    <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-cyber-pink"></i> Avoid Self & Walls
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+
                 </div>
-                <h2 class="font-arcade text-2xl font-bold mb-2 text-slate-100">GAME PAUSED</h2>
-                <p class="text-slate-400 text-sm mb-6">Take a breather, agent.</p>
-                <button id="resumeBtn" class="py-3 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-arcade text-sm font-bold tracking-wider transition-all border border-slate-700">
-                    RESUME GAME
-                </button>
+
             </div>
 
-        </div>
+        </main>
 
-        <!-- On-Screen Controls for Touch / Mobile -->
-        <div class="mt-6 grid grid-cols-3 gap-2 w-full max-w-xs sm:hidden">
-            <div></div>
-            <button id="btnUp" class="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center active:bg-emerald-500 active:text-slate-950 transition-colors">
-                <i data-lucide="chevron-up" class="w-6 h-6"></i>
-            </button>
-            <div></div>
-            <button id="btnLeft" class="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center active:bg-emerald-500 active:text-slate-950 transition-colors">
-                <i data-lucide="chevron-left" class="w-6 h-6"></i>
-            </button>
-            <button id="btnDown" class="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center active:bg-emerald-500 active:text-slate-950 transition-colors">
-                <i data-lucide="chevron-down" class="w-6 h-6"></i>
-            </button>
-            <button id="btnRight" class="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center active:bg-emerald-500 active:text-slate-950 transition-colors">
-                <i data-lucide="chevron-right" class="w-6 h-6"></i>
-            </button>
-        </div>
+        <!-- Footer -->
+        <footer class="w-full border-t border-white/10 bg-cyber-800/40 py-4 mt-12">
+            <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 font-mono">
+                <p>&copy; <span id="currentYear"></span> CyberSnake Neo. Built with HTML5 Canvas & Tailwind.</p>
+                <div class="flex items-center space-x-4 mt-2 sm:mt-0">
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyber-neonGreen animate-ping"></span> Servers Online</span>
+                </div>
+            </div>
+        </footer>
 
-    </main>
+    </div>
 
-    <!-- Footer / Info -->
-    <footer class="w-full max-w-5xl px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 z-10 gap-2">
-        <p>© 2077 CyberSnake Arcade. All neural rights reserved.</p>
-        <div class="flex items-center gap-4">
-            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Server Online</span>
-            <span>•</span>
-            <span class="text-slate-400">HTML5 Canvas + Tailwind</span>
-        </div>
-    </footer>
-
-    <!-- Help Modal -->
-    <div id="helpModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
-            <button id="closeHelp" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-100 rounded-xl hover:bg-slate-800 transition-colors">
+    <!-- Help / Instructions Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-cyber-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-cyber-800 border border-white/15 rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+            <button id="closeHelpModal" class="absolute top-4 right-4 text-gray-400 hover:text-white">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                    <i data-lucide="info" class="w-5 h-5"></i>
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-cyber-accent/10 border border-cyber-accent/30 flex items-center justify-center text-cyber-accent">
+                    <i data-lucide="help-circle" class="w-6 h-6"></i>
                 </div>
-                <h3 class="font-arcade text-lg font-bold text-slate-100">MISSION BRIEFING</h3>
+                <h3 class="font-bold text-lg">How to Play CyberSnake</h3>
             </div>
-            <div class="space-y-4 text-sm text-slate-300">
-                <div>
-                    <h4 class="font-semibold text-emerald-400 mb-1">Controls</h4>
-                    <p class="text-slate-400">Use <strong class="text-slate-200">WASD</strong> or <strong class="text-slate-200">Arrow Keys</strong> to steer. Press <strong class="text-slate-200">Spacebar</strong> to pause your run.</p>
-                </div>
-                <div>
-                    <h4 class="font-semibold text-emerald-400 mb-1">Food Nodes</h4>
-                    <ul class="list-disc list-inside text-slate-400 space-y-1">
-                        <li><span class="text-emerald-400 font-medium">Standard Node:</span> +10 pts, grows snake.</li>
-                        <li><span class="text-cyan-400 font-medium">Cyber Node (Blue):</span> +30 pts, bonus speed boost!</li>
-                        <li><span class="text-amber-400 font-medium">Golden Node:</span> +50 pts, massive score multiplier.</li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="font-semibold text-emerald-400 mb-1">Survival Rules</h4>
-                    <p class="text-slate-400">Do not collide with the perimeter walls or your own cyber tail. Speed increases every 5 foods consumed!</p>
-                </div>
+            <div class="space-y-3 text-sm text-gray-300 mb-6 font-light">
+                <p><strong class="text-cyber-accent font-medium">Objective:</strong> Guide your cyber-snake across the grid to consume glowing data nodes and energy orbs.</p>
+                <p><strong class="text-cyber-accent font-medium">Scoring:</strong> Each normal node grants 10 points multiplied by your speed tier. Special pulsing nodes grant bonus points and temporary multiplier boosts!</p>
+                <p><strong class="text-cyber-accent font-medium">Game Modes:</strong></p>
+                <ul class="list-disc pl-5 space-y-1 text-xs text-gray-400">
+                    <li><strong>Classic:</strong> Standard gameplay, screen wrapping or wall crashes depending on settings.</li>
+                    <li><strong>Obstacle Maze:</strong> Internal cyber-barriers spawn on the grid. Avoid them at all costs!</li>
+                    <li><strong>Hyper Speed:</strong> Extreme acceleration mode for seasoned reflexes.</li>
+                </ul>
             </div>
-            <button id="closeHelpBtn" class="mt-6 w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-arcade text-xs font-bold tracking-wider transition-all border border-slate-700">
-                GOT IT, LET'S PLAY
+            <button id="closeHelpBtn" class="w-full py-3 bg-cyber-accent text-black font-bold uppercase rounded-xl font-arcade text-xs tracking-wider shadow-neon">
+                Got It, Let's Play
             </button>
         </div>
     </div>
 
-    <!-- Lucide Icon Initialization -->
+    <script src="app.js"></script>
     <script>
-        lucide.createIcons();
+        // Update current year dynamically
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
     </script>
-    <!-- Main Game Logic -->
-    <script src="js/game.js"></script>
 </body>
 </html>

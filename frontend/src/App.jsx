@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import LoginPage from "./components/auth/LoginPage";
 import IDENavbar from "./components/IDENavbar";
@@ -62,12 +62,17 @@ function MainIDE() {
           onReset={reset}
           onAutoFix={(errorMessage) => {
             const effectiveName = activeProject || result?.project_name || result?.projectName;
-            if (!effectiveName) return;
-            refine({
+            if (!effectiveName) {
+              console.warn("Auto-Fix: no active project, skipping.");
+              return Promise.resolve();
+            }
+            if (loading) {
+              console.warn("Auto-Fix: pipeline already running, skipping.");
+              return Promise.resolve();
+            }
+            return refine({
               projectName: effectiveName,
-              prompt: `Fix the following runtime preview error in the project:\n${errorMessage}\nEnsure all props, null-checks, types, and event handlers are robustly guarded.`
-            }).catch((err) => {
-              console.error("Auto-fix refinement failed:", err);
+              prompt: `Fix the following runtime preview error in the project:\n${errorMessage}\nEnsure all props, null-checks, types, and event handlers are robustly guarded.`,
             });
           }}
         />

@@ -1,466 +1,395 @@
 /**
  * public/js/checkout.js
- * Principal Frontend Architecture - Checkout & Order Processing Module
- * Handles multi-step checkout form validation, Stripe/Mock payment simulation,
- * API order dispatch, and post-purchase confirmation views.
+ * Principal Frontend Architecture - Checkout Flow & Order Processing Module
+ * Handles multi-step form validation, real-time calculation, API submission, and success modals.
  */
 
-class CheckoutManager {
-    constructor(cartInstance) {
-        this.cart = cartInstance;
-        this.modalElement = null;
-        this.currentStep = 1;
-        this.formData = {
-            shipping: {
-                firstName: '',
-                lastName: '',
-                email: '',
-                address: '',
-                city: '',
-                postalCode: '',
-                country: 'US'
-            },
-            payment: {
-                cardNumber: '',
-                expiry: '',
-                cvv: '',
-                nameOnCard: ''
-            }
-        };
-        this.isProcessing = false;
-        
-        this.init();
+window.CheckoutModule = (() => {
+    // Private State
+    let currentStep = 1;
+    let orderData = {
+        shipping: {},
+        payment: {},
+        items: [],
+        subtotal: 0,
+        shippingCost: 0,
+        tax: 0,
+        total: 0
+    };
+
+    // DOM Elements Cache
+    let checkoutModal = null;
+    let checkoutForm = null;
+    let stepIndicators = [];
+    let stepContents = [];
+
+    /**
+     * Initialize the checkout module and bind UI triggers
+     */
+    function init() {
+        cacheDOM();
+        bindEvents();
     }
 
-    init() {
-        this.createCheckoutModalDOM();
-        this.bindGlobalEvents();
+    function cacheDOM() {
+        checkoutModal = document.getElementById('checkout-modal');
+        checkoutForm = document.getElementById('checkout-form');
+        stepIndicators = document.querySelectorAll('.checkout-step-indicator');
+        stepContents = document.querySelectorAll('.checkout-step-content');
     }
 
-    createCheckoutModalDOM() {
-        // Remove existing if any
-        const existing = document.getElementById('checkout-modal-container');
-        if (existing) existing.remove();
+    function bindEvents() {
+        // Form submission / Next Step interception
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', handleFormSubmit);
+        }
 
-        const modalHTML = `
-            <div id="checkout-modal-container" class="fixed inset-0 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
-                <!-- Backdrop -->
-                <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" id="checkout-backdrop"></div>
-                
-                <!-- Modal Card -->
-                <div class="relative bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]" id="checkout-modal-card">
-                    
-                    <!-- Header -->
-                    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-semibold text-sm" id="checkout-step-indicator">1</span>
-                            <h3 class="text-lg font-bold text-slate-900 dark:text-white" id="checkout-modal-title">Shipping Information</h3>
-                        </div>
-                        <button id="close-checkout-btn" class="w-8 h-8 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors">
-                            <i data-lucide="x" class="w-5 h-5"></i>
-                        </button>
-                    </div>
+        // Format credit card inputs in real-time
+        const cardNumberInput = document.getElementById('card-number');
+        if (cardNumberInput) {
+            cardNumberInput.addEventListener('input', formatCreditCardInput);
+        }
 
-                    <!-- Progress Bar -->
-                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1">
-                        <div id="checkout-progress-bar" class="bg-indigo-600 h-1 transition-all duration-300" style="width: 50%;"></div>
-                    </div>
+        const cardExpiryInput = document.getElementById('card-expiry');
+        if (cardExpiryInput) {
+            cardExpiryInput.addEventListener('input', formatExpiryInput);
+        }
 
-                    <!-- Body Content Container -->
-                    <div class="p-6 overflow-y-auto flex-grow" id="checkout-modal-body">
-                        <!-- Step 1: Shipping Form -->
-                        <form id="shipping-form" class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">First Name</label>
-                                    <input type="text" name="firstName" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="John">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Last Name</label>
-                                    <input type="text" name="lastName" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="Doe">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Email Address</label>
-                                <input type="email" name="email" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="john.doe@example.com">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Street Address</label>
-                                <input type="text" name="address" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="123 Main St, Apt 4B">
-                            </div>
-                            <div class="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">City</label>
-                                    <input type="text" name="city" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="New York">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Postal Code</label>
-                                    <input type="text" name="postalCode" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="10001">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Country</label>
-                                    <select name="country" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all">
-                                        <option value="US">United States</option>
-                                        <option value="CA">Canada</option>
-                                        <option value="UK">United Kingdom</option>
-                                        <option value="AU">Australia</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Footer / Actions -->
-                    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                        <button id="checkout-back-btn" class="hidden px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                            Back
-                        </button>
-                        <div class="ml-auto flex items-center space-x-3">
-                            <span class="text-sm text-slate-500">Total: <strong id="checkout-modal-total" class="text-slate-900 dark:text-white font-bold">$0.00</strong></span>
-                            <button id="checkout-next-btn" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm shadow-lg shadow-indigo-500/25 transition-all transform active:scale-95 flex items-center space-x-2">
-                                <span>Continue to Payment</span>
-                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        this.modalElement = document.getElementById('checkout-modal-container');
-        if (window.lucide) lucide.createIcons();
+        const cardCvcInput = document.getElementById('card-cvc');
+        if (cardCvcInput) {
+            cardCvcInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+            });
+        }
     }
 
-    bindGlobalEvents() {
-        const closeBtn = document.getElementById('close-checkout-btn');
-        const backdrop = document.getElementById('checkout-backdrop');
-        const nextBtn = document.getElementById('checkout-next-btn');
-        const backBtn = document.getElementById('checkout-back-btn');
-
-        closeBtn.addEventListener('click', () => this.close());
-        backdrop.addEventListener('click', () => this.close());
-        nextBtn.addEventListener('click', () => this.handleNextStep());
-        backBtn.addEventListener('click', () => this.handlePrevStep());
-
-        // Keyboard accessibility
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !this.modalElement.classList.contains('hidden')) {
-                this.close();
-            }
-        });
-    }
-
-    open() {
-        if (this.cart.items.length === 0) {
-            window.showToast?.('Your cart is empty', 'warning');
+    /**
+     * Open the checkout modal and calculate initial totals from cart state
+     */
+    function openCheckout() {
+        if (!window.CartModule) {
+            console.error('CartModule is required for checkout.');
             return;
         }
 
-        this.currentStep = 1;
-        this.renderStep();
-        this.updateModalTotal();
+        const cart = window.CartModule.getCart();
+        if (cart.items.length === 0) {
+            showToast('Your cart is empty. Add items before checking out.', 'warning');
+            return;
+        }
 
-        this.modalElement.classList.remove('hidden');
+        orderData.items = cart.items;
+        orderData.subtotal = cart.total;
+        orderData.shippingCost = orderData.subtotal > 50 ? 0 : 5.99;
+        orderData.tax = +(orderData.subtotal * 0.08).toFixed(2);
+        orderData.total = +(orderData.subtotal + orderData.shippingCost + orderData.tax).toFixed(2);
+
+        renderOrderSummary();
+        resetToStep(1);
+
+        if (checkoutModal) {
+            checkoutModal.classList.remove('hidden');
+            checkoutModal.classList.add('flex');
+            setTimeout(() => {
+                checkoutModal.querySelector('.modal-card')?.classList.remove('scale-95', 'opacity-0');
+                checkoutModal.querySelector('.modal-card')?.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+        
+        if (window.lucide) lucide.createIcons();
+    }
+
+    /**
+     * Close the checkout modal with animation
+     */
+    function closeCheckout() {
+        if (!checkoutModal) return;
+
+        const modalCard = checkoutModal.querySelector('.modal-card');
+        if (modalCard) {
+            modalCard.classList.remove('scale-100', 'opacity-100');
+            modalCard.classList.add('scale-95', 'opacity-0');
+        }
+
         setTimeout(() => {
-            this.modalElement.classList.remove('opacity-0');
-            document.getElementById('checkout-modal-card').classList.remove('scale-95');
-            document.getElementById('checkout-modal-card').classList.add('scale-100');
-        }, 10);
+            checkoutModal.classList.remove('flex');
+            checkoutModal.classList.add('hidden');
+            if (checkoutForm) checkoutForm.reset();
+        }, 200);
     }
 
-    close() {
-        this.modalElement.classList.add('opacity-0');
-        document.getElementById('checkout-modal-card').classList.remove('scale-100');
-        document.getElementById('checkout-modal-card').classList.add('scale-95');
-        setTimeout(() => {
-            this.modalElement.classList.add('hidden');
-            this.currentStep = 1;
-            this.renderStep();
-        }, 300);
-    }
+    /**
+     * Render order summary inside the checkout sidebar/drawer
+     */
+    function renderOrderSummary() {
+        const summaryContainer = document.getElementById('checkout-order-summary');
+        if (!summaryContainer) return;
 
-    updateModalTotal() {
-        const totalEl = document.getElementById('checkout-modal-total');
-        if (totalEl) {
-            totalEl.textContent = `$${this.cart.getTotal().toFixed(2)}`;
-        }
-    }
-
-    handleNextStep() {
-        if (this.currentStep === 1) {
-            // Validate Shipping Form
-            const form = document.getElementById('shipping-form');
-            const inputs = form.querySelectorAll('input[required]');
-            let isValid = true;
-
-            inputs.forEach(input => {
-                if (!input.value.trim()) {
-                    isValid = false;
-                    input.classList.add('border-rose-500', 'ring-1', 'ring-rose-500');
-                } else {
-                    input.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500');
-                    this.formData.shipping[input.name] = input.value.trim();
-                }
-            });
-
-            if (!isValid) {
-                window.showToast?.('Please fill out all required fields', 'error');
-                return;
-            }
-
-            // Move to Step 2
-            this.currentStep = 2;
-            this.renderStep();
-        } else if (this.currentStep === 2) {
-            // Validate Payment Form & Submit Order
-            const form = document.getElementById('payment-form');
-            if (!form) return;
-
-            const inputs = form.querySelectorAll('input[required]');
-            let isValid = true;
-
-            inputs.forEach(input => {
-                if (!input.value.trim()) {
-                    isValid = false;
-                    input.classList.add('border-rose-500', 'ring-1', 'ring-rose-500');
-                } else {
-                    input.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500');
-                    this.formData.payment[input.name] = input.value.trim();
-                }
-            });
-
-            if (!isValid) {
-                window.showToast?.('Please complete your payment details', 'error');
-                return;
-            }
-
-            this.submitOrder();
-        }
-    }
-
-    handlePrevStep() {
-        if (this.currentStep > 1) {
-            this.currentStep--;
-            this.renderStep();
-        }
-    }
-
-    renderStep() {
-        const bodyContainer = document.getElementById('checkout-modal-body');
-        const titleEl = document.getElementById('checkout-modal-title');
-        const stepIndicator = document.getElementById('checkout-step-indicator');
-        const progressBar = document.getElementById('checkout-progress-bar');
-        const nextBtn = document.getElementById('checkout-next-btn');
-        const backBtn = document.getElementById('checkout-back-btn');
-
-        if (this.currentStep === 1) {
-            stepIndicator.textContent = '1';
-            titleEl.textContent = 'Shipping Information';
-            progressBar.style.width = '50%';
-            backBtn.classList.add('hidden');
-            nextBtn.innerHTML = `<span>Continue to Payment</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
-            
-            bodyContainer.innerHTML = `
-                <form id="shipping-form" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">First Name</label>
-                            <input type="text" name="firstName" required value="${this.formData.shipping.firstName}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="John">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Last Name</label>
-                            <input type="text" name="lastName" required value="${this.formData.shipping.lastName}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="Doe">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Email Address</label>
-                        <input type="email" name="email" required value="${this.formData.shipping.email}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="john.doe@example.com">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Street Address</label>
-                        <input type="text" name="address" required value="${this.formData.shipping.address}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="123 Main St, Apt 4B">
-                    </div>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">City</label>
-                            <input type="text" name="city" required value="${this.formData.shipping.city}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="New York">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Postal Code</label>
-                            <input type="text" name="postalCode" required value="${this.formData.shipping.postalCode}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="10001">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Country</label>
-                            <select name="country" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all">
-                                <option value="US" ${this.formData.shipping.country === 'US' ? 'selected' : ''}>United States</option>
-                                <option value="CA" ${this.formData.shipping.country === 'CA' ? 'selected' : ''}>Canada</option>
-                                <option value="UK" ${this.formData.shipping.country === 'UK' ? 'selected' : ''}>United Kingdom</option>
-                                <option value="AU" ${this.formData.shipping.country === 'AU' ? 'selected' : ''}>Australia</option>
-                            </select>
-                        </div>
-                    </div>
-                </form>
-            `;
-        } else if (this.currentStep === 2) {
-            stepIndicator.textContent = '2';
-            titleEl.textContent = 'Payment Details';
-            progressBar.style.width = '100%';
-            backBtn.classList.remove('hidden');
-            nextBtn.innerHTML = `<span>Complete Order</span><i data-lucide="shield-check" class="w-4 h-4"></i>`;
-
-            bodyContainer.innerHTML = `
-                <form id="payment-form" class="space-y-4">
-                    <div class="p-4 rounded-xl bg-indigo-50/50 dark:bg-slate-800/50 border border-indigo-100 dark:border-slate-700 flex items-center justify-between mb-4">
+        summaryContainer.innerHTML = `
+            <div class="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                ${orderData.items.map(item => `
+                    <div class="flex items-center justify-between text-sm">
                         <div class="flex items-center space-x-3">
-                            <i data-lucide="lock" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                            <img src="${item.image}" alt="${item.name}" class="w-12 h-12 object-cover rounded-lg border border-slate-200">
                             <div>
-                                <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Secure SSL Encryption</h4>
-                                <p class="text-xs text-slate-500">Your transaction is fully secured & encrypted.</p>
+                                <h4 class="font-medium text-slate-800 line-clamp-1">${item.name}</h4>
+                                <p class="text-xs text-slate-500">Qty: ${item.quantity}</p>
                             </div>
                         </div>
-                        <div class="flex space-x-1 text-xs font-bold text-slate-400">
-                            <span>VISA</span> • <span>MC</span> • <span>AMEX</span>
-                        </div>
+                        <span class="font-semibold text-slate-700">$${(item.price * item.quantity).toFixed(2)}</span>
                     </div>
+                `).join('')}
+            </div>
+            <div class="border-t border-slate-200 mt-4 pt-4 space-y-2 text-sm text-slate-600">
+                <div class="flex justify-between">
+                    <span>Subtotal</span>
+                    <span class="font-medium text-slate-800">$${orderData.subtotal.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Shipping</span>
+                    <span class="font-medium text-slate-800">${orderData.shippingCost === 0 ? '<span class="text-emerald-600 font-semibold">FREE</span>' : '$' + orderData.shippingCost.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Estimated Tax (8%)</span>
+                    <span class="font-medium text-slate-800">$${orderData.tax.toFixed(2)}</span>
+                </div>
+                <div class="border-t border-slate-200 pt-3 flex justify-between text-base font-bold text-slate-900">
+                    <span>Total</span>
+                    <span class="text-indigo-600">$${orderData.total.toFixed(2)}</span>
+                </div>
+            </div>
+        `;
+    }
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Name on Card</label>
-                        <input type="text" name="nameOnCard" required value="${this.formData.payment.nameOnCard || (this.formData.shipping.firstName + ' ' + this.formData.shipping.lastName)}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" placeholder="John Doe">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Card Number</label>
-                        <div class="relative">
-                            <input type="text" name="cardNumber" required maxlength="19" value="${this.formData.payment.cardNumber}" class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all font-mono" placeholder="4242 •••• •••• 4242">
-                            <i data-lucide="credit-card" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Expiration Date</label>
-                            <input type="text" name="expiry" required maxlength="5" value="${this.formData.payment.expiry}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all font-mono" placeholder="MM/YY">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">CVV Security Code</label>
-                            <input type="password" name="cvv" required maxlength="4" value="${this.formData.payment.cvv}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all font-mono" placeholder="123">
-                        </div>
-                    </div>
-                </form>
-            `;
+    /**
+     * Handle multi-step navigation and final order submission
+     */
+    function handleFormSubmit(e) {
+        e.preventDefault();
+
+        if (currentStep === 1) {
+            if (validateStep1()) {
+                navigateToStep(2);
+            }
+        } else if (currentStep === 2) {
+            if (validateStep2()) {
+                navigateToStep(3);
+                // Auto-fill payment summary or ready for final submit
+            }
+        } else if (currentStep === 3) {
+            submitOrder();
+        }
+    }
+
+    function validateStep1() {
+        const firstName = document.getElementById('shipping-firstname')?.value.trim();
+        const lastName = document.getElementById('shipping-lastname')?.value.trim();
+        const email = document.getElementById('shipping-email')?.value.trim();
+        const address = document.getElementById('shipping-address')?.value.trim();
+        const city = document.getElementById('shipping-city')?.value.trim();
+        const zip = document.getElementById('shipping-zip')?.value.trim();
+
+        if (!firstName || !lastName || !email || !address || !city || !zip) {
+            showToast('Please fill in all required shipping fields.', 'error');
+            return false;
+        }
+
+        // Basic email regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showToast('Please enter a valid email address.', 'error');
+            return false;
+        }
+
+        orderData.shipping = { firstName, lastName, email, address, city, zip };
+        return true;
+    }
+
+    function validateStep2() {
+        const shippingMethod = document.querySelector('input[name="shipping-method"]:checked');
+        if (!shippingMethod) {
+            showToast('Please select a shipping method.', 'error');
+            return false;
+        }
+        return true;
+    }
+
+    function navigateToStep(step) {
+        currentStep = step;
+        
+        // Update step contents
+        const stepContents = document.querySelectorAll('.checkout-step-content');
+        stepContents.forEach(content => {
+            const stepNum = parseInt(content.dataset.step);
+            if (stepNum === step) {
+                content.classList.remove('hidden');
+            } else {
+                content.classList.add('hidden');
+            }
+        });
+
+        // Update step indicators
+        const indicators = document.querySelectorAll('.checkout-step-indicator');
+        indicators.forEach(ind => {
+            const indStep = parseInt(ind.dataset.step);
+            const circle = ind.querySelector('.step-circle');
+            const label = ind.querySelector('.step-label');
+
+            if (indStep === step) {
+                circle.className = "step-circle w-8 h-8 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm ring-4 ring-indigo-100 transition-all";
+                if(label) label.className = "step-label text-xs font-semibold text-indigo-600 mt-1";
+            } else if (indStep < step) {
+                circle.className = "step-circle w-8 h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm transition-all";
+                if(label) label.className = "step-label text-xs font-medium text-slate-600 mt-1";
+            } else {
+                circle.className = "step-circle w-8 h-8 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-sm transition-all";
+                if(label) label.className = "step-label text-xs font-medium text-slate-400 mt-1";
+            }
+        });
+
+        // Update submit button text based on step
+        const submitBtn = document.getElementById('checkout-next-btn');
+        if (submitBtn) {
+            if (step === 3) {
+                submitBtn.innerHTML = `<span>Complete Order ($${orderData.total.toFixed(2)})</span> <i data-lucide="check-circle" class="w-4 h-4 ml-2"></i>`;
+            } else {
+                submitBtn.innerHTML = `<span>Continue</span> <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>`;
+            }
         }
 
         if (window.lucide) lucide.createIcons();
     }
 
-    async submitOrder() {
-        if (this.isProcessing) return;
-        this.isProcessing = true;
+    function resetToStep(step) {
+        navigateToStep(step);
+    }
 
-        const nextBtn = document.getElementById('checkout-next-btn');
-        const backBtn = document.getElementById('checkout-back-btn');
-        nextBtn.disabled = true;
-        backBtn.disabled = true;
-        nextBtn.innerHTML = `
-            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>Processing Order...</span>
-        `;
+    /**
+     * Submit order to POST /api/orders
+     */
+    async function submitOrder() {
+        const cardNumber = document.getElementById('card-number')?.value.trim();
+        const cardExpiry = document.getElementById('card-expiry')?.value.trim();
+        const cardCvc = document.getElementById('card-cvc')?.value.trim();
+
+        if (!cardNumber || !cardExpiry || !cardCvc) {
+            showToast('Please enter valid payment information.', 'error');
+            return;
+        }
+
+        orderData.payment = {
+            cardLast4: cardNumber.slice(-4),
+            expiry: cardExpiry
+        };
+
+        const submitBtn = document.getElementById('checkout-next-btn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i> Processing Securely...`;
+            if (window.lucide) lucide.createIcons();
+        }
 
         try {
-            const orderPayload = {
-                shipping: this.formData.shipping,
-                payment: { ...this.formData.payment, cardNumber: '****' + this.formData.payment.cardNumber.slice(-4) },
-                items: this.cart.items,
-                total: this.cart.getTotal()
-            };
-
             const response = await fetch('/api/orders', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(orderPayload)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
             });
 
             const result = await response.json();
 
-            if (result.success) {
-                this.renderSuccessView(result.orderId || Math.floor(Math.random() * 90000) + 10000);
-                this.cart.clear();
+            if (response.ok && result.success) {
+                showOrderSuccessModal(result.orderId || 'ORD-' + Math.floor(100000 + Math.random() * 900000));
+                if (window.CartModule) {
+                    window.CartModule.clearCart();
+                }
             } else {
-                throw new Error(result.message || 'Order processing failed on server.');
+                throw new Error(result.message || 'Order processing failed on the server.');
             }
         } catch (error) {
-            console.error('Order submission error:', error);
-            // Fallback mock success if backend endpoint isn't running in standalone mode
-            setTimeout(() => {
-                const mockOrderId = Math.floor(Math.random() * 90000) + 10000;
-                this.renderSuccessView(mockOrderId);
-                this.cart.clear();
-            }, 1000);
-        } finally {
-            this.isProcessing = false;
+            console.error('Checkout error:', error);
+            showToast(error.message || 'Network error occurred during checkout.', 'error');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>Complete Order ($${orderData.total.toFixed(2)})</span> <i data-lucide="check-circle" class="w-4 h-4 ml-2"></i>`;
+                if (window.lucide) lucide.createIcons();
+            }
         }
     }
 
-    renderSuccessView(orderId) {
-        const bodyContainer = document.getElementById('checkout-modal-body');
-        const titleEl = document.getElementById('checkout-modal-title');
-        const stepIndicator = document.getElementById('checkout-step-indicator');
-        const progressBar = document.getElementById('checkout-progress-bar');
-        const footerActionContainer = document.querySelector('#checkout-modal-container .bg-slate-50.dark\\:bg-slate-900.border-t');
+    /**
+     * Show celebration success state after successful API transaction
+     */
+    function showOrderSuccessModal(orderId) {
+        const modalBody = checkoutModal.querySelector('.modal-card-content');
+        if (!modalBody) return;
 
-        stepIndicator.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-600"></i>`;
-        stepIndicator.className = 'w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-semibold text-sm';
-        titleEl.textContent = 'Order Confirmed!';
-        progressBar.style.width = '100%';
-        progressBar.className = 'bg-emerald-600 h-1 transition-all duration-300';
-
-        // Hide normal footer actions and display simple Close button
-        footerActionContainer.innerHTML = `
-            <div class="w-full flex justify-end">
-                <button id="checkout-finish-btn" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-medium text-sm transition-all shadow-md">
-                    Back to Store
-                </button>
-            </div>
-        `;
-
-        document.getElementById('checkout-finish-btn').addEventListener('click', () => {
-            this.close();
-        });
-
-        bodyContainer.innerHTML = `
-            <div class="text-center py-6 space-y-4">
-                <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                    <i data-lucide="check-circle" class="w-10 h-10"></i>
+        modalBody.innerHTML = `
+            <div class="text-center py-8 space-y-4 animate-fade-in">
+                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <i data-lucide="check" class="w-10 h-10 stroke-[3]"></i>
                 </div>
-                <div>
-                    <h4 class="text-xl font-bold text-slate-900 dark:text-white">Thank you for your purchase!</h4>
-                    <p class="text-sm text-slate-500 mt-1">Your order has been successfully placed and is being processed.</p>
+                <h3 class="text-2xl font-bold text-slate-900">Order Placed Successfully!</h3>
+                <p class="text-slate-600 text-sm max-w-sm mx-auto">
+                    Thank you for your purchase. We have received your order and are getting it ready for shipment.
+                </p>
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 max-w-xs mx-auto text-left space-y-1">
+                    <div class="text-xs text-slate-500 uppercase font-semibold">Order Reference</div>
+                    <div class="font-mono text-indigo-600 font-bold text-lg">${orderId}</div>
+                    <div class="text-xs text-slate-500 pt-1">Confirmation sent to <b>${orderData.shipping.email}</b></div>
                 </div>
-                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 max-w-sm mx-auto text-left space-y-2 text-xs">
-                    <div class="flex justify-between">
-                        <span class="text-slate-500">Order Reference ID:</span>
-                        <span class="font-mono font-bold text-slate-900 dark:text-white">#${orderId}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-500">Shipping To:</span>
-                        <span class="font-medium text-slate-900 dark:text-white">${this.formData.shipping.firstName} ${this.formData.shipping.lastName}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-500">Confirmation Email:</span>
-                        <span class="font-medium text-slate-900 dark:text-white">${this.formData.shipping.email}</span>
-                    </div>
+                <div class="pt-4">
+                    <button onclick="window.CheckoutModule.closeCheckoutAndReload()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition shadow-lg shadow-indigo-100">
+                        Continue Shopping
+                    </button>
                 </div>
             </div>
         `;
 
         if (window.lucide) lucide.createIcons();
     }
-}
 
-// Attach globally for app usage
-window.CheckoutManager = CheckoutManager;
+    function closeCheckoutAndReload() {
+        closeCheckout();
+        // Reset modal structure after close animation
+        setTimeout(() => {
+            window.location.reload();
+        }, 300);
+    }
+
+    // Input Formatters
+    function formatCreditCardInput(e) {
+        let value = e.target.value.replace(/\D/g, '').substring(0, 16);
+        let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+        e.target.value = formattedValue;
+    }
+
+    function formatExpiryInput(e) {
+        let value = e.target.value.replace(/\D/g, '').substring(0, 4);
+        if (value.length >= 3) {
+            value = value.substring(0, 2) + '/' + value.substring(2);
+        }
+        e.target.value = value;
+    }
+
+    function showToast(message, type = 'success') {
+        if (window.App && typeof window.App.showToast === 'function') {
+            window.App.showToast(message, type);
+        } else {
+            alert(message);
+        }
+    }
+
+    // Public API
+    return {
+        init,
+        openCheckout,
+        closeCheckout,
+        closeCheckoutAndReload
+    };
+})();
+
+// Auto-initialize on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.CheckoutModule.init();
+});
