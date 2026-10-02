@@ -1,222 +1,174 @@
-/**
- * @file fullstack-ecommerce-store.test.js
- * @description Comprehensive Unit and Integration Test Suite using Node.js built-in test runner and strict assert.
- * Tests game logic, win calculations, AI moves, and UI component behavior simulation.
- */
-
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const http = require('node:http');
+const express = require('express');
+const path = require('path');
+const apiRouter = require('./routes/api.js');
 
-// ----------------------------------------------------------------------
-// Extracted Game Logic (matching App.jsx / helper functions)
-// ----------------------------------------------------------------------
+// --- Helper function to start a test server ---
+async function createTestServer() {
+    const app = express();
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+    app.use('/api', apiRouter);
 
-const WINNING_LINES = [
-  [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
-  [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
-  [0, 4, 8], [2, 4, 6]              // diagonals
-];
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, resolve));
+    const port = server.address().port;
+    const baseURL = `http://localhost:${port}`;
 
-function calculateWinner(squares) {
-  for (let i = 0; i < WINNING_LINES.length; i++) {
-    const [a, b, c] = WINNING_LINES[i];
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return { winner: squares[a], line: [a, b, c] };
-    }
-  }
-  return null;
+    return {
+        baseURL,
+        close: () => new Promise((resolve) => server.close(resolve))
+    };
 }
 
-function isBoardFull(squares) {
-  return squares.every(square => square !== null);
-}
+// --- API Integration Tests ---
+test('API Integration Test Suite', async (t) => {
+    let server;
 
-// Simple Minimax AI simulation for unbeatable difficulty
-function minimax(newSquares, depth, isMaximizing, aiPlayer, humanPlayer) {
-  const winInfo = calculateWinner(newSquares);
-  if (winInfo && winInfo.winner === aiPlayer) return { score: 10 - depth };
-  if (winInfo && winInfo.winner === humanPlayer) return { score: depth - 10 };
-  if (isBoardFull(newSquares)) return { score: 0 };
+    t.before(async () => {
+        server = await createTestServer();
+    });
 
-  const emptyIndices = newSquares
-    .map((val, idx) => (val === null ? idx : null))
-    .filter(val => val !== null);
+    t.after(async () => {
+        await server.close();
+    });
 
-  if (isMaximizing) {
-    let maxEval = -Infinity;
-    let bestMove = null;
-    for (const idx of emptyIndices) {
-      newSquares[idx] = aiPlayer;
-      const evaluation = minimax(newSquares, depth + 1, false, aiPlayer, humanPlayer).score;
-      newSquares[idx] = null;
-      if (evaluation > maxEval) {
-        maxEval = evaluation;
-        bestMove = idx;
-      }
-    }
-    return { score: maxEval, bestMove };
-  } else {
-    let minEval = Infinity;
-    let bestMove = null;
-    for (const idx of emptyIndices) {
-      newSquares[idx] = humanPlayer;
-      const evaluation = minimax(newSquares, depth + 1, true, aiPlayer, humanPlayer).score;
-      newSquares[idx] = null;
-      if (evaluation < minEval) {
-        minEval = evaluation;
-        bestMove = idx;
-      }
-    }
-    return { score: minEval, bestMove };
-  }
-}
+    await t.test('GET /api/products returns a list of products', async () => {
+        const response = await fetch(`${server.baseURL}/api/products`);
+        assert.strictEqual(response.status, 200);
 
-// ----------------------------------------------------------------------
-// Test Suite: Tic Tac Toe Core Game Mechanics & AI
-// ----------------------------------------------------------------------
+        const data = await response.json();
+        assert.ok(Array.isArray(data), 'Response should be an array of products');
+        assert.ok(data.length > 0, 'Products list should not be empty');
 
-test('Game Logic: calculateWinner detects row victory correctly', () => {
-  const squares = [
-    'X', 'X', 'X',
-    null, 'O', null,
-    'O', null, null
-  ];
-  const result = calculateWinner(squares);
-  assert.notEqual(result, null);
-  assert.equal(result.winner, 'X');
-  assert.deepEqual(result.line, [0, 1, 2]);
+        const firstProduct = data[0];
+        assert.ok(firstProduct.id, 'Product should have an id');
+        assert.ok(firstProduct.name, 'Product should have a name');
+        assert.ok(typeof firstProduct.price === 'number', 'Product price should be a number');
+        assert.ok(firstProduct.category, 'Product should have a category');
+    });
+
+    await t.test('GET /api/products/:id returns a single product when valid', async () => {
+        const response = await fetch(`${server.baseURL}/api/products/1`);
+        assert.strictEqual(response.status, 200);
+
+        const product = await response.json();
+        assert.strictEqual(product.id, 1);
+        assert.ok(product.name);
+    });
+
+    await t.test('GET /api/products/:id returns 404 when product not found', async () => {
+        const response = await fetch(`${server.baseURL}/api/products/99999`);
+        assert.strictEqual(response.status, 404);
+
+        const data = await response.json();
+        assert.ok(data.error, 'Should return an error message');
+    });
+
+    await t.test('POST /api/orders successfully creates an order', async () => {
+        const orderPayload = {
+            items: [
+                { id: 1, quantity: 2 },
+                { id: 2, quantity: 1 }
+            ],
+            shipping: {
+                fullName: "Jane Doe",
+                address: "123 Main St",
+                city: "New York",
+                postalCode: "10001",
+                country: "USA"
+            },
+            paymentMethod: "card"
+        };
+
+        const response = await fetch(`${server.baseURL}/api/orders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderPayload)
+        });
+
+        assert.strictEqual(response.status, 201);
+
+        const result = await response.json();
+        assert.ok(result.success, 'Order creation should report success');
+        assert.ok(result.orderId, 'Order response should include an orderId');
+        assert.strictEqual(result.order.shipping.fullName, orderPayload.shipping.fullName);
+        assert.strictEqual(result.order.items.length, 2);
+    });
+
+    await t.test('POST /api/orders rejects invalid order payloads', async () => {
+        const invalidPayloads = [
+            { shipping: { fullName: "Test" } }, // missing items
+            { items: [] }, // empty items
+            { items: [{ id: 1, quantity: 1 }] } // missing shipping info
+        ];
+
+        for (const payload of invalidPayloads) {
+            const response = await fetch(`${server.baseURL}/api/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            assert.strictEqual(response.status, 400);
+            const data = await response.json();
+            assert.ok(data.error, 'Should return a validation error');
+        }
+    });
 });
 
-test('Game Logic: calculateWinner detects column victory correctly', () => {
-  const squares = [
-    'O', 'X', null,
-    'O', 'X', null,
-    'O', null, 'X'
-  ];
-  const result = calculateWinner(squares);
-  assert.notEqual(result, null);
-  assert.equal(result.winner, 'O');
-  assert.deepEqual(result.line, [0, 3, 6]);
-});
+// --- Unit Tests for Utility / Business Logic ---
+test('E-Commerce Business Logic Unit Tests', async (t) => {
+    
+    await t.test('Cart calculation and total price computation', () => {
+        const products = [
+            { id: 1, price: 50.00 },
+            { id: 2, price: 25.50 }
+        ];
 
-test('Game Logic: calculateWinner detects diagonal victory correctly', () => {
-  const squares = [
-    'X', 'O', null,
-    'O', 'X', null,
-    null, 'O', 'X'
-  ];
-  const result = calculateWinner(squares);
-  assert.notEqual(result, null);
-  assert.equal(result.winner, 'X');
-  assert.deepEqual(result.line, [0, 4, 8]);
-});
+        const cart = [
+            { id: 1, quantity: 2 }, // 100.00
+            { id: 2, quantity: 3 }  // 76.50
+        ];
 
-test('Game Logic: calculateWinner returns null when no winner exists', () => {
-  const squares = [
-    'X', 'O', 'X',
-    'X', 'O', 'O',
-    'O', 'X', 'X'
-  ]; // Draw board
-  const result = calculateWinner(squares);
-  assert.equal(result, null);
-});
+        const calculateTotal = (cartItems, productList) => {
+            return cartItems.reduce((total, cartItem) => {
+                const product = productList.find(p => p.id === cartItem.id);
+                return total + (product ? product.price * cartItem.quantity : 0);
+            }, 0);
+        };
 
-test('Game Logic: isBoardFull checks board capacity accurately', () => {
-  const fullBoard = ['X', 'O', 'X', 'O', 'X', 'O', 'O', 'X', 'O'];
-  const partialBoard = ['X', 'O', 'X', null, 'X', 'O', 'O', 'X', 'O'];
+        const total = calculateTotal(cart, products);
+        assert.strictEqual(Number(total.toFixed(2)), 176.50);
+    });
 
-  assert.equal(isBoardFull(fullBoard), true);
-  assert.equal(isBoardFull(partialBoard), false);
-});
+    await t.test('Product filtering by category and search query', () => {
+        const products = [
+            { id: 1, name: "Wireless Headphones", category: "Electronics" },
+            { id: 2, name: "Mechanical Keyboard", category: "Electronics" },
+            { id: 3, name: "Minimalist Ceramic Lamp", category: "Home" }
+        ];
 
-test('AI Logic: Minimax makes winning move when available', () => {
-  // O needs index 2 to win immediately
-  const board = [
-    'O', 'O', null,
-    'X', 'X', null,
-    null, null, null
-  ];
-  const aiPlayer = 'O';
-  const humanPlayer = 'X';
-  
-  const best = minimax(board, 0, true, aiPlayer, humanPlayer);
-  assert.equal(best.bestMove, 2);
-});
+        const filterProducts = (items, category, query) => {
+            return items.filter(item => {
+                const matchesCategory = category === 'all' || item.category.toLowerCase() === category.toLowerCase();
+                const matchesSearch = item.name.toLowerCase().includes(query.toLowerCase());
+                return matchesCategory && matchesSearch;
+            });
+        };
 
-test('AI Logic: Minimax blocks opponent immediate win', () => {
-  // X is about to win at index 2 ('X', 'X', null)
-  const board = [
-    'X', 'X', null,
-    'O', null, null,
-    null, null, null
-  ];
-  const aiPlayer = 'O';
-  const humanPlayer = 'X';
+        const electronics = filterProducts(products, 'Electronics', '');
+        assert.strictEqual(electronics.length, 2);
 
-  const best = minimax(board, 0, true, aiPlayer, humanPlayer);
-  assert.equal(best.bestMove, 2);
-});
+        const searchResult = filterProducts(products, 'all', 'Lamp');
+        assert.strictEqual(searchResult.length, 1);
+        assert.strictEqual(searchResult[0].id, 3);
 
-// ----------------------------------------------------------------------
-// Test Suite: State Management & Integration Simulations
-// ----------------------------------------------------------------------
-
-test('Integration: Simulating full game turn progression and score tracking', () => {
-  let history = [Array(9).fill(null)];
-  let stepNumber = 0;
-  let xIsNext = true;
-  let scores = { X: 0, O: 0, draws: 0 };
-
-  const makeMove = (index) => {
-    const currentSquares = [...history[stepNumber]];
-    if (currentSquares[index] || calculateWinner(currentSquares)) return;
-
-    currentSquares[index] = xIsNext ? 'X' : 'O';
-    const newHistory = history.slice(0, stepNumber + 1).concat([currentSquares]);
-    history = newHistory;
-    stepNumber = newHistory.length - 1;
-    xIsNext = !xIsNext;
-
-    const winInfo = calculateWinner(currentSquares);
-    if (winInfo) {
-      scores[winInfo.winner] += 1;
-    } else if (isBoardFull(currentSquares)) {
-      scores.draws += 1;
-    }
-  };
-
-  // Play a quick game X wins top row
-  makeMove(0); // X
-  makeMove(3); // O
-  makeMove(1); // X
-  makeMove(4); // O
-  makeMove(2); // X wins!
-
-  const finalWinnerInfo = calculateWinner(history[stepNumber]);
-  assert.equal(finalWinnerInfo.winner, 'X');
-  assert.equal(scores.X, 1);
-  assert.equal(scores.O, 0);
-  assert.equal(scores.draws, 0);
-});
-
-test('Integration: Time travel history state restoration', () => {
-  let history = [
-    Array(9).fill(null),
-    ['X', null, null, null, null, null, null, null, null],
-    ['X', 'O', null, null, null, null, null, null, null]
-  ];
-  
-  // Jump to step 1
-  let stepNumber = 1;
-  let currentSquares = history[stepNumber];
-
-  assert.equal(currentSquares[0], 'X');
-  assert.equal(currentSquares[1], null);
-  assert.equal(stepNumber, 1);
-
-  // Jump back to latest step 2
-  stepNumber = 2;
-  currentSquares = history[stepNumber];
-  assert.equal(currentSquares[1], 'O');
-  assert.equal(stepNumber, 2);
+        const combinedFilter = filterProducts(products, 'Home', 'Wireless');
+        assert.strictEqual(combinedFilter.length, 0);
+    });
 });

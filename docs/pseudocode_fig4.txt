@@ -1,0 +1,31 @@
+// ==============================================================================
+// FIGURE 5.4: AUTOMATED TESTING, QA REVIEW LOOP & DOC WRITER
+// ==============================================================================
+76. FUNCTION TesterAgent(State):
+77.     ANALYZE generated source files in State.files
+78.     SYNTHESIZE unit & integration tests (Jest, PyTest)
+79.     WRITE test files into generated-projects/{SessionID}/tests/
+80.     ROUTE next step to QAAgent
+81.     RETURN State
+82. END FUNCTION
+83.
+84. FUNCTION QAAgent(State):
+85.     SCAN code for syntax errors, missing imports, and logic flaws
+86.     CALCULATE QA quality score & evaluation verdict
+87.     IF QA quality score < THRESHOLD AND State.retry_count < MAX_RETRIES THEN
+88.         INCREMENT State.retry_count BY 1
+89.         ATTACH error logs & fix instructions to State.feedback
+90.         ROUTE back to CoderAgent / BackendAgent for iterative fix
+91.     ELSE
+92.         MARK State.qa_passed = TRUE
+93.         ROUTE next step to DocWriterAgent
+94.     END IF
+95.     RETURN State
+96. END FUNCTION
+97.
+98. FUNCTION DocWriterAgent(State):
+99.     GENERATE comprehensive README.md (Overview, Setup, API Endpoints, Usage)
+100.    SAVE complete project state & zip archive to MongoDB
+101.    STREAM completion event to Frontend UI
+102.    RETURN Final Project State
+103. END FUNCTION

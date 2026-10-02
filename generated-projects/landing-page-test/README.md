@@ -35,4 +35,5 @@ Open `index.html` in a browser, or serve the folder with `npx serve .`.
 
 ## Quality Review
 
-- Static review: Passed
+- Static review: 1 open issue(s)
+- 'app.js' line 10: JSON.parse(localStorage.getItem(...)) without try/catch — wrap in try/catch to prevent SyntaxError crash.

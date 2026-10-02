@@ -1,0 +1,26 @@
+// ==============================================================================
+// FIGURE 5.1: SYSTEM INITIALIZATION & REQUEST ORCHESTRATION
+// ==============================================================================
+01. INITIALIZE React Frontend UI on PORT 5173
+02. INITIALIZE Express API Gateway on PORT 5000
+03. CONNECT to MongoDB Database (Store user sessions & generation history)
+04. START FastAPI AI-Engine on PORT 8000 with LangGraph Workflow
+05. CONFIGURE LLM Providers (Gemini, Groq, OpenRouter, OpenAI, Ollama)
+06.
+07. FUNCTION HandleUserPrompt(UserRequest, SessionID):
+08.     VALIDATE user authentication token & session
+09.     PARSE user prompt & configuration (LLM model, framework, mode)
+10.     IF session exists in MongoDB THEN
+11.         RETRIEVE previous project state and file tree
+12.         SET ExecutionMode = "REFINEMENT"
+13.     ELSE
+14.         INITIALIZE new ProjectState dictionary
+15.         SET ExecutionMode = "NEW_GENERATION"
+16.     END IF
+17.
+18.     SAVE initial prompt & metadata to MongoDB
+19.     INITIALIZE LangGraph StateGraph(AgentState)
+20.     DISPATCH request asynchronously to AI-Engine LangGraph Pipeline
+21.     ESTABLISH Server-Sent Events (SSE) stream for real-time progress
+22.     RETURN acknowledgment & SessionID to Client
+23. END FUNCTION

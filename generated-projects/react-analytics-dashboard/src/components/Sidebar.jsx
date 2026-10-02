@@ -1,18 +1,6 @@
 import React, { useEffect } from 'react';
 
-export default function Sidebar(props) {
-  const { 
-    isOpen, 
-    sidebarOpen, 
-    onClose, 
-    setSidebarOpen, 
-    activeTab, 
-    setActiveTab 
-  } = props;
-
-  const open = isOpen ?? sidebarOpen ?? false;
-  const handleClose = onClose || (() => setSidebarOpen && setSidebarOpen(false));
-
+export default function Sidebar({ isOpen, onClose, activeTab, setActiveTab }) {
   // Navigation items grouped logically
   const navGroups = [
     {
@@ -46,14 +34,14 @@ export default function Sidebar(props) {
     if (window.lucide) {
       window.lucide.createIcons();
     }
-  }, [activeTab, open]);
+  }, [activeTab, isOpen]);
 
   return (
     <>
       {/* Mobile Backdrop */}
-      {open && (
+      {isOpen && (
         <div 
-          onClick={handleClose} 
+          onClick={onClose} 
           className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden transition-opacity"
         />
       )}

@@ -1,16 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-export default function KpiCard(props) {
-  const item = props?.data || props || {};
-  const { 
-    title = item.title || '', 
-    value = item.value || '', 
-    change = item.change || '', 
-    isPositive = item.isPositive ?? true, 
-    icon = item.icon || 'activity', 
-    period = item.period || item.timeframe || 'vs last month' 
-  } = item;
-
+export default function KpiCard({ title, value, change, isPositive, icon, period = 'vs last month' }) {
   const iconContainerRef = useRef(null);
 
   useEffect(() => {

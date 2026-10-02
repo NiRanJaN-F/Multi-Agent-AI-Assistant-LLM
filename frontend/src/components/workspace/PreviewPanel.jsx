@@ -1,8 +1,54 @@
 import { useEffect, useRef, useState } from "react";
 import { getProjectFiles } from "../../services/api";
 
-function buildBlobUrl(files) {
-  if (!files || typeof files !== "object") return null;
+function cleanJsxCode(rawCode, filename = "") {
+  if (!rawCode || typeof rawCode !== "string") return "";
+
+  let code = rawCode;
+
+  // 1. Remove all import statements (single-line, multi-line, bare imports like `import './App.css'`)
+  code = code.replace(/import\s+[\s\S]*?from\s+['"][^'"]+['"]\s*;?/g, "");
+  code = code.replace(/import\s+['"][^'"]+['"]\s*;?/g, "");
+  code = code.replace(/^\s*import\s+.*$/gm, "");
+
+  // 2. Transform all export statements
+  const inferredName = filename
+    ? filename.split("/").pop().replace(/\.[^/.]+$/, "").replace(/[^A-Za-z0-9_$]/g, "_")
+    : "AnonymousComponent";
+
+  // export default function Name(...) -> function Name(...)
+  code = code.replace(/export\s+default\s+function\s+([A-Za-z0-9_$]+)/g, "function $1");
+  // export default function(...) -> function InferredName(...)
+  code = code.replace(/export\s+default\s+function\s*\(/g, `function ${inferredName}(`);
+  // export default class Name -> class Name
+  code = code.replace(/export\s+default\s+class\s+([A-Za-z0-9_$]+)/g, "class $1");
+  // export default class -> class InferredName
+  code = code.replace(/export\s+default\s+class\s*\(/g, `class ${inferredName} (`);
+  // export default React.memo(Name) or memo(Name)
+  code = code.replace(/export\s+default\s+(?:React\.)?memo\s*\(\s*([A-Za-z0-9_$]+)\s*\)\s*;?/g, "");
+  // export default Name;
+  code = code.replace(/export\s+default\s+([A-Za-z0-9_$]+)\s*;?/g, "");
+  // export default (...) => ... -> const InferredName = (...) => ...
+  code = code.replace(/export\s+default\s+/g, `const ${inferredName} = `);
+  // export { a, b, c };
+  code = code.replace(/export\s*\{[^}]*\}\s*;?/g, "");
+  // export const / let / var / function / class
+  code = code.replace(/export\s+(const|let|var|function|class|async\s+function)\s+/g, "$1 ");
+  // Any leftover export lines
+  code = code.replace(/^\s*export\s+default\s+.*$/gm, "");
+  code = code.replace(/^\s*export\s+.*$/gm, "");
+
+  return code;
+}
+
+function buildBlobUrl(rawFiles) {
+  if (!rawFiles || typeof rawFiles !== "object") return null;
+
+  // Normalize all Windows backslash paths to standard forward slashes
+  const files = {};
+  for (const [key, val] of Object.entries(rawFiles)) {
+    files[key.replace(/\\/g, "/")] = val;
+  }
 
   const fileKeys = Object.keys(files);
   const htmlKeys = fileKeys.filter((k) => k.endsWith(".html"));
@@ -19,30 +65,56 @@ function buildBlobUrl(files) {
   const jsxFiles = fileKeys.filter((k) => k.endsWith(".jsx") || k.endsWith(".tsx"));
   const isReact = jsxFiles.length > 0 || Object.values(files).some((c) => typeof c === "string" && (c.includes("import React") || c.includes("from \"react\"") || c.includes("from 'react'")));
 
-  // ─── 0. Ensure Tailwind CSS & Font CDN in head ───────────────────────────
-  if (!html.includes("cdn.tailwindcss.com")) {
-    const tailwindTag = '<script src="https://cdn.tailwindcss.com"></script>';
-    if (html.includes("<head>")) {
-      html = html.replace("<head>", `<head>\n  ${tailwindTag}`);
-    } else {
-      html = `<head>${tailwindTag}</head>\n${html}`;
+  // ─── 0. Ensure Global Error Catcher in Head ──────────────────────────────
+  const errorCatcherTag = `
+<script>
+  window.addEventListener('error', function(e) {
+    console.error("Preview Global Error:", e.error || e.message);
+    var root = document.getElementById("root") || document.body;
+    if (root && (!root.innerText || root.innerText.trim() === "" || root.innerHTML.indexOf("Preview Runtime Notice") === -1)) {
+      var errDiv = document.createElement("div");
+      errDiv.style = "padding:24px;margin:20px;background:#16181f;border:1px solid #ef4444;border-radius:12px;color:#fca5a5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,0.5);";
+      var msg = e.message || (e.error ? e.error.message : "A runtime error occurred in preview.");
+      errDiv.innerHTML = "<h3 style='margin:0 0 8px 0;color:#f87171;font-size:16px;'>⚠️ Preview Runtime Notice</h3><p style='margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#e2e4f0;'>" + msg + "</p><button onclick=\\"window.parent.postMessage({ type: 'PREVIEW_AUTO_FIX_REQUEST', error: " + JSON.stringify(msg) + " }, '*')\\" style='background:linear-gradient(180deg,#818693,#595e69);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;'>🤖 Auto-Fix with AI</button>";
+      root.appendChild(errDiv);
     }
+  });
+</script>
+`;
+  if (html.includes("<head>")) {
+    html = html.replace("<head>", `<head>\n${errorCatcherTag}`);
+  } else {
+    html = `<head>${errorCatcherTag}</head>\n${html}`;
   }
 
-  // ─── 1. Inlining All CSS ───────────────────────────────────────────────────
+  // ─── 1. Ensure Tailwind CSS & Font CDN in head ───────────────────────────
+  if (!html.includes("cdn.tailwindcss.com")) {
+    const tailwindTag = '<script src="https://cdn.tailwindcss.com"></script>';
+    html = html.replace("</head>", `  ${tailwindTag}\n</head>`);
+  }
+
+  // ─── 2. Inlining All CSS ───────────────────────────────────────────────────
+  function cleanCssContent(rawCss) {
+    if (!rawCss || typeof rawCss !== "string") return "";
+    return rawCss
+      .replace(/@import\s+['"]tailwindcss\/[^'"]+['"]\s*;?/gi, "/* tailwindcss via CDN */")
+      .replace(/@tailwind\s+[a-z0-9_\-]+;?/gi, "/* tailwind directive */");
+  }
+
   const cssMatches = [...html.matchAll(/<link[^>]+href=["']([^"']*\.css)["'][^>]*>/gi)];
   const inlinedCss = new Set();
 
   for (const match of cssMatches) {
     const rawHref = match[1];
     const cleanPath = rawHref.replace(/^\.\//, "").replace(/^\//, "");
-    const cssContent =
+    const rawContent =
       files[cleanPath] ||
       files[`src/${cleanPath}`] ||
       files[`public/${cleanPath}`] ||
       Object.entries(files).find(([k]) => k.endsWith(`/${cleanPath}`) || k === cleanPath)?.[1];
 
-    if (cssContent) {
+    if (rawContent) {
+      const cssContent = cleanCssContent(rawContent);
       html = html.replace(match[0], `<style>\n/* Inlined: ${cleanPath} */\n${cssContent}\n</style>`);
       inlinedCss.add(cleanPath);
     }
@@ -51,21 +123,16 @@ function buildBlobUrl(files) {
   // Inject any standalone CSS
   const remainingCss = Object.entries(files)
     .filter(([k]) => k.endsWith(".css") && !inlinedCss.has(k))
-    .map(([k, c]) => `<style>\n/* Auto-injected: ${k} */\n${c}\n</style>`)
+    .map(([k, c]) => `<style>\n/* Auto-injected: ${k} */\n${cleanCssContent(c)}\n</style>`)
     .join("\n");
 
   if (remainingCss) {
-    if (html.includes("</head>")) {
-      html = html.replace("</head>", `${remainingCss}\n</head>`);
-    } else {
-      html = `<head>${remainingCss}</head>\n${html}`;
-    }
+    html = html.replace("</head>", `${remainingCss}\n</head>`);
   }
 
-  // ─── 2. Handling React / JSX Bundling ──────────────────────────────────────
+  // ─── 3. Handling React / JSX Bundling ──────────────────────────────────────
   if (isReact) {
     // Collect helper/utility JS files (storage.js, api.js, utils, mockData, etc.)
-    // EXCLUDE build-tool config files — they use 'export default {}' which breaks Babel script mode
     const helperJsFiles = fileKeys.filter(
       (k) =>
         k.endsWith(".js") &&
@@ -86,46 +153,32 @@ function buildBlobUrl(files) {
     for (const key of helperJsFiles) {
       let code = files[key] || "";
       if (!code.trim()) continue;
-
-      code = code
-        .replace(/import\s+[\s\S]*?from\s+['"][^'"]+['"];?/g, "")
-        .replace(/export\s+default\s+function\s+([A-Za-z0-9_]+)/g, "function $1")
-        .replace(/export\s+default\s+class\s+([A-Za-z0-9_]+)/g, "class $1")
-        .replace(/export\s+default\s+([A-Za-z0-9_$][A-Za-z0-9_$]*)\s*;/g, "")
-        // Strip bare 'export default' before object/array literals (postcss-style)
-        .replace(/^export\s+default\s+/gm, "const _moduleExport = ")
-        .replace(/export\s+\{[^}]*\};?/g, "")
-        .replace(/export\s+(const|let|var|function|class|async\s+function)\s+/g, "$1 ");
-
-      helperCodes.push(`// --- Helper Module: ${key} ---\n${code}`);
+      const cleaned = cleanJsxCode(code, key);
+      helperCodes.push(`// --- Helper Module: ${key} ---\n${cleaned}`);
     }
 
-    // Collect all JSX & component code
+    // Collect all JSX & component code (put App.jsx last so all child components exist first)
     const componentCodes = [];
     const sortedJsxKeys = [...jsxFiles].sort((a, b) => {
-      if (a.includes("App.jsx") || a.endsWith("/App.jsx")) return 1;
-      if (b.includes("App.jsx") || b.endsWith("/App.jsx")) return -1;
-      if (a.includes("main.jsx") || a.includes("index.jsx")) return 1;
-      if (b.includes("main.jsx") || b.includes("index.jsx")) return -1;
+      const isAppA = a.includes("App.jsx") || a.endsWith("/App.jsx");
+      const isAppB = b.includes("App.jsx") || b.endsWith("/App.jsx");
+      if (isAppA && !isAppB) return 1;
+      if (!isAppA && isAppB) return -1;
+      const isMainA = a.includes("main.jsx") || a.includes("index.jsx");
+      const isMainB = b.includes("main.jsx") || b.includes("index.jsx");
+      if (isMainA && !isMainB) return 1;
+      if (!isMainA && isMainB) return -1;
       return a.localeCompare(b);
     });
 
     for (const key of sortedJsxKeys) {
       let code = files[key] || "";
       if (!code.trim() || key.includes("main.jsx") || key.includes("index.jsx")) continue;
-
-      // Clean imports & exports for in-browser standalone execution
-      code = code
-        .replace(/import\s+[\s\S]*?from\s+['"][^'"]+['"];?/g, "")
-        .replace(/export\s+default\s+function\s+([A-Za-z0-9_]+)/g, "function $1")
-        .replace(/export\s+default\s+([A-Za-z0-9_]+);?/g, "")
-        .replace(/export\s+\{[^}]*\};?/g, "")
-        .replace(/export\s+(const|let|var|function|class|async\s+function)\s+/g, "$1 ");
-
-      componentCodes.push(`// --- Component: ${key} ---\n${code}`);
+      const cleaned = cleanJsxCode(code, key);
+      componentCodes.push(`// --- Component: ${key} ---\n${cleaned}`);
     }
 
-    // Extract all imported icons across all source files
+    // Comprehensive list of Lucide icons
     const importedIcons = new Set([
       "Play", "Pause", "PlayCircle", "PauseCircle", "SkipForward", "SkipBack", "FastForward", "Rewind",
       "Volume", "Volume1", "Volume2", "VolumeX", "Mute", "Music", "Radio", "Disc", "Headphones", "Mic", "MicOff",
@@ -139,7 +192,9 @@ function buildBlobUrl(files) {
       "EyeOff", "Lock", "Unlock", "Key", "Shield", "ShieldCheck", "ShieldAlert", "Mail", "Phone", "MapPin",
       "Compass", "Globe", "Send", "Share", "Share2", "Download", "Upload", "Folder", "File", "FileText",
       "Image", "Video", "Camera", "Layers", "Cpu", "HardDrive", "Server", "Database", "Terminal", "Code",
-      "GitBranch", "Sparkles", "Smile", "HelpCircle", "Gamepad2", "VolumeX"
+      "GitBranch", "Sparkles", "Smile", "HelpCircle", "Gamepad2", "Trophy", "Crown", "Medal", "Flag",
+      "Grid", "CircleDot", "Circle", "Square", "CheckSquare", "Info", "AlertCircle", "AlertTriangle",
+      "Bell", "Bookmark", "Briefcase", "Camera", "Clipboard", "Copy", "FolderPlus", "Home", "LayoutDashboard"
     ]);
 
     for (const code of Object.values(files)) {
@@ -174,18 +229,18 @@ function buildBlobUrl(files) {
   // Universal Icon Factory for Lucide Icons
   const _icon = (name) => (props) => (
     <svg
-      width={props?.size || 20}
-      height={props?.size || 20}
+      width={props?.size || props?.width || 20}
+      height={props?.size || props?.height || 20}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={props?.color || "currentColor"}
       strokeWidth={props?.strokeWidth || 2}
       strokeLinecap="round"
       strokeLinejoin="round"
       className={props?.className || ""}
       style={{ display: 'inline-block', verticalAlign: 'middle', ...(props?.style || {}) }}
     >
-      <circle cx="12" cy="12" r="9" opacity="0.15" />
+      <circle cx="12" cy="12" r="9" opacity="0.2" />
       <path d="M12 8v8M8 12h8" />
     </svg>
   );
@@ -193,40 +248,19 @@ function buildBlobUrl(files) {
   // Dynamic Lucide & UI Component Definitions
   ${iconDeclarations}
 
-  // ─── Defensive Runtime Polyfills for Generated Code ───
-  try {
-    if (!Array.prototype.split) {
-      Array.prototype.split = function() { return this; };
-    }
-    if (!String.prototype.join) {
-      String.prototype.join = function() { return String(this); };
-    }
-    if (!Number.prototype.toLowerCase) {
-      Number.prototype.toLowerCase = function() { return String(this); };
-    }
-    if (!Number.prototype.includes) {
-      Number.prototype.includes = function(x) { return String(this).includes(x); };
-    }
-    if (!Number.prototype.split) {
-      Number.prototype.split = function(delim) { return String(this).split(delim); };
-    }
-  } catch (polyErr) {
-    console.warn("Polyfill warning:", polyErr);
-  }
-
   // Universal React Hooks & Utility Fallbacks
   const useFavorites = () => ({
     favorites: [],
-    isFavorite: (id) => false,
-    toggleFavorite: (id) => {},
-    addFavorite: (id) => {},
-    removeFavorite: (id) => {},
+    isFavorite: () => false,
+    toggleFavorite: () => {},
+    addFavorite: () => {},
+    removeFavorite: () => {},
   });
   const useTheme = () => ({ theme: 'dark', toggleTheme: () => {}, isDark: true });
   const useAudio = () => ({ isPlaying: false, play: () => {}, pause: () => {}, toggle: () => {}, progress: 0, duration: 180, setVolume: () => {} });
   const usePlayer = () => ({ currentTrack: null, isPlaying: false, play: () => {}, pause: () => {}, next: () => {}, prev: () => {} });
-  const isFavorite = (id) => false;
-  const toggleFavorite = (id) => {};
+  const isFavorite = () => false;
+  const toggleFavorite = () => {};
   const formatTime = (secs) => {
     if (!secs || isNaN(secs)) return "0:00";
     const m = Math.floor(secs / 60);
@@ -235,10 +269,10 @@ function buildBlobUrl(files) {
   };
   const formatDuration = formatTime;
 
-  // ─── Recharts Component Bindings (real CDN first, stub fallback) ──────────
+  // Recharts Bindings
   const _R = typeof Recharts !== 'undefined' ? Recharts : {};
-  const _chartPlaceholder = (label, color) => ({ children, data, width, height, ...rest }) => (
-    <div style={{ width: '100%', height: typeof height === 'number' ? height : '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(99,102,241,0.06)', borderRadius: '10px', border: '1px dashed rgba(99,102,241,0.25)', color, fontFamily: 'sans-serif', fontSize: '13px', gap: '6px', padding: '16px', boxSizing: 'border-box' }}>
+  const _chartPlaceholder = (label, color) => ({ children, data, height }) => (
+    <div style={{ width: '100%', height: typeof height === 'number' ? height : '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px dashed rgba(255,255,255,0.15)', color, fontFamily: 'sans-serif', fontSize: '13px', gap: '6px', padding: '16px', boxSizing: 'border-box' }}>
       <span>{label}</span>
       {Array.isArray(data) && <span style={{ opacity: 0.5, fontSize: '11px' }}>{data.length} data points</span>}
     </div>
@@ -249,7 +283,7 @@ function buildBlobUrl(files) {
       {children}
     </div>
   ));
-  const AreaChart     = _R.AreaChart    || _chartPlaceholder('📈 Area Chart',    '#6366f1');
+  const AreaChart     = _R.AreaChart    || _chartPlaceholder('📈 Area Chart',    '#818693');
   const LineChart     = _R.LineChart    || _chartPlaceholder('📉 Line Chart',    '#10b981');
   const BarChart      = _R.BarChart     || _chartPlaceholder('📊 Bar Chart',     '#3b82f6');
   const PieChart      = _R.PieChart     || _chartPlaceholder('🥧 Pie Chart',     '#f59e0b');
@@ -261,7 +295,6 @@ function buildBlobUrl(files) {
   const Treemap       = _R.Treemap      || _chartPlaceholder('🗂 Treemap',        '#14b8a6');
   const Sankey        = _R.Sankey       || _chartPlaceholder('〰 Sankey',         '#a78bfa');
 
-  // Recharts child/axis components — real if available, null stub otherwise
   const Area        = _R.Area        || (() => null);
   const Bar         = _R.Bar         || ((props) => <div style={{padding:'12px',background:'rgba(255,255,255,0.05)',borderRadius:'6px',textAlign:'center',fontSize:'12px'}}>📊 {props.name || 'Bar'}</div>);
   const Line        = _R.Line        || (() => null);
@@ -288,13 +321,7 @@ function buildBlobUrl(files) {
   const Brush       = _R.Brush       || (() => null);
   const ErrorBar    = _R.ErrorBar    || (() => null);
 
-  // Chart.js compatibility stubs (for projects using react-chartjs-2)
-  const Doughnut = (props) => <div style={{padding:'16px',background:'rgba(255,255,255,0.05)',borderRadius:'8px',textAlign:'center'}}>🍩 Doughnut: {props.data?.labels?.join(', ') || 'Distribution'}</div>;
-  const ChartJS = { register: () => {} };
-  const CategoryScale = {}; const LinearScale = {}; const BarElement = {}; const PointElement = {};
-  const LineElement = {}; const ArcElement = {}; const Title = {};
-
-  // Simple React Error Boundary Component
+  // Error Boundary Component
   class ErrorBoundary extends React.Component {
     constructor(props) {
       super(props);
@@ -304,15 +331,15 @@ function buildBlobUrl(files) {
       return { hasError: true, error };
     }
     componentDidCatch(error, errorInfo) {
-      console.error("Preview React Caught Error:", error, errorInfo);
+      console.error("Preview React Error:", error, errorInfo);
     }
     render() {
       if (this.state.hasError) {
         const errMsg = this.state.error?.message || 'A runtime error occurred in this component.';
         return (
-          <div style={{ padding: '24px', color: '#f87171', fontFamily: 'sans-serif', background: '#181926', border: '1px solid #ef4444', borderRadius: '12px', margin: '20px' }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>⚠️ React Preview Notice</h3>
-            <p style={{ margin: '0 0 16px 0', fontSize: '14px', opacity: 0.9 }}>{errMsg}</p>
+          <div style={{ padding: '24px', color: '#fca5a5', fontFamily: '-apple-system,sans-serif', background: '#16181f', border: '1px solid #ef4444', borderRadius: '12px', margin: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#f87171' }}>⚠️ React Preview Notice</h3>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', lineHeight: '1.5', color: '#e2e4f0' }}>{errMsg}</p>
             <button
               onClick={() => {
                 try {
@@ -322,19 +349,17 @@ function buildBlobUrl(files) {
                 }
               }}
               style={{
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                background: 'linear-gradient(180deg, #818693, #595e69)',
                 color: '#fff',
-                border: 'none',
+                border: '1px solid rgba(255,255,255,0.2)',
                 borderRadius: '8px',
-                padding: '10px 18px',
-                fontSize: '13px',
+                padding: '8px 16px',
+                fontSize: '12px',
                 fontWeight: '600',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                letterSpacing: '0.02em',
-                boxShadow: '0 2px 8px rgba(99,102,241,0.4)'
               }}
             >
               🤖 Auto-Fix with AI
@@ -359,11 +384,18 @@ function buildBlobUrl(files) {
       document.body.prepend(mountTarget);
     }
 
-    if (typeof App !== 'undefined') {
+    const _RootComp = 
+      (typeof App !== 'undefined' && App) ||
+      (typeof Game !== 'undefined' && Game) ||
+      (typeof TicTacToe !== 'undefined' && TicTacToe) ||
+      (typeof Main !== 'undefined' && Main) ||
+      (typeof Board !== 'undefined' && Board);
+
+    if (_RootComp) {
       const root = ReactDOM.createRoot(mountTarget);
       root.render(
         <ErrorBoundary>
-          <App />
+          <_RootComp />
         </ErrorBoundary>
       );
     }
@@ -379,14 +411,14 @@ function buildBlobUrl(files) {
     const target = document.getElementById("root") || document.body;
     if (target) {
       const escapedMsg = JSON.stringify(err.message || String(err));
-      target.innerHTML = '<div style="padding:24px;color:#f87171;font-family:sans-serif;background:#181926;border:1px solid #ef4444;border-radius:12px;margin:20px;"><h3 style="margin:0 0 8px 0;">Preview Render Note</h3><p style="margin:0 0 16px 0;">' + (err.message || String(err)) + '</p><button onclick="window.parent.postMessage({ type: \\'PREVIEW_AUTO_FIX_REQUEST\\', error: ' + escapedMsg + ' }, \\'*\\')" style="background:linear-gradient(135deg, #6366f1, #8b5cf6);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">🤖 Auto-Fix with AI</button></div>';
+      target.innerHTML = '<div style="padding:24px;color:#fca5a5;font-family:-apple-system,sans-serif;background:#16181f;border:1px solid #ef4444;border-radius:12px;margin:20px;"><h3 style="margin:0 0 8px 0;color:#f87171;font-size:16px;">Preview Render Note</h3><p style="margin:0 0 16px 0;font-size:13px;color:#e2e4f0;">' + (err.message || String(err)) + '</p><button onclick="window.parent.postMessage({ type: \\'PREVIEW_AUTO_FIX_REQUEST\\', error: ' + escapedMsg + ' }, \\'*\\')" style="background:linear-gradient(180deg,#818693,#595e69);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">🤖 Auto-Fix with AI</button></div>';
     }
   }
 </script>
 `;
 
-    // Remove any original main.jsx scripts
-    html = html.replace(/<script[^>]+src=["'][^"']*(?:main|index)\.jsx?["'][^>]*>\s*<\/script>/gi, "");
+    // Remove any local relative script tags to prevent 404s in blob URL
+    html = html.replace(/<script[^>]+src=["'](?:\.?\/?(?:js\/|public\/|src\/)?(?!(?:https?:|\/\/))[^"']+)["'][^>]*>\s*<\/script>/gi, "");
 
     // Ensure root div exists in body
     if (!html.includes('id="root"')) {

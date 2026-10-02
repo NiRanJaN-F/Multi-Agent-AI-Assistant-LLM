@@ -198,21 +198,21 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
       flexDirection: "column",
       gap: "24px",
       padding: "24px",
-      background: "#09090b", // zinc-950
-      color: "#a1a1aa",      // zinc-400
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      background: "#08090b",
+      color: "#8b90a0",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       height: "100%",
       overflowY: "auto",
       boxSizing: "border-box",
     }}>
       {/* ─── Top Telemetry Header & KPI Cards ───────────────────────────────── */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
           <div>
-            <h2 style={{ fontSize: "18px", fontWeight: 600, color: "#fafafa", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
+            <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#ffffff", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
               Agent Flow & Telemetry HUD
             </h2>
-            <p style={{ fontSize: "13px", color: "#71717a", margin: 0 }}>
+            <p style={{ fontSize: "13px", color: "#666b7a", margin: 0 }}>
               Live execution telemetry, token throughput, and per-agent latency breakdown.
             </p>
           </div>
@@ -220,13 +220,14 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
             display: "inline-flex",
             alignItems: "center",
             gap: "6px",
-            padding: "4px 10px",
-            background: "rgba(16, 185, 129, 0.08)",
-            border: "1px solid rgba(16, 185, 129, 0.2)",
+            padding: "5px 12px",
+            background: "rgba(16, 185, 129, 0.1)",
+            border: "1px solid rgba(16, 185, 129, 0.25)",
             borderRadius: "999px",
             fontSize: "12px",
             fontWeight: 500,
             color: "#10b981",
+            backdropFilter: "blur(12px)",
           }}>
             <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px #10b981" }} />
             Pipeline Healthy · 7 Nodes Active
@@ -234,55 +235,83 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
         </div>
 
         {/* 4 Stat Metric Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
-          <div style={{ background: "#121215", border: "1px solid #27272a", borderRadius: "10px", padding: "14px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#71717a", fontSize: "12px", marginBottom: "6px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "14px" }}>
+          <div style={{
+            background: "rgba(22, 24, 29, 0.75)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: "14px",
+            padding: "16px 18px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#787d8d", fontSize: "12px", marginBottom: "6px" }}>
               <span>Total Pipeline Latency</span>
-              <Clock size={14} color="#a1a1aa" />
+              <Clock size={14} color="#8b90a0" />
             </div>
-            <div style={{ fontSize: "20px", fontWeight: 700, color: "#fafafa", fontFamily: "ui-monospace, monospace" }}>
+            <div style={{ fontSize: "22px", fontWeight: 700, color: "#ffffff", fontFamily: "var(--ide-mono)" }}>
               {result?.durationMs ? `${(result.durationMs / 1000).toFixed(1)}s` : `${metrics.totalLatencySeconds}s`}
             </div>
-            <div style={{ fontSize: "11px", color: "#71717a", marginTop: "4px" }}>
+            <div style={{ fontSize: "11px", color: "#666b7a", marginTop: "4px" }}>
               Across 7 specialist agent calls
             </div>
           </div>
 
-          <div style={{ background: "#121215", border: "1px solid #27272a", borderRadius: "10px", padding: "14px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#71717a", fontSize: "12px", marginBottom: "6px" }}>
+          <div style={{
+            background: "rgba(22, 24, 29, 0.75)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: "14px",
+            padding: "16px 18px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#787d8d", fontSize: "12px", marginBottom: "6px" }}>
               <span>Total Tokens Processed</span>
-              <Cpu size={14} color="#a1a1aa" />
+              <Cpu size={14} color="#8b90a0" />
             </div>
-            <div style={{ fontSize: "20px", fontWeight: 700, color: "#fafafa", fontFamily: "ui-monospace, monospace" }}>
-              {metrics.totalTokens} <span style={{ fontSize: "12px", fontWeight: 400, color: "#71717a" }}>tok</span>
+            <div style={{ fontSize: "22px", fontWeight: 700, color: "#ffffff", fontFamily: "var(--ide-mono)" }}>
+              {metrics.totalTokens} <span style={{ fontSize: "12px", fontWeight: 400, color: "#666b7a" }}>tok</span>
             </div>
             <div style={{ fontSize: "11px", color: "#10b981", marginTop: "4px" }}>
               ↑ Per-file focused prompt mode
             </div>
           </div>
 
-          <div style={{ background: "#121215", border: "1px solid #27272a", borderRadius: "10px", padding: "14px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#71717a", fontSize: "12px", marginBottom: "6px" }}>
+          <div style={{
+            background: "rgba(22, 24, 29, 0.75)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: "14px",
+            padding: "16px 18px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#787d8d", fontSize: "12px", marginBottom: "6px" }}>
               <span>Estimated API Cost</span>
-              <Coins size={14} color="#a1a1aa" />
+              <Coins size={14} color="#8b90a0" />
             </div>
-            <div style={{ fontSize: "20px", fontWeight: 700, color: "#10b981", fontFamily: "ui-monospace, monospace" }}>
+            <div style={{ fontSize: "22px", fontWeight: 700, color: "#10b981", fontFamily: "var(--ide-mono)" }}>
               ${metrics.totalCostUsd}
             </div>
-            <div style={{ fontSize: "11px", color: "#71717a", marginTop: "4px" }}>
+            <div style={{ fontSize: "11px", color: "#666b7a", marginTop: "4px" }}>
               Based on DeepSeek/Groq token rates
             </div>
           </div>
 
-          <div style={{ background: "#121215", border: "1px solid #27272a", borderRadius: "10px", padding: "14px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#71717a", fontSize: "12px", marginBottom: "6px" }}>
+          <div style={{
+            background: "rgba(22, 24, 29, 0.75)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: "14px",
+            padding: "16px 18px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#787d8d", fontSize: "12px", marginBottom: "6px" }}>
               <span>QA Validation Score</span>
-              <Activity size={14} color="#a1a1aa" />
+              <Activity size={14} color="#8b90a0" />
             </div>
-            <div style={{ fontSize: "20px", fontWeight: 700, color: "#6366f1", fontFamily: "ui-monospace, monospace" }}>
+            <div style={{ fontSize: "22px", fontWeight: 700, color: "#818693", fontFamily: "var(--ide-mono)" }}>
               {metrics.successRate}
             </div>
-            <div style={{ fontSize: "11px", color: "#71717a", marginTop: "4px" }}>
+            <div style={{ fontSize: "11px", color: "#666b7a", marginTop: "4px" }}>
               0 Syntax or Contract violations
             </div>
           </div>
@@ -290,15 +319,22 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
       </div>
 
       {/* ─── Modern Linear Agent Flow Pipeline ─────────────────────────────── */}
-      <div style={{ background: "#121215", border: "1px solid #27272a", borderRadius: "12px", padding: "20px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+      <div style={{
+        background: "rgba(22, 24, 29, 0.75)",
+        backdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        borderRadius: "16px",
+        padding: "22px",
+        boxShadow: "0 12px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Zap size={16} color="#6366f1" />
-            <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#fafafa", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <Zap size={16} color="#818693" />
+            <h3 style={{ fontSize: "13.5px", fontWeight: 700, color: "#ffffff", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Multi-Agent Execution Pipeline
             </h3>
           </div>
-          <span style={{ fontSize: "11px", color: "#71717a", fontFamily: "ui-monospace, monospace" }}>
+          <span style={{ fontSize: "11px", color: "#666b7a", fontFamily: "var(--ide-mono)" }}>
             Directed Acyclic Graph (DAG)
           </span>
         </div>
@@ -307,7 +343,7 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
         <div style={{
           display: "flex",
           alignItems: "center",
-          gap: "8px",
+          gap: "10px",
           overflowX: "auto",
           paddingBottom: "8px",
         }}>
@@ -318,31 +354,32 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
               <React.Fragment key={stage.id}>
                 <div style={{
                   flexShrink: 0,
-                  width: "170px",
-                  background: "#18181b", // zinc-900
-                  border: "1px solid #27272a", // zinc-800
-                  borderRadius: "8px",
-                  padding: "12px 14px",
+                  width: "180px",
+                  background: "rgba(33, 36, 43, 0.75)",
+                  backdropFilter: "blur(12px)",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  borderRadius: "12px",
+                  padding: "14px 16px",
                   display: "flex",
                   flexDirection: "column",
-                  gap: "8px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                  gap: "10px",
+                  boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
                   transition: "all 0.15s ease",
                 }}>
                   {/* Top Bar: Icon + Status */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{
-                      width: "28px",
-                      height: "28px",
-                      borderRadius: "6px",
-                      background: "rgba(99, 102, 241, 0.12)",
-                      border: "1px solid rgba(99, 102, 241, 0.3)",
+                      width: "30px",
+                      height: "30px",
+                      borderRadius: "8px",
+                      background: "rgba(255, 255, 255, 0.06)",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#818cf8",
+                      color: "#ffffff",
                     }}>
-                      <Icon size={15} />
+                      <Icon size={16} />
                     </div>
 
                     <span style={{
@@ -352,9 +389,10 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
                       fontSize: "10px",
                       fontWeight: 600,
                       textTransform: "uppercase",
-                      padding: "2px 6px",
-                      borderRadius: "4px",
-                      background: "rgba(16, 185, 129, 0.1)",
+                      padding: "2px 7px",
+                      borderRadius: "999px",
+                      background: "rgba(16, 185, 129, 0.12)",
+                      border: "1px solid rgba(16, 185, 129, 0.25)",
                       color: "#34d399",
                     }}>
                       <CheckCircle2 size={10} />
@@ -364,10 +402,10 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
 
                   {/* Agent Name & Model */}
                   <div>
-                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#f4f4f5", lineHeight: 1.2 }}>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff", lineHeight: 1.2 }}>
                       {stage.name}
                     </div>
-                    <div style={{ fontSize: "11px", color: "#71717a", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <div style={{ fontSize: "11px", color: "#787d8d", marginTop: "3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {stage.model}
                     </div>
                   </div>
@@ -376,11 +414,11 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
                   <div style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    paddingTop: "6px",
-                    borderTop: "1px solid #27272a",
-                    fontSize: "10px",
-                    fontFamily: "ui-monospace, monospace",
-                    color: "#a1a1aa",
+                    paddingTop: "8px",
+                    borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+                    fontSize: "10.5px",
+                    fontFamily: "var(--ide-mono)",
+                    color: "#8b90a0",
                   }}>
                     <span>{stage.latencyMs}ms</span>
                     <span>{stage.tokensIn + stage.tokensOut} tok</span>
@@ -388,7 +426,7 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
                 </div>
 
                 {!isLast && (
-                  <div style={{ display: "flex", alignItems: "center", color: "#3f3f46", flexShrink: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", color: "#5d6172", flexShrink: 0 }}>
                     <ArrowRight size={14} />
                   </div>
                 )}
@@ -401,12 +439,19 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
       {/* ─── Telemetry Charts Grid (Recharts) ───────────────────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "16px" }}>
         {/* Token Consumption Chart */}
-        <div style={{ background: "#121215", border: "1px solid #27272a", borderRadius: "12px", padding: "20px" }}>
+        <div style={{
+          background: "rgba(22, 24, 29, 0.75)",
+          backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          borderRadius: "16px",
+          padding: "22px",
+          boxShadow: "0 12px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)",
+        }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#fafafa", margin: 0 }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#ffffff", margin: 0 }}>
               Token Consumption by Agent Node
             </h3>
-            <span style={{ fontSize: "11px", color: "#71717a", fontFamily: "ui-monospace, monospace" }}>
+            <span style={{ fontSize: "11px", color: "#666b7a", fontFamily: "var(--ide-mono)" }}>
               Prompt vs Completion
             </span>
           </div>
@@ -414,7 +459,7 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
           <div style={{ width: "100%", height: "240px" }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={tokenChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis dataKey="name" stroke="#71717a" fontSize={11} tickLine={false} />
                 <YAxis stroke="#71717a" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip content={<CustomTooltip />} />
@@ -423,20 +468,27 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
                   iconType="circle"
                   iconSize={8}
                 />
-                <Bar dataKey="Prompt Tokens" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Completion Tokens" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Prompt Tokens" fill="#818693" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Completion Tokens" fill="#595e69" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Cost Allocation Donut Chart */}
-        <div style={{ background: "#121215", border: "1px solid #27272a", borderRadius: "12px", padding: "20px" }}>
+        <div style={{
+          background: "rgba(22, 24, 29, 0.75)",
+          backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          borderRadius: "16px",
+          padding: "22px",
+          boxShadow: "0 12px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)",
+        }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#fafafa", margin: 0 }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#ffffff", margin: 0 }}>
               Cost Allocation Share
             </h3>
-            <span style={{ fontSize: "11px", color: "#71717a", fontFamily: "ui-monospace, monospace" }}>
+            <span style={{ fontSize: "11px", color: "#666b7a", fontFamily: "var(--ide-mono)" }}>
               m$ (1/1000th USD)
             </span>
           </div>
@@ -454,7 +506,7 @@ export default function AgentTelemetryDashboard({ result, stages = DEFAULT_PIPEL
                   dataKey="value"
                 >
                   {costChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} stroke="#18181b" strokeWidth={2} />
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="rgba(22, 24, 29, 0.9)" strokeWidth={2} />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />

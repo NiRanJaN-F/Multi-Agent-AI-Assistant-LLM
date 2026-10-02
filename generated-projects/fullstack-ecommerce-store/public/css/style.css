@@ -1,52 +1,38 @@
 /* =================================================================at
- * AURA E-COMMERCE DESIGN SYSTEM - STYLESHEET
- * Principal Frontend Architect & Senior UI/UX Designer
- * ================================================================= */
+   AURA E-COMMERCE - DESIGN SYSTEM & STYLESHEET
+   Principal UI/UX Architecture & Production-Grade CSS
+   ================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   
   /* Color Tokens */
-  --color-primary: #0f172a;
-  --color-primary-hover: #1e293b;
-  --color-accent: #6366f1;
-  --color-accent-hover: #4f46e5;
-  --color-accent-light: #e0e7ff;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-  
-  --color-bg-main: #f8fafc;
-  --color-bg-card: #ffffff;
-  --color-bg-glass: rgba(255, 255, 255, 0.85);
-  
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
   --color-text-main: #0f172a;
   --color-text-muted: #64748b;
-  --color-text-light: #94a3b8;
-  
   --color-border: #e2e8f0;
-  --color-border-focus: #6366f1;
   
-  /* Elevation & Shadows */
+  /* Elevation Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-dropdown: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
   
   /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-all: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-transform: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Base Document Styles */
+/* Base Document Setup */
 html {
   font-family: var(--font-sans);
   scroll-behavior: smooth;
-  background-color: var(--color-bg-main);
+  background-color: var(--color-background);
   color: var(--color-text-main);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -55,202 +41,170 @@ html {
 body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* Custom Scrollbars */
+/* Custom Sleek Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-main);
+  background: var(--color-background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-text-light);
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
+  background: #94a3b8;
 }
 
-/* Glassmorphism utility */
-.glass-panel {
-  background: var(--color-bg-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+/* ================================================================
+   ANIMATIONS & KEYFRAMES
+   ================================================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.glass-nav {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--color-border);
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0); 
+  }
 }
 
-/* Product Card Interactions */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes floatAnimation {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Animation Utility Classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-drawer-in {
+  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float {
+  animation: floatAnimation 4s ease-in-out infinite;
+}
+
+/* ================================================================
+   COMPONENT SPECIFIC STYLING & ENHANCEMENTS
+   ================================================================ */
+
+/* Backdrop Overlays */
+.modal-backdrop,
+.drawer-backdrop {
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: opacity 0.3s ease;
+}
+
+/* Product Card Hover Enhancements */
 .product-card {
-  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
-  background-color: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 1rem;
-  overflow: hidden;
-  position: relative;
+  transition: var(--transition-all);
+  will-change: transform, box-shadow;
 }
 
 .product-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-xl);
-  border-color: rgba(99, 102, 241, 0.3);
 }
 
-.product-image-wrapper {
-  position: relative;
+.product-image-container {
   overflow: hidden;
-  background-color: #f1f5f9;
-  aspect-ratio: 4 / 3;
+  position: relative;
 }
 
-.product-image {
-  transition: transform var(--transition-slow);
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.product-image-container img {
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.product-card:hover .product-image {
-  transform: scale(1.06);
+.product-card:hover .product-image-container img {
+  transform: scale(1.08);
 }
 
-/* Interactive Buttons */
-.btn-primary {
-  background-color: var(--color-primary);
-  color: white;
-  transition: all var(--transition-fast);
-  font-weight: 500;
-  border-radius: 0.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  box-shadow: var(--shadow-sm);
+/* Interactive Badges & Tags */
+.badge-category {
+  transition: var(--transition-all);
 }
 
-.btn-primary:hover {
-  background-color: var(--color-primary-hover);
-  box-shadow: var(--shadow-md);
+.badge-category:hover {
   transform: translateY(-1px);
 }
 
-.btn-primary:active {
-  transform: translateY(0);
-}
-
-.btn-accent {
-  background-color: var(--color-accent);
-  color: white;
-  transition: all var(--transition-fast);
-  font-weight: 500;
-  border-radius: 0.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-accent:hover {
-  background-color: var(--color-accent-hover);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-
-.btn-outline {
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-main);
-  transition: all var(--transition-fast);
-  border-radius: 0.75rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-}
-
-.btn-outline:hover {
-  background-color: var(--color-bg-main);
-  border-color: var(--color-text-muted);
-}
-
-/* Form Inputs & Controls */
-.form-input {
-  background-color: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-main);
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.95rem;
-  transition: all var(--transition-fast);
-  width: 100%;
-}
-
-.form-input:focus {
+/* Form Controls & Inputs */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="search"]:focus,
+select:focus,
+textarea:focus {
   outline: none;
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
-/* Badge & Pill Styles */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.025em;
+/* Button Micro-interactions */
+button {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: var(--transition-all);
 }
 
-.badge-accent {
-  background-color: var(--color-accent-light);
-  color: var(--color-accent);
-}
-
-.badge-success {
-  background-color: rgba(16, 185, 129, 0.1);
-  color: var(--color-success);
-}
-
-/* Modal & Drawer Transitions */
-.modal-backdrop {
-  background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: opacity var(--transition-normal);
-}
-
-.drawer-panel {
-  transition: transform var(--transition-slow);
-}
-
-/* Cart Slide-over specific */
-#cart-drawer {
-  transform: translateX(100%);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-#cart-drawer.open {
-  transform: translateX(0);
+button:active {
+  transform: scale(0.97);
 }
 
 /* Toast Notification Styles */
@@ -263,52 +217,39 @@ body {
   flex-direction: column;
   gap: 0.75rem;
   pointer-events: none;
+  max-width: 400px;
+  width: 100%;
 }
 
 .toast {
   pointer-events: auto;
-  background: var(--color-primary);
-  color: white;
-  padding: 1rem 1.25rem;
-  border-radius: 0.875rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   box-shadow: var(--shadow-xl);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  max-width: 360px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.875rem;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+  overflow: hidden;
 }
 
-.toast.fade-out {
-  animation: toastFadeOut 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+.toast::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
 }
 
-@keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(1rem) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
+.toast-success::before { background-color: #10b981; }
+.toast-error::before { background-color: #ef4444; }
+.toast-info::before { background-color: #3b82f6; }
 
-@keyframes toastFadeOut {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(0.5rem) scale(0.95);
-  }
-}
-
-/* Shimmer Loading State */
+/* Skeleton Loading States */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -318,82 +259,48 @@ body {
   background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 0.5rem;
 }
 
-/* Category Filter Pills */
-.filter-pill {
-  background-color: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  padding: 0.5rem 1.25rem;
-  border-radius: 9999px;
-  font-weight: 500;
-  font-size: 0.9rem;
-  transition: all var(--transition-fast);
+/* Custom Checkbox and Radio styling for checkout */
+.custom-radio {
+  appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  outline: none;
+  transition: var(--transition-all);
+  position: relative;
   cursor: pointer;
 }
 
-.filter-pill:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.filter-pill.active {
-  background-color: var(--color-primary);
+.custom-radio:checked {
   border-color: var(--color-primary);
-  color: white;
-  box-shadow: var(--shadow-sm);
+  background-color: var(--color-primary);
 }
 
-/* Quantity Control Box */
-.qty-control {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  overflow: hidden;
-  background-color: var(--color-bg-card);
+.custom-radio:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: white;
+  border-radius: 50%;
 }
 
-.qty-btn {
-  padding: 0.25rem 0.625rem;
-  background-color: transparent;
-  color: var(--color-text-muted);
-  transition: background-color var(--transition-fast);
-  border: none;
-  cursor: pointer;
+/* Responsive Grid Adjustments & Helper Classes */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
-.qty-btn:hover {
-  background-color: var(--color-bg-main);
-  color: var(--color-text-main);
-}
-
-.qty-value {
-  padding: 0 0.5rem;
-  font-weight: 600;
-  font-size: 0.9rem;
-  min-width: 1.5rem;
-  text-align: center;
-}
-
-/* Custom Checkbox & Radio Accents */
-input[type="checkbox"], input[type="radio"] {
-  accent-color: var(--color-accent);
-  width: 1.125rem;
-  height: 1.125rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-}
-
-/* Pulse Animation for Cart Badge */
-@keyframes badgePulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.25); }
-  100% { transform: scale(1); }
-}
-
-.pulse-badge {
-  animation: badgePulse 0.3s ease-in-out;
+.text-gradient {
+  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

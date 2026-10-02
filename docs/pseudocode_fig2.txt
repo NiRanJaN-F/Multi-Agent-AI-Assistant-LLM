@@ -1,0 +1,26 @@
+// ==============================================================================
+// FIGURE 5.2: REQUIREMENT PLANNING & ARCHITECTURE DESIGN
+// ==============================================================================
+26. FUNCTION PlannerAgent(State):
+27.     EXTRACT functional & non-functional requirements from user prompt
+28.     IDENTIFY project category (FullStack, Web, Node, Python CLI, React)
+29.     GENERATE structured feature roadmap and component milestones
+30.     UPDATE State.project_plan and State.project_type
+31.     EMIT status event "Planning Complete" via SSE
+32.     RETURN updated State
+33. END FUNCTION
+34.
+35. FUNCTION ArchitectureAgent(State):
+36.     READ State.project_plan and State.project_type
+37.     DETERMINE directory structure and dependencies (package.json / requirements.txt)
+38.     DEFINE file specifications (paths, exports, interfaces, imports)
+39.     GENERATE file manifest list [file_1, file_2, ... file_N]
+40.     UPDATE State.file_manifest and State.architecture_spec
+41.     
+42.     IF State.project_type IN ("fullstack", "node", "python") THEN
+43.         ROUTE next execution step to BackendAgent
+44.     ELSE
+45.         ROUTE next execution step to CoderAgent
+46.     END IF
+47.     RETURN State
+48. END FUNCTION

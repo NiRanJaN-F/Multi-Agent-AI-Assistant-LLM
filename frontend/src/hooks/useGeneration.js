@@ -132,8 +132,9 @@ export default function useGeneration() {
       setLiveMessage("Generation completed ✓");
       setCurrentFile(null);
       setResult(data);
-      if (data?.project_name) {
-        setActiveProject(data.project_name);
+      const effectiveName = data?.project_name || data?.projectName || data?.name || projectName;
+      if (effectiveName) {
+        setActiveProject(effectiveName);
       }
       return data;
     } catch (err) {
@@ -182,6 +183,10 @@ export default function useGeneration() {
       setLiveMessage("Refinement completed ✓");
       setCurrentFile(null);
       setResult(data);
+      const effectiveName = data?.project_name || data?.projectName || targetProject;
+      if (effectiveName) {
+        setActiveProject(effectiveName);
+      }
       return data;
     } catch (err) {
       if (err.name === "AbortError" || controller.signal.aborted) {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LLM_PROVIDERS } from "../constants/providers";
-import { getGenerationHistory } from "../services/api";
+import { getGenerationHistory, getProjects } from "../services/api";
 
 const APP_TEMPLATES = [
   { emoji: "🛒", label: "E-Commerce", prompt: "Build a full-stack e-commerce store with product listings, a shopping cart, and checkout flow using Express backend and interactive HTML/JS frontend." },
@@ -39,7 +39,30 @@ export default function CommandCenter({
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    getGenerationHistory({ limit: 8 }).then((d) => setHistory(d.items ?? [])).catch(() => {});
+    Promise.allSettled([
+      getGenerationHistory({ limit: 10 }),
+      getProjects(),
+    ]).then(([historyRes, projectsRes]) => {
+      const historyItems = historyRes.status === "fulfilled" ? (historyRes.value?.items ?? []) : [];
+      const diskProjects = projectsRes.status === "fulfilled" ? (projectsRes.value?.projects ?? []) : [];
+      
+      const seen = new Set(historyItems.map((h) => h.projectName));
+      const merged = [...historyItems];
+
+      for (const pName of diskProjects) {
+        if (pName && !seen.has(pName)) {
+          seen.add(pName);
+          merged.push({
+            id: `disk-${pName}`,
+            projectName: pName,
+            createdAt: new Date().toISOString(),
+            techStack: "Local Project",
+            mode: "disk",
+          });
+        }
+      }
+      setHistory(merged);
+    }).catch(() => {});
   }, [result]);
 
   useEffect(() => {
@@ -80,21 +103,23 @@ export default function CommandCenter({
       {/* Active Project Status Banner */}
       {activeProject && (
         <div style={{
-          margin: "12px 14px 4px 14px",
-          padding: "10px 12px",
-          background: "rgba(99, 102, 241, 0.08)",
-          border: "1px solid rgba(99, 102, 241, 0.25)",
-          borderRadius: "8px",
+          margin: "14px 16px 4px 16px",
+          padding: "12px 14px",
+          background: "rgba(255, 255, 255, 0.035)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(255, 255, 255, 0.09)",
+          borderRadius: "12px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           fontSize: "12px",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
         }}>
           <div>
-            <div style={{ color: "#818cf8", fontWeight: 600, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <div style={{ color: "#a4a9b8", fontWeight: 600, fontSize: "10.5px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               ↻ Refining Project
             </div>
-            <div style={{ color: "#f1f5f9", fontWeight: 500, marginTop: "2px" }}>
+            <div style={{ color: "#ffffff", fontWeight: 600, marginTop: "2px", fontSize: "13px" }}>
               {activeProject}
             </div>
           </div>
@@ -103,7 +128,7 @@ export default function CommandCenter({
             className="ide-btn ide-btn--ghost ide-btn--sm"
             onClick={onReset}
             disabled={loading}
-            style={{ fontSize: "11px", padding: "3px 8px" }}
+            style={{ fontSize: "11px", padding: "4px 10px", borderRadius: "8px" }}
             title="Start a new project from scratch"
           >
             New Project
@@ -163,7 +188,7 @@ export default function CommandCenter({
               type="button"
               className="ide-btn ide-btn--danger"
               onClick={onStop}
-              style={{ flex: 1, background: "#ef4444", color: "#fff", borderColor: "#dc2626" }}
+              style={{ flex: 1, background: "rgba(239, 68, 68, 0.2)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)" }}
               title="Stop active agent pipeline execution"
             >
               ⏹ Stop Generation
@@ -190,26 +215,29 @@ export default function CommandCenter({
       {loading && (
         <div
           style={{
-            margin: "12px 14px 0 14px",
-            padding: "12px",
-            background: "var(--ide-surface, #13141f)",
-            border: "1px solid var(--ide-border, #2a2c3d)",
-            borderRadius: "8px",
+            margin: "14px 16px 0 16px",
+            padding: "14px",
+            background: "rgba(22, 24, 29, 0.85)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.09)",
+            borderRadius: "14px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", fontSize: "12px" }}>
-            <span style={{ fontWeight: 600, color: "#818cf8" }}>⚡ Live Agent Stream</span>
-            <span style={{ fontSize: "11px", color: "var(--ide-text-muted)" }}>{progressPercent}%</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", fontSize: "12px" }}>
+            <span style={{ fontWeight: 600, color: "#ffffff" }}>⚡ Live Agent Stream</span>
+            <span style={{ fontSize: "11.5px", color: "#a4a9b8", fontFamily: "var(--ide-mono)" }}>{progressPercent}%</span>
           </div>
 
           {/* Progress bar */}
-          <div style={{ width: "100%", height: "4px", background: "rgba(255,255,255,0.08)", borderRadius: "2px", overflow: "hidden", marginBottom: "8px" }}>
+          <div style={{ width: "100%", height: "4px", background: "rgba(255,255,255,0.08)", borderRadius: "2px", overflow: "hidden", marginBottom: "10px" }}>
             <div
               style={{
                 width: `${Math.max(5, progressPercent)}%`,
                 height: "100%",
-                background: "linear-gradient(90deg, #6366f1, #a855f7)",
+                background: "linear-gradient(90deg, #818693 0%, #d1d5db 100%)",
                 transition: "width 0.4s ease-in-out",
+                boxShadow: "0 0 8px rgba(255, 255, 255, 0.3)",
               }}
             />
           </div>
@@ -219,7 +247,7 @@ export default function CommandCenter({
           </div>
 
           {currentFile && (
-            <div style={{ marginTop: "6px", fontSize: "11px", color: "#38bdf8", display: "flex", alignItems: "center", gap: "4px" }}>
+            <div style={{ marginTop: "8px", fontSize: "11px", color: "#a4a9b8", display: "flex", alignItems: "center", gap: "6px" }}>
               <span>📄</span>
               <span style={{ fontFamily: "var(--ide-mono)" }}>Writing {currentFile}...</span>
             </div>

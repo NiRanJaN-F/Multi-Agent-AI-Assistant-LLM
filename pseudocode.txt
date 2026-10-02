@@ -1,0 +1,116 @@
+// ==============================================================================
+// 5.2 PSEUDOCODE - MULTI-AGENT AI SOFTWARE ENGINEERING ASSISTANT
+// ==============================================================================
+
+// ------------------------------------------------------------------------------
+// FIGURE 5.1: SYSTEM INITIALIZATION & REQUEST ORCHESTRATION
+// ------------------------------------------------------------------------------
+01. INITIALIZE React Frontend UI on PORT 5173
+02. INITIALIZE Express API Gateway on PORT 5000
+03. CONNECT to MongoDB Database (Store user sessions & generation history)
+04. START FastAPI AI-Engine on PORT 8000 with LangGraph Workflow
+05. CONFIGURE LLM Providers (Gemini, Groq, OpenRouter, OpenAI, Ollama)
+06.
+07. FUNCTION HandleUserPrompt(UserRequest, SessionID):
+08.     VALIDATE user authentication token & session
+09.     PARSE user prompt & configuration (LLM model, framework, mode)
+10.     IF session exists in MongoDB THEN
+11.         RETRIEVE previous project state and file tree
+12.         SET ExecutionMode = "REFINEMENT"
+13.     ELSE
+14.         INITIALIZE new ProjectState dictionary
+15.         SET ExecutionMode = "NEW_GENERATION"
+16.     END IF
+17.
+18.     SAVE initial prompt & metadata to MongoDB
+19.     INITIALIZE LangGraph StateGraph(AgentState)
+20.     DISPATCH request asynchronously to AI-Engine LangGraph Pipeline
+21.     ESTABLISH Server-Sent Events (SSE) stream for real-time progress
+22.     RETURN acknowledgment & SessionID to Client
+23. END FUNCTION
+24.
+25. // ------------------------------------------------------------------------------
+// FIGURE 5.2: REQUIREMENT PLANNING & ARCHITECTURE DESIGN
+// ------------------------------------------------------------------------------
+26. FUNCTION PlannerAgent(State):
+27.     EXTRACT functional & non-functional requirements from user prompt
+28.     IDENTIFY project category (FullStack, Web, Node, Python CLI, React)
+29.     GENERATE structured feature roadmap and component milestones
+30.     UPDATE State.project_plan and State.project_type
+31.     EMIT status event "Planning Complete" via SSE
+32.     RETURN updated State
+33. END FUNCTION
+34.
+35. FUNCTION ArchitectureAgent(State):
+36.     READ State.project_plan and State.project_type
+37.     DETERMINE directory structure and dependencies (package.json / requirements.txt)
+38.     DEFINE file specifications (paths, exports, interfaces, imports)
+39.     GENERATE file manifest list [file_1, file_2, ... file_N]
+40.     UPDATE State.file_manifest and State.architecture_spec
+41.     
+42.     IF State.project_type IN ("fullstack", "node", "python") THEN
+43.         ROUTE next execution step to BackendAgent
+44.     ELSE
+45.         ROUTE next execution step to CoderAgent
+46.     END IF
+47.     RETURN State
+48. END FUNCTION
+49.
+50. // ------------------------------------------------------------------------------
+// FIGURE 5.3: SPECIALIST CODE GENERATION & REFINEMENT
+// ------------------------------------------------------------------------------
+51. FUNCTION BackendAgent(State):
+52.     FOR EACH backend file in State.file_manifest:
+53.         CONSTRUCT LLM prompt with architecture specs & schemas
+54.         INVOKE LLM provider with fallback & retry policy
+55.         EXTRACT generated code block & sanitise syntax
+56.         WRITE file to disk under generated-projects/{SessionID}/
+57.         UPDATE State.files[filepath] = code_content
+58.     END FOR
+59.     ROUTE next step to FrontendAgent
+60.     RETURN State
+61. END FUNCTION
+62.
+63. FUNCTION FrontendAgent(State):
+64.     FOR EACH frontend component/view in State.file_manifest:
+65.         CONSTRUCT LLM prompt with API contracts and UI styling
+66.         INVOKE LLM provider to synthesize React/HTML/CSS code
+67.         VALIDATE JSX/TSX syntax and component exports
+68.         WRITE file to disk under generated-projects/{SessionID}/
+69.         UPDATE State.files[filepath] = code_content
+70.     END FOR
+71.     ROUTE next step to TesterAgent
+72.     RETURN State
+73. END FUNCTION
+74.
+75. // ------------------------------------------------------------------------------
+// FIGURE 5.4: AUTOMATED TESTING, QA REVIEW LOOP & DOC WRITER
+// ------------------------------------------------------------------------------
+76. FUNCTION TesterAgent(State):
+77.     ANALYZE generated source files in State.files
+78.     SYNTHESIZE unit & integration tests (Jest, PyTest)
+79.     WRITE test files into generated-projects/{SessionID}/tests/
+80.     ROUTE next step to QAAgent
+81.     RETURN State
+82. END FUNCTION
+83.
+84. FUNCTION QAAgent(State):
+85.     SCAN code for syntax errors, missing imports, and logic flaws
+86.     CALCULATE QA quality score & evaluation verdict
+87.     IF QA quality score < THRESHOLD AND State.retry_count < MAX_RETRIES THEN
+88.         INCREMENT State.retry_count BY 1
+89.         ATTACH error logs & fix instructions to State.feedback
+90.         ROUTE back to CoderAgent / BackendAgent for iterative fix
+91.     ELSE
+92.         MARK State.qa_passed = TRUE
+93.         ROUTE next step to DocWriterAgent
+94.     END IF
+95.     RETURN State
+96. END FUNCTION
+97.
+98. FUNCTION DocWriterAgent(State):
+99.     GENERATE comprehensive README.md (Overview, Setup, API Endpoints, Usage)
+100.    SAVE complete project state & zip archive to MongoDB
+101.    STREAM completion event to Frontend UI
+102.    RETURN Final Project State
+103. END FUNCTION

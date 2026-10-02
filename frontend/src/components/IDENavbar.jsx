@@ -27,23 +27,29 @@ export default function IDENavbar({ activeProject, result }) {
 
   return (
     <header className="ide-navbar">
+      <div className="ide-navbar__window-dots">
+        <div className="ide-navbar__dot" />
+        <div className="ide-navbar__dot" />
+        <div className="ide-navbar__dot" />
+      </div>
+
       <div className="ide-navbar__logo">
         <div className="ide-navbar__logo-icon">⬡</div>
-        Multi-Agent AI
+        <span>Multi-Agent AI</span>
       </div>
 
       <div className="ide-navbar__divider" />
 
       {activeProject ? (
         <div className="ide-navbar__project">
-          <span style={{ color: "var(--ide-text-muted)", fontSize: "11px" }}>project</span>
+          <span style={{ color: "var(--ide-text-muted)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em" }}>project</span>
           <span className="ide-navbar__project-name">{activeProject}</span>
           {result?.tech_stack && (
             <span className="ide-badge" style={{ fontSize: "10px" }}>{result.tech_stack}</span>
           )}
         </div>
       ) : (
-        <span style={{ fontSize: "13px", color: "var(--ide-text-muted)" }}>No project open</span>
+        <span style={{ fontSize: "12.5px", color: "var(--ide-text-muted)" }}>No project open</span>
       )}
 
       <div className="ide-navbar__spacer" />
@@ -51,7 +57,7 @@ export default function IDENavbar({ activeProject, result }) {
       <div className="ide-navbar__badges">
         {modelLabel && (
           <span className="ide-badge">
-            🤖 {modelLabel}
+            <span style={{ opacity: 0.85 }}>🤖</span> {modelLabel}
           </span>
         )}
         <span className="ide-badge">

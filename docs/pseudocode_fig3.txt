@@ -1,0 +1,26 @@
+// ==============================================================================
+// FIGURE 5.3: SPECIALIST CODE GENERATION & REFINEMENT
+// ==============================================================================
+51. FUNCTION BackendAgent(State):
+52.     FOR EACH backend file in State.file_manifest:
+53.         CONSTRUCT LLM prompt with architecture specs & schemas
+54.         INVOKE LLM provider with fallback & retry policy
+55.         EXTRACT generated code block & sanitise syntax
+56.         WRITE file to disk under generated-projects/{SessionID}/
+57.         UPDATE State.files[filepath] = code_content
+58.     END FOR
+59.     ROUTE next step to FrontendAgent
+60.     RETURN State
+61. END FUNCTION
+62.
+63. FUNCTION FrontendAgent(State):
+64.     FOR EACH frontend component/view in State.file_manifest:
+65.         CONSTRUCT LLM prompt with API contracts and UI styling
+66.         INVOKE LLM provider to synthesize React/HTML/CSS code
+67.         VALIDATE JSX/TSX syntax and component exports
+68.         WRITE file to disk under generated-projects/{SessionID}/
+69.         UPDATE State.files[filepath] = code_content
+70.     END FOR
+71.     ROUTE next step to TesterAgent
+72.     RETURN State
+73. END FUNCTION

@@ -48,8 +48,9 @@ export default function GitHubExportModal({ projectName, onClose, onExportSucces
         left: 0,
         right: 0,
         bottom: 0,
-        background: "rgba(0, 0, 0, 0.75)",
-        backdropFilter: "blur(4px)",
+        background: "rgba(0, 0, 0, 0.8)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -63,22 +64,24 @@ export default function GitHubExportModal({ projectName, onClose, onExportSucces
       <div
         style={{
           width: "100%",
-          maxWidth: "480px",
-          background: "var(--ide-surface, #13141f)",
-          border: "1px solid var(--ide-border, #2a2c3d)",
-          borderRadius: "12px",
-          padding: "24px",
-          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.6)",
-          color: "var(--ide-text, #e2e8f0)",
-          fontFamily: "var(--ide-font, sans-serif)",
+          maxWidth: "500px",
+          background: "rgba(22, 24, 29, 0.94)",
+          backdropFilter: "blur(28px)",
+          WebkitBackdropFilter: "blur(28px)",
+          border: "1px solid rgba(255, 255, 255, 0.09)",
+          borderRadius: "20px",
+          padding: "28px",
+          boxShadow: "0 30px 70px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
+          color: "var(--ide-text)",
+          fontFamily: "var(--ide-font)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "22px" }}>🐙</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ fontSize: "24px" }}>🐙</span>
             <div>
-              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#f8fafc" }}>Export to GitHub</h3>
-              <p style={{ margin: 0, fontSize: "12px", color: "var(--ide-text-muted, #94a3b8)" }}>
+              <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em" }}>Export to GitHub</h3>
+              <p style={{ margin: 0, fontSize: "12.5px", color: "#787d8d", marginTop: "2px" }}>
                 Push &quot;{projectName}&quot; directly to a new GitHub repository
               </p>
             </div>

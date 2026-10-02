@@ -1,449 +1,575 @@
 /**
- * LUMIN - Premium E-Commerce Architecture
- * public/js/app.js - Main Application Controller, Store State, and UI Renderer
- * 
- * Principal Architect & UI/UX Design System Implementation
+ * AURA & CO. - Modern E-Commerce Application
+ * Architecture: Component-driven Vanilla JS with Reactive State Management
+ * Principal Frontend Architect & Senior UI/UX Designer implementation
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Core Application
-    StoreApp.init();
-});
-
-/**
- * Global Store Application Controller
- */
-const StoreApp = {
-    state: {
+    // --- Application State Management ---
+    const state = {
         products: [],
         filteredProducts: [],
         cart: [],
-        wishlist: [],
-        activeCategory: 'All',
         searchQuery: '',
-        isLoading: true,
-        currentModalProduct: null
-    },
+        selectedCategory: 'all',
+        isCartOpen: false,
+        isCheckoutOpen: false,
+        isOrderSuccessOpen: false,
+        lastOrder: null,
+        loading: true,
+        error: null
+    };
 
-    // Fallback Mock Data in case API is offline
-    fallbackProducts: [
+    // --- Fallback Mock Data (for offline / direct testing) ---
+    const fallbackProducts = [
         {
             id: 1,
-            name: "Architectural Ceramic Vase",
-            price: 85.00,
-            category: "Home Decor",
-            rating: 4.9,
-            reviewsCount: 128,
-            image: "https://images.unsplash.com/photo-1612196808214-b8e1e6145a5c?auto=format&fit=crop&q=80&w=800",
-            description: "Handcrafted matte ceramic vessel designed for modern minimalist interiors. Each piece features subtle variations in texture, ensuring absolute uniqueness."
+            name: "Aura Minimalist Ceramic Lamp",
+            price: 129.00,
+            category: "Lifestyle",
+            rating: 4.8,
+            reviewsCount: 42,
+            image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=800",
+            description: "Hand-glazed ceramic table lamp with warm ambient LED glow and solid brass dimmer switch."
         },
         {
             id: 2,
-            name: "Minimalist Brass Desk Lamp",
-            price: 140.00,
-            category: "Lighting",
-            rating: 4.8,
-            reviewsCount: 94,
-            image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=800",
-            description: "Solid brushed brass task light with adjustable arm and warm ambient LED glow. Engineered for the refined workspace."
+            name: "Nomad Leather Weekender",
+            price: 285.50,
+            category: "Apparel",
+            rating: 4.9,
+            reviewsCount: 128,
+            image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=800",
+            description: "Full-grain vegetable tanned leather travel bag designed for weekend getaways and overhead bins."
         },
         {
             id: 3,
-            name: "Organic Linen Throw Blanket",
-            price: 115.00,
-            category: "Textiles",
+            name: "Chronos Matte Black Chronograph",
+            price: 195.00,
+            category: "Lifestyle",
             rating: 4.7,
-            reviewsCount: 210,
-            image: "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&q=80&w=800",
-            description: "Woven from 100% Belgian flax linen. Pre-washed for exceptional softness and designed to breathe effortlessly across all seasons."
+            reviewsCount: 89,
+            image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800",
+            description: "Precision Japanese quartz movement housed in a scratch-resistant matte black stainless steel case."
         },
         {
             id: 4,
-            name: "Scandi Lounge Chair",
-            price: 490.00,
-            category: "Furniture",
-            rating: 5.0,
-            reviewsCount: 45,
-            image: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&q=80&w=800",
-            description: "Elegantly curved ash wood frame paired with high-density natural wool upholstery. A masterclass in organic modernism."
+            name: "Botanical Studio Terrarium",
+            price: 75.00,
+            category: "Lifestyle",
+            rating: 4.6,
+            reviewsCount: 31,
+            image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&q=80&w=800",
+            description: "Geometrical brass-framed glass terrarium featuring hand-selected resilient succulent flora."
         },
         {
             id: 5,
-            name: "Aromatherapeutic Sandalwood Candle",
-            price: 42.00,
-            category: "Fragrance",
-            rating: 4.6,
-            reviewsCount: 312,
-            image: "https://images.unsplash.com/photo-1603006905003-be475563bc59?auto=format&fit=crop&q=80&w=800",
-            description: "Poured in small batches using soy wax, infused with Australian sandalwood, cedar, and subtle amber notes. 60-hour burn time."
+            name: "Studio Wireless ANC Headphones",
+            price: 340.00,
+            category: "Electronics",
+            rating: 4.9,
+            reviewsCount: 215,
+            image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=800",
+            description: "Immersive acoustic sound profiling with hybrid active noise cancellation and 40-hour battery life."
         },
         {
             id: 6,
-            name: "Walnut Acoustic Headphones",
-            price: 299.00,
-            category: "Electronics",
+            name: "Kuro Cast Iron Pour-Over Kettle",
+            price: 88.00,
+            category: "Lifestyle",
             rating: 4.8,
-            reviewsCount: 88,
-            image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=800",
-            description: "Precision-milled black walnut earcups housing custom 40mm neodymium drivers. Exceptional acoustic fidelity meets timeless materiality."
+            reviewsCount: 76,
+            image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&q=80&w=800",
+            description: "Ergonomic gooseneck kettle engineered for ultimate water flow precision during pour-over brewing."
         },
         {
             id: 7,
-            name: "Hand-Thrown Stoneware Mug",
-            price: 28.00,
-            category: "Kitchen",
+            name: "Zenith Mechanical Keyboard",
+            price: 165.00,
+            category: "Electronics",
             rating: 4.9,
-            reviewsCount: 176,
-            image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&q=80&w=800",
-            description: "Ergonomically balanced handle and speckled raw clay base. Microwave and dishwasher safe."
+            reviewsCount: 154,
+            image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&q=80&w=800",
+            description: "Hot-swappable custom tactile switches wrapped in CNC anodized aluminum chassis with PBT keycaps."
         },
         {
             id: 8,
-            name: "Nomad Leather Weekender",
-            price: 380.00,
-            category: "Accessories",
-            rating: 4.9,
-            reviewsCount: 64,
-            image: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800",
-            description: "Full-grain vegetable-tanned leather that develops a stunning patina over time. Brass hardware and reinforced canvas lining."
+            name: "Apex Polarized Titanium Sunglasses",
+            price: 210.00,
+            category: "Apparel",
+            rating: 4.7,
+            reviewsCount: 62,
+            image: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&q=80&w=800",
+            description: "Ultralight aerospace-grade titanium frames fitted with anti-reflective polarized optical lenses."
         }
-    ],
+    ];
 
-    async init() {
-        this.loadCartFromStorage();
-        this.renderShell();
-        this.bindEvents();
-        await this.fetchProducts();
-        this.updateCartUI();
-    },
-
-    /**
-     * Render Root App Structure if elements are missing
-     */
-    renderShell() {
-        // Ensure Toast container exists
-        if (!document.getElementById('toast-container')) {
-            const toastDiv = document.createElement('div');
-            toastDiv.id = 'toast-container';
-            toastDiv.className = 'fixed bottom-5 right-5 z-50 flex flex-col gap-3 pointer-events-none';
-            document.body.appendChild(toastDiv);
+    // --- Initialize Products & Cart from LocalStorage if available ---
+    const savedCart = localStorage.getItem('aura_cart');
+    if (savedCart) {
+        try {
+            state.cart = JSON.parse(savedCart);
+        } catch (e) {
+            console.error('Failed to parse saved cart:', e);
         }
-    },
+    }
 
-    /**
-     * Fetch products from API with fallback simulation
-     */
-    async fetchProducts() {
-        this.setLoading(true);
+    // --- Fetch Products from API with fallback ---
+    const fetchProducts = async () => {
+        state.loading = true;
+        renderLoadingState();
         try {
             const response = await fetch('/api/products');
-            if (!response.ok) throw new Error('API server error');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
-            this.state.products = data && data.length > 0 ? data : this.fallbackProducts;
+            state.products = Array.isArray(data) && data.length > 0 ? data : fallbackProducts;
         } catch (err) {
-            console.warn('Backend API unavailable. Utilizing high-fidelity fallback catalog.', err);
-            this.state.products = this.fallbackProducts;
+            console.warn('API fetch failed, using fallback products:', err.message);
+            state.products = fallbackProducts;
         } finally {
-            this.state.isLoading = false;
-            this.filterProducts();
+            state.loading = false;
+            applyFilters();
+            renderCatalog();
+            updateCartBadge();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         }
-    },
+    };
 
-    setLoading(isLoading) {
-        this.state.isLoading = isLoading;
-        const grid = document.getElementById('product-grid');
-        if (!grid) return;
+    // --- Filter & Search Logic ---
+    const applyFilters = () => {
+        let result = [...state.products];
 
-        if (isLoading) {
-            grid.innerHTML = `
-                <div class="col-span-full flex flex-col items-center justify-center py-24">
-                    <div class="w-12 h-12 border-4 border-stone-200 border-t-stone-900 rounded-full animate-spin mb-4"></div>
-                    <p class="text-stone-500 font-medium tracking-wide text-sm">CURATING COLLECTION...</p>
-                </div>
-            `;
+        // Category filter
+        if (state.selectedCategory !== 'all') {
+            result = result.filter(p => p.category.toLowerCase() === state.selectedCategory.toLowerCase());
         }
-    },
 
-    /**
-     * Filter and Search logic
-     */
-    filterProducts() {
-        const { products, activeCategory, searchQuery } = this.state;
+        // Search query filter
+        if (state.searchQuery.trim() !== '') {
+            const q = state.searchQuery.toLowerCase();
+            result = result.filter(p => 
+                p.name.toLowerCase().includes(q) || 
+                p.description.toLowerCase().includes(q) ||
+                p.category.toLowerCase().includes(q)
+            );
+        }
+
+        state.filteredProducts = result;
+    };
+
+    const filterCategory = (category) => {
+        state.selectedCategory = category;
+        applyFilters();
+        renderCatalog();
+        updateCategoryButtons();
         
-        this.state.filteredProducts = products.filter(product => {
-            const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
-            const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                  (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()));
-            return matchesCategory && matchesSearch;
-        });
+        // Update catalog title and subtitle dynamically
+        const titleEl = document.getElementById('catalogTitle');
+        const subtitleEl = document.getElementById('catalogSubtitle');
+        if (titleEl) {
+            titleEl.textContent = category === 'all' ? 'All Products' : `${category} Goods`;
+        }
+        if (subtitleEl) {
+            subtitleEl.textContent = category === 'all' 
+                ? 'Showing all available curated items' 
+                : `Showing hand-picked selection for ${category}`;
+        }
+    };
 
-        this.renderCatalog();
-    },
+    const handleSearch = (event) => {
+        state.searchQuery = event.target.value;
+        applyFilters();
+        renderCatalog();
+    };
 
-    /**
-     * Render Product Catalog Grid
-     */
-    renderCatalog() {
-        const grid = document.getElementById('product-grid');
-        const countEl = document.getElementById('product-count');
-        if (!grid) return;
+    const resetFilters = () => {
+        state.searchQuery = '';
+        state.selectedCategory = 'all';
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = '';
+        filterCategory('all');
+    };
 
-        if (countEl) {
-            countEl.textContent = `${this.state.filteredProducts.length} pieces available`;
+    const resetView = () => {
+        resetFilters();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // --- Cart Management ---
+    const addToCart = (productId) => {
+        const product = state.products.find(p => p.id === productId);
+        if (!product) return;
+
+        const existingItem = state.cart.find(item => item.id === productId);
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            state.cart.push({ ...product, quantity: 1 });
         }
 
-        if (this.state.filteredProducts.length === 0) {
-            grid.innerHTML = `
-                <div class="col-span-full flex flex-col items-center justify-center py-20 text-center bg-stone-50 rounded-2xl border border-stone-200/60">
-                    <i data-lucide="search-x" class="w-12 h-12 text-stone-400 mb-3 stroke-[1.5]"></i>
-                    <h3 class="text-lg font-medium text-stone-800">No matching items found</h3>
-                    <p class="text-sm text-stone-500 mt-1 max-w-sm">We couldn't find anything matching your search criteria. Try adjusting your filters.</p>
-                    <button onclick="StoreApp.resetFilters()" class="mt-5 px-5 py-2.5 bg-stone-900 text-white text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-stone-800 transition shadow-sm">
-                        Reset Filters
-                    </button>
+        saveCart();
+        updateCartBadge();
+        renderCartDrawer();
+        toggleCart(true);
+
+        // Visual feedback / toast or animation could go here
+    };
+
+    const updateQuantity = (productId, change) => {
+        const itemIndex = state.cart.findIndex(item => item.id === productId);
+        if (itemIndex > -1) {
+            state.cart[itemIndex].quantity += change;
+            if (state.cart[itemIndex].quantity <= 0) {
+                state.cart.splice(itemIndex, 1);
+            }
+        }
+        saveCart();
+        updateCartBadge();
+        renderCartDrawer();
+    };
+
+    const removeFromCart = (productId) => {
+        state.cart = state.cart.filter(item => item.id !== productId);
+        saveCart();
+        updateCartBadge();
+        renderCartDrawer();
+    };
+
+    const saveCart = () => {
+        try {
+            localStorage.setItem('aura_cart', JSON.stringify(state.cart));
+        } catch (e) {
+            console.error('Failed to save cart to localStorage:', e);
+        }
+    };
+
+    const toggleCart = (open) => {
+        state.isCartOpen = open;
+        const drawer = document.getElementById('CartDrawer');
+        const backdrop = document.getElementById('cartBackdrop');
+        const panel = document.getElementById('cartPanel');
+
+        if (!drawer || !backdrop || !panel) return;
+
+        if (open) {
+            drawer.classList.remove('pointer-events-none');
+            backdrop.classList.remove('opacity-0', 'pointer-events-none');
+            backdrop.classList.add('opacity-100');
+            panel.classList.remove('translate-x-full');
+            panel.classList.add('translate-x-0');
+            renderCartDrawer();
+        } else {
+            drawer.classList.add('pointer-events-none');
+            backdrop.classList.remove('opacity-100');
+            backdrop.classList.add('opacity-0', 'pointer-events-none');
+            panel.classList.remove('translate-x-0');
+            panel.classList.add('translate-x-full');
+        }
+    };
+
+    const updateCartBadge = () => {
+        const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+        const badge = document.getElementById('cartBadge');
+        const itemCountBadge = document.getElementById('cartItemCountBadge');
+
+        if (badge) {
+            badge.textContent = totalItems;
+            if (totalItems > 0) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+        if (itemCountBadge) {
+            itemCountBadge.textContent = totalItems;
+        }
+    };
+
+    // --- Checkout & Order Flow ---
+    const openCheckout = () => {
+        if (state.cart.length === 0) return;
+        toggleCart(false);
+        state.isCheckoutOpen = true;
+        const modal = document.getElementById('CheckoutModal');
+        if (modal) {
+            modal.classList.remove('pointer-events-none', 'opacity-0');
+            modal.classList.add('opacity-100');
+            const inner = modal.querySelector('div.relative');
+            if (inner) {
+                inner.classList.remove('scale-95');
+                inner.classList.add('scale-100');
+            }
+        }
+    };
+
+    const closeCheckout = () => {
+        state.isCheckoutOpen = false;
+        const modal = document.getElementById('CheckoutModal');
+        if (modal) {
+            modal.classList.remove('opacity-100');
+            modal.classList.add('pointer-events-none', 'opacity-0');
+            const inner = modal.querySelector('div.relative');
+            if (inner) {
+                inner.classList.remove('scale-100');
+                inner.classList.add('scale-95');
+            }
+        }
+    };
+
+    const processCheckout = async (event) => {
+        event.preventDefault();
+        const payButton = document.getElementById('payButton');
+        const payButtonText = document.getElementById('payButtonText');
+        
+        if (payButton && payButtonText) {
+            payButton.disabled = true;
+            payButtonText.textContent = 'Processing Secure Order...';
+        }
+
+        const formData = new FormData(event.target);
+        const orderData = {
+            customer: {
+                name: formData.get('name') || 'Valued Customer',
+                email: formData.get('email') || '',
+                address: formData.get('address') || '',
+                city: formData.get('city') || '',
+                postalCode: formData.get('postalCode') || ''
+            },
+            items: state.cart,
+            total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+        };
+
+        try {
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            });
+
+            if (!response.ok) {
+                throw new Error('Order submission failed');
+            }
+
+            const result = await response.json();
+            state.lastOrder = result.order || orderData;
+            
+            // Clear cart
+            state.cart = [];
+            saveCart();
+            updateCartBadge();
+            closeCheckout();
+            showOrderSuccessModal(state.lastOrder);
+
+        } catch (err) {
+            console.warn('API order creation failed, simulating success:', err.message);
+            state.lastOrder = orderData;
+            state.cart = [];
+            saveCart();
+            updateCartBadge();
+            closeCheckout();
+            showOrderSuccessModal(state.lastOrder);
+        } finally {
+            if (payButton && payButtonText) {
+                payButton.disabled = false;
+                payButtonText.textContent = 'Complete Secure Order';
+            }
+        }
+    };
+
+    const showOrderSuccessModal = (order) => {
+        // Create or show order success modal dynamically if not present in static HTML
+        let successModal = document.getElementById('OrderSuccessModal');
+        if (!successModal) {
+            successModal = document.createElement('div');
+            successModal.id = 'OrderSuccessModal';
+            successModal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm';
+            document.body.appendChild(successModal);
+        }
+
+        const orderId = order.id || Math.floor(100000 + Math.random() * 900000);
+        const customerName = order.customer ? order.customer.name : 'Customer';
+
+        successModal.innerHTML = `
+            <div class="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl animate-in fade-in zoom-in duration-200">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-5">
+                    <i data-lucide="check" class="w-8 h-8"></i>
                 </div>
-            `;
+                <h3 class="text-2xl font-bold text-zinc-900 mb-2">Order Confirmed!</h3>
+                <p class="text-sm text-zinc-600 mb-6">Thank you for your purchase, <span class="font-semibold text-zinc-900">${customerName}</span>. Your order #${orderId} has been successfully placed.</p>
+                <div class="bg-zinc-50 rounded-2xl p-4 text-left text-xs text-zinc-600 mb-6 space-y-2 border border-zinc-100">
+                    <div class="flex justify-between"><span class="font-medium text-zinc-500">Status</span><span class="text-emerald-600 font-semibold">Processing</span></div>
+                    <div class="flex justify-between"><span class="font-medium text-zinc-500">Shipping</span><span class="text-zinc-900">Standard (2-4 days)</span></div>
+                    <div class="flex justify-between border-t border-zinc-200 pt-2"><span class="font-bold text-zinc-900">Total Paid</span><span class="font-bold text-zinc-900">$${(order.total || 0).toFixed(2)}</span></div>
+                </div>
+                <button onclick="StoreApp.closeOrderSuccess()" class="w-full py-3.5 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 transition-colors">
+                    Continue Shopping
+                </button>
+            </div>
+        `;
+        successModal.classList.remove('hidden');
+        if (typeof lucide !== 'undefined') {
             lucide.createIcons();
+        }
+    };
+
+    const closeOrderSuccess = () => {
+        const successModal = document.getElementById('OrderSuccessModal');
+        if (successModal) {
+            successModal.classList.add('hidden');
+        }
+        resetView();
+    };
+
+    // --- DOM Rendering Helpers ---
+    const renderLoadingState = () => {
+        const skeleton = document.getElementById('loadingSkeleton');
+        const grid = document.getElementById('productGrid');
+        const empty = document.getElementById('emptyState');
+        if (skeleton) skeleton.classList.remove('hidden');
+        if (grid) grid.classList.add('hidden');
+        if (empty) empty.classList.add('hidden');
+    };
+
+    const renderCatalog = () => {
+        const skeleton = document.getElementById('loadingSkeleton');
+        const grid = document.getElementById('productGrid');
+        const empty = document.getElementById('emptyState');
+
+        if (skeleton) skeleton.classList.add('hidden');
+
+        if (!grid) return;
+
+        if (state.filteredProducts.length === 0) {
+            grid.classList.add('hidden');
+            if (empty) empty.classList.remove('hidden');
             return;
         }
 
-        grid.innerHTML = this.state.filteredProducts.map(product => `
-            <div class="group relative flex flex-col bg-white rounded-2xl border border-stone-200/80 overflow-hidden hover:shadow-xl hover:border-stone-300 transition-all duration-300">
-                <!-- Image Container -->
-                <div class="relative w-full aspect-[4/3] bg-stone-100 overflow-hidden cursor-pointer" onclick="StoreApp.openProductModal(${product.id})">
-                    <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700">
-                    <div class="absolute inset-0 bg-stone-900/0 group-hover:bg-stone-900/5 transition-colors"></div>
-                    
-                    <!-- Category Tag -->
-                    <span class="absolute top-3 left-3 px-3 py-1 bg-white/90 backdrop-blur-md text-stone-800 text-[11px] font-semibold tracking-wider uppercase rounded-full shadow-sm">
-                        ${product.category}
-                    </span>
+        if (empty) empty.classList.add('hidden');
+        grid.classList.remove('hidden');
 
-                    <!-- Quick View / Wishlist Action -->
-                    <button onclick="event.stopPropagation(); StoreApp.toggleWishlist(${product.id})" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-stone-700 hover:text-red-500 shadow-sm transition">
-                        <i data-lucide="heart" class="w-4 h-4 ${this.state.wishlist.includes(product.id) ? 'fill-red-500 text-red-500' : ''}"></i>
+        grid.innerHTML = state.filteredProducts.map(product => `
+            <div class="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-xl border border-zinc-100 transition-all duration-300 flex flex-col justify-between">
+                <div>
+                    <div class="relative w-full h-64 bg-zinc-100 rounded-xl overflow-hidden mb-4">
+                        <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500">
+                        <span class="absolute top-3 left-3 px-2.5 py-1 bg-white/90 backdrop-blur-md text-[11px] font-semibold uppercase tracking-wider text-zinc-800 rounded-full shadow-sm">
+                            ${product.category}
+                        </span>
+                        <div class="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur-md px-2 py-1 rounded-full text-xs font-semibold text-zinc-800 shadow-sm">
+                            <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400 text-amber-400"></i>
+                            <span>${product.rating}</span>
+                        </div>
+                    </div>
+                    <h3 class="font-bold text-zinc-900 text-base mb-1 group-hover:text-zinc-600 transition-colors line-clamp-1">${product.name}</h3>
+                    <p class="text-xs text-zinc-500 line-clamp-2 mb-4 font-normal leading-relaxed">${product.description}</p>
+                </div>
+                <div class="flex items-center justify-between pt-3 border-t border-zinc-100">
+                    <span class="text-lg font-extrabold text-zinc-900">$${product.price.toFixed(2)}</span>
+                    <button onclick="StoreApp.addToCart(${product.id})" class="px-4 py-2.5 bg-zinc-900 text-white font-medium text-xs rounded-full hover:bg-zinc-800 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Add Item</span>
                     </button>
                 </div>
+            </div>
+        `).join('');
 
-                <!-- Content Area -->
-                <div class="p-5 flex flex-col flex-grow justify-between">
-                    <div>
-                        <div class="flex items-center justify-between gap-2 mb-1.5">
-                            <h3 class="font-medium text-stone-900 text-base tracking-tight truncate cursor-pointer hover:text-stone-600 transition" onclick="StoreApp.openProductModal(${product.id})">
-                                ${product.name}
-                            </h3>
-                        </div>
-                        <div class="flex items-center gap-1.5 mb-3 text-amber-500 text-xs">
-                            <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
-                            <span class="font-medium text-stone-700">${product.rating}</span>
-                            <span class="text-stone-400">(${product.reviewsCount || 42})</span>
-                        </div>
-                        <p class="text-stone-500 text-xs line-clamp-2 leading-relaxed mb-4">
-                            ${product.description || 'Exquisitely crafted for modern living spaces.'}
-                        </p>
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    };
+
+    const updateCategoryButtons = () => {
+        const buttons = document.querySelectorAll('.category-btn');
+        buttons.forEach(btn => {
+            const cat = btn.getAttribute('data-category');
+            if (cat && cat.toLowerCase() === state.selectedCategory.toLowerCase()) {
+                btn.className = 'category-btn px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all bg-zinc-900 text-white shadow-sm';
+            } else {
+                btn.className = 'category-btn px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80 hover:text-zinc-900';
+            }
+        });
+    };
+
+    const renderCartDrawer = () => {
+        const container = document.getElementById('cartItemsContainer');
+        const footer = document.getElementById('cartFooter');
+        const subtotalEl = document.getElementById('cartSubtotal');
+        const totalEl = document.getElementById('cartTotal');
+
+        if (!container || !footer) return;
+
+        if (state.cart.length === 0) {
+            container.innerHTML = `
+                <div class="h-full flex flex-col items-center justify-center text-center py-16">
+                    <div class="w-16 h-16 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 mb-4">
+                        <i data-lucide="shopping-bag" class="w-8 h-8"></i>
                     </div>
+                    <h3 class="font-bold text-zinc-900 text-base">Your cart is empty</h3>
+                    <p class="text-xs text-zinc-500 mt-1 max-w-xs">Discover our curated collection and add items to your cart.</p>
+                    <button onclick="StoreApp.toggleCart(false)" class="mt-6 px-6 py-2.5 bg-zinc-900 text-white text-xs font-semibold rounded-full hover:bg-zinc-800 transition-colors">
+                        Start Shopping
+                    </button>
+                </div>
+            `;
+            footer.classList.add('hidden');
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            return;
+        }
 
-                    <div class="flex items-center justify-between pt-4 border-t border-stone-100">
-                        <div>
-                            <span class="text-xs text-stone-400 block font-medium uppercase tracking-wider">Price</span>
-                            <span class="text-lg font-semibold text-stone-900">$${product.price.toFixed(2)}</span>
+        footer.classList.remove('hidden');
+
+        container.innerHTML = state.cart.map(item => `
+            <div class="py-4 flex items-center gap-4">
+                <img src="${item.image}" alt="${item.name}" class="w-20 h-20 object-cover rounded-xl bg-zinc-100 shrink-0">
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-semibold text-sm text-zinc-900 truncate">${item.name}</h4>
+                    <p class="text-xs font-bold text-zinc-900 mt-0.5">$${item.price.toFixed(2)}</p>
+                    <div class="flex items-center gap-3 mt-3">
+                        <div class="flex items-center border border-zinc-200 rounded-lg overflow-hidden bg-white">
+                            <button onclick="StoreApp.updateQuantity(${item.id}, -1)" class="px-2.5 py-1 text-zinc-600 hover:bg-zinc-100 transition-colors">-</button>
+                            <span class="px-3 text-xs font-semibold text-zinc-900">${item.quantity}</span>
+                            <button onclick="StoreApp.updateQuantity(${item.id}, 1)" class="px-2.5 py-1 text-zinc-600 hover:bg-zinc-100 transition-colors">+</button>
                         </div>
-                        <button onclick="StoreApp.addToCart(${product.id})" class="flex items-center gap-2 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider rounded-xl transition shadow-sm active:scale-95">
-                            <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
-                            <span>Add</span>
+                        <button onclick="StoreApp.removeFromCart(${item.id})" class="text-xs font-medium text-red-500 hover:text-red-700 transition-colors">
+                            Remove
                         </button>
                     </div>
                 </div>
             </div>
         `).join('');
 
-        lucide.createIcons();
-    },
+        const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+        if (totalEl) totalEl.textContent = `$${subtotal.toFixed(2)}`;
 
-    resetFilters() {
-        this.state.activeCategory = 'All';
-        this.state.searchQuery = '';
-        const searchInput = document.getElementById('search-input');
-        if (searchInput) searchInput.value = '';
-        
-        document.querySelectorAll('.category-btn').forEach(btn => {
-            if (btn.dataset.category === 'All') {
-                btn.className = "category-btn px-4 py-2 rounded-xl text-xs font-semibold tracking-wider uppercase transition bg-stone-900 text-white shadow-sm";
-            } else {
-                btn.className = "category-btn px-4 py-2 rounded-xl text-xs font-semibold tracking-wider uppercase transition bg-white text-stone-600 hover:bg-stone-100 border border-stone-200/80";
-            }
-        });
-
-        this.filterProducts();
-    },
-
-    /**
-     * Event Listeners Binding
-     */
-    bindEvents() {
-        // Search Input Event
-        const searchInput = document.getElementById('search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.state.searchQuery = e.target.value.trim();
-                this.filterProducts();
-            });
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
         }
+    };
 
-        // Category Buttons Delegation
-        const categoryContainer = document.getElementById('category-filters');
-        if (categoryContainer) {
-            categoryContainer.addEventListener('click', (e) => {
-                const btn = e.target.closest('.category-btn');
-                if (!btn) return;
+    // --- Expose Global Interface for Inline HTML Callbacks ---
+    window.StoreApp = {
+        filterCategory,
+        handleSearch,
+        resetFilters,
+        resetView,
+        addToCart,
+        updateQuantity,
+        removeFromCart,
+        toggleCart,
+        openCheckout,
+        closeCheckout,
+        processCheckout,
+        closeOrderSuccess
+    };
 
-                document.querySelectorAll('.category-btn').forEach(b => {
-                    b.className = "category-btn px-4 py-2 rounded-xl text-xs font-semibold tracking-wider uppercase transition bg-white text-stone-600 hover:bg-stone-100 border border-stone-200/80";
-                });
-                btn.className = "category-btn px-4 py-2 rounded-xl text-xs font-semibold tracking-wider uppercase transition bg-stone-900 text-white shadow-sm";
-
-                this.state.activeCategory = btn.dataset.category;
-                this.filterProducts();
-            });
-        }
-
-        // Cart Drawer Toggles
-        const cartToggle = document.getElementById('cart-toggle-btn');
-        const closeCart = document.getElementById('close-cart-btn');
-        const cartOverlay = document.getElementById('cart-overlay');
-        
-        if (cartToggle) cartToggle.addEventListener('click', () => this.toggleCartDrawer(true));
-        if (closeCart) closeCart.addEventListener('click', () => this.toggleCartDrawer(false));
-        if (cartOverlay) cartOverlay.addEventListener('click', () => this.toggleCartDrawer(false));
-
-        // Checkout Modal Triggers
-        const checkoutBtn = document.getElementById('checkout-btn');
-        if (checkoutBtn) checkoutBtn.addEventListener('click', () => this.openCheckoutModal());
-
-        const closeCheckout = document.getElementById('close-checkout-btn');
-        const checkoutModalOverlay = document.getElementById('checkout-modal-overlay');
-        if (closeCheckout) closeCheckout.addEventListener('click', () => this.toggleCheckoutModal(false));
-        if (checkoutModalOverlay) checkoutModalOverlay.addEventListener('click', () => this.toggleCheckoutModal(false));
-
-        // Checkout Form Submit
-        const checkoutForm = document.getElementById('checkout-form');
-        if (checkoutForm) {
-            checkoutForm.addEventListener('submit', (e) => this.handleCheckoutSubmit(e));
-        }
-
-        // Product Detail Modal Close
-        const closeProductModal = document.getElementById('close-product-modal');
-        const productModalOverlay = document.getElementById('product-modal-overlay');
-        if (closeProductModal) closeProductModal.addEventListener('click', () => this.toggleProductModal(false));
-        if (productModalOverlay) productModalOverlay.addEventListener('click', () => this.toggleProductModal(false));
-    },
-
-    /**
-     * Shopping Cart State & Logic
-     */
-    loadCartFromStorage() {
-        try {
-            const savedCart = localStorage.getItem('lumin_cart');
-            if (savedCart) this.state.cart = JSON.parse(savedCart);
-        } catch (e) {
-            console.error('Failed to load cart from storage', e);
-        }
-    },
-
-    saveCartToStorage() {
-        try {
-            localStorage.setItem('lumin_cart', JSON.stringify(this.state.cart));
-        } catch (e) {
-            console.error('Failed to save cart to storage', e);
-        }
-    },
-
-    addToCart(productId, quantity = 1) {
-        const product = this.state.products.find(p => p.id === productId);
-        if (!product) return;
-
-        const existingItem = this.state.cart.find(item => item.id === productId);
-        if (existingItem) {
-            existingItem.quantity += quantity;
-        } else {
-            this.state.cart.push({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                image: product.image,
-                category: product.category,
-                quantity: quantity
-            });
-        }
-
-        this.saveCartToStorage();
-        this.updateCartUI();
-        this.showToast(`Added ${product.name} to your cart`, 'success');
-    },
-
-    updateCartQuantity(productId, delta) {
-        const item = this.state.cart.find(i => i.id === productId);
-        if (!item) return;
-
-        item.quantity += delta;
-        if (item.quantity <= 0) {
-            this.state.cart = this.state.cart.filter(i => i.id !== productId);
-        }
-
-        this.saveCartToStorage();
-        this.updateCartUI();
-    },
-
-    removeFromCart(productId) {
-        const item = this.state.cart.find(i => i.id === productId);
-        this.state.cart = this.state.cart.filter(i => i.id !== productId);
-        this.saveCartToStorage();
-        this.updateCartUI();
-        if (item) this.showToast(`Removed ${item.name} from cart`, 'info');
-    },
-
-    updateCartUI() {
-        const badge = document.getElementById('cart-badge');
-        const cartItemsContainer = document.getElementById('cart-items-container');
-        const cartSubtotalEl = document.getElementById('cart-subtotal');
-        const cartTotalEl = document.getElementById('cart-total');
-        const checkoutBtn = document.getElementById('checkout-btn');
-
-        const totalItemsCount = this.state.cart.reduce((sum, item) => sum + item.quantity, 0);
-        const subtotal = this.state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const shipping = subtotal > 150 ? 0 : (subtotal > 0 ? 15.00 : 0);
-        const grandTotal = subtotal + shipping;
-
-        // Badge update
-        if (badge) {
-            if (totalItemsCount > 0) {
-                badge.textContent = totalItemsCount;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-        }
-
-        // Subtotal & Total
-        if (cartSubtotalEl) cartSubtotalEl.textContent = `$${subtotal.toFixed(2)}`;
-        if (cartTotalEl) cartTotalEl.textContent = `$${grandTotal.toFixed(2)}`;
-
-        // Checkout Button state
-        if (checkoutBtn) {
-            if (this.state.cart.length === 0) {
-                checkoutBtn.disabled = true;
-                checkoutBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            } else {
-                checkoutBtn.disabled = false;
-                checkoutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-        }
-
-        // Cart items rendering
-        if (!cartItemsContainer) return;
-
-        if (this.state.cart.length === 0) {
-            cartItemsContainer.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-center py-16 px-4">
-                    <div class="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 mb-4">
-                        <i data-
+    // --- Application Initialization ---
+    fetchProducts();
+});
