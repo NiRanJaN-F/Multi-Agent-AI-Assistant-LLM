@@ -13,6 +13,7 @@
  */
 
 import { env } from "../config/env.js";
+import { Generation } from "../models/Generation.js";
 import {
   deleteGenerationById,
   getGenerationById,
@@ -171,10 +172,18 @@ export async function postGenerate(req, res, next) {
   // Setup SSE
   sseInit(res);
 
+  // Keep-alive heartbeat ping every 3 seconds to prevent Vercel/Render proxy timeouts
+  const keepAlive = setInterval(() => {
+    if (!res.writableEnded) {
+      res.write(": keep-alive\n\n");
+    }
+  }, 3000);
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
 
   const handleClientClose = () => {
+    clearInterval(keepAlive);
     if (!res.writableEnded) {
       controller.abort();
     }
@@ -224,6 +233,7 @@ export async function postGenerate(req, res, next) {
       });
     }
   } finally {
+    clearInterval(keepAlive);
     clearTimeout(timeout);
     res.off("close", handleClientClose);
     if (!res.writableEnded) res.end();
@@ -241,12 +251,35 @@ export async function postRefine(req, res, next) {
     return res.status(400).json({ status: "error", message: "projectName is required to refine an existing project" });
   }
 
+  // Retrieve project file tree from MongoDB to ensure cloud ephemeral disk restarts never cause 404
+  let filesSnapshot = undefined;
+  if (isDatabaseReady()) {
+    try {
+      const query = { projectName: String(projectName).trim(), status: "completed" };
+      if (userId) query.userId = userId;
+      const gen = await Generation.findOne(query).sort({ createdAt: -1 }).lean();
+      if (gen && gen.files && Object.keys(gen.files).length > 0) {
+        filesSnapshot = gen.files;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   sseInit(res);
+
+  // Keep-alive heartbeat ping every 3 seconds to prevent Vercel/Render proxy timeouts
+  const keepAlive = setInterval(() => {
+    if (!res.writableEnded) {
+      res.write(": keep-alive\n\n");
+    }
+  }, 3000);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
 
   const handleClientClose = () => {
+    clearInterval(keepAlive);
     if (!res.writableEnded) {
       controller.abort();
     }
@@ -264,6 +297,7 @@ export async function postRefine(req, res, next) {
         prompt: String(prompt).trim(),
         project_name: String(projectName).trim(),
         provider: provider?.trim() || undefined,
+        files: filesSnapshot,
       },
       res,
       controller.signal,
@@ -296,6 +330,7 @@ export async function postRefine(req, res, next) {
       });
     }
   } finally {
+    clearInterval(keepAlive);
     clearTimeout(timeout);
     res.off("close", handleClientClose);
     if (!res.writableEnded) res.end();

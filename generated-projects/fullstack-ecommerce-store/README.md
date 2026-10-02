@@ -8,28 +8,25 @@ Build a full-stack e-commerce store with product listings, a shopping cart, and 
 
 ## Tech Stack
 
-Node.js+Express+HTML/CSS/JS
+Node Express + Vanilla JS/HTML/CSS
 
-A lightweight full-stack e-commerce architecture utilizing Node.js and Express to serve static frontend assets and RESTful API endpoints. The frontend is built with vanilla JavaScript using a component-driven structure and HTML5/CSS3, maintaining shopping cart state via LocalStorage. The backend manages in-memory or file-backed product catalogs and processes simulated checkout orders securely.
+A monolithic full-stack e-commerce architecture leveraging Node.js and Express to serve static frontend assets and RESTful API endpoints. The frontend uses Vanilla JS, HTML, and CSS with a modular component-like structure interacting via Fetch API. An in-memory data store manages products, cart state, and checkout transactions seamlessly.
 
 ## Implementation Plan
 
-- Initialize Express backend server with product and order API endpoints
-- Build interactive frontend with product catalog listing UI
-- Implement shopping cart state management with local storage support
-- Create checkout flow with order submission handling
+- Initialize Node.js backend with Express and define in-memory mock product database.
+- Implement REST API endpoints for fetching products, managing cart operations, and processing checkout.
+- Create interactive frontend interface with product listings, dynamic shopping cart drawer, and checkout flow.
+- Integrate frontend JavaScript with backend API endpoints using Fetch API to enable seamless e-commerce transactions.
 
 ## Project Structure
 
 ```text
 fullstack-ecommerce-store/
-├── public/css/styles.css
+├── public/css/style.css
 ├── public/index.html
 ├── public/js/app.js
-├── public/js/cart.js
-├── public/js/checkout.js
-├── routes/orders.js
-├── routes/products.js
+├── routes/api.js
 ├── server.js
 ├── tests/app.test.js
 ```
@@ -41,16 +38,5 @@ Install dependencies with `npm install`, then start the app with `npm start`.
 ## Quality Review
 
 - Static review: 2 open issue(s)
-- 'public/js/app.js' line 184: fetch() call without .catch() fallback — unhandled rejections will crash the preview in strict mode.
-- 'public/js/checkout.js' line 293: fetch() call without .catch() fallback — unhandled rejections will crash the preview in strict mode.
-
-## Refinements & Changelog
-
-### Refinement — 2026-10-02 13:09 UTC
-- **Change Request:** add items to it
-- **Files Modified:** `public/js/app.js`
-- **Tasks Applied:**
-- Verify and ensure CartManager is fully initialized and listens to global product add-to-cart events across the frontend scripts.
-- Inspect product rendering in public/js/app.js to ensure 'Add to Cart' buttons correctly dispatch product payloads or invoke CartManager methods.
-- **QA Review:** Passed
-
+- File 'public/js/app.js' has unbalanced brackets and is probably truncated.
+- 'public/js/app.js' line 111: fetch() call without .catch() fallback — unhandled rejections will crash the preview in strict mode.

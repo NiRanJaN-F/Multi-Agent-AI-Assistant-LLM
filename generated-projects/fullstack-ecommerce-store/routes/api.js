@@ -1,154 +1,137 @@
 const express = require('express');
 const router = express.Router();
 
-// Mock products database matching the API contract
+// Mock database
 const products = [
-    {
-        id: 1,
-        name: "Wireless Noise-Canceling Headphones",
-        price: 199.99,
-        category: "Electronics",
-        image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80",
-        description: "Experience premium sound quality and active noise cancellation with up to 30 hours of battery life."
-    },
-    {
-        id: 2,
-        name: "Ergonomic Mechanical Keyboard",
-        price: 89.99,
-        category: "Electronics",
-        image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&q=80",
-        description: "Tactile mechanical switches with customizable RGB backlighting designed for optimal typing comfort."
-    },
-    {
-        id: 3,
-        name: "Minimalist Leather Backpack",
-        price: 129.50,
-        category: "Lifestyle",
-        image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80",
-        description: "Crafted from full-grain leather with a dedicated padded compartment for up to a 15-inch laptop."
-    },
-    {
-        id: 4,
-        name: "Smart Fitness Watch",
-        price: 149.99,
-        category: "Electronics",
-        image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80",
-        description: "Track your health, heart rate, workouts, and receive smartphone notifications on a vibrant AMOLED display."
-    },
-    {
-        id: 5,
-        name: "Portable Bluetooth Speaker",
-        price: 59.99,
-        category: "Electronics",
-        image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=500&q=80",
-        description: "Waterproof, rugged design delivering crisp highs and deep bass wherever your adventures take you."
-    },
-    {
-        id: 6,
-        name: "Ultra-Wide Gaming Monitor",
-        price: 399.99,
-        category: "Electronics",
-        image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&q=80",
-        description: "Immersive 34-inch curved display with a 144Hz refresh rate and 1ms response time for seamless gameplay."
-    },
-    {
-        id: 7,
-        name: "Classic Denim Jacket",
-        price: 89.00,
-        category: "Apparel",
-        image: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=500&q=80",
-        description: "Timeless denim jacket tailored for everyday wear with durable stitching and comfortable stretch fabric."
-    },
-    {
-        id: 8,
-        name: "Ceramic Pour-Over Coffee Dripper",
-        price: 34.50,
-        category: "Lifestyle",
-        image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&q=80",
-        description: "Handcrafted ceramic dripper designed for optimal water flow and a rich, clean-tasting morning brew."
-    }
+  { id: 1, name: "Wireless Headphones", price: 99.99, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60" },
+  { id: 2, name: "Mechanical Keyboard", price: 129.99, image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&auto=format&fit=crop&q=60" },
+  { id: 3, name: "Ergonomic Mouse", price: 49.99, image: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=500&auto=format&fit=crop&q=60" },
+  { id: 4, name: "Ultra-Wide Monitor", price: 399.99, image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=60" },
+  { id: 5, name: "USB-C Hub", price: 34.99, image: "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=500&auto=format&fit=crop&q=60" },
+  { id: 6, name: "Desk Pad", price: 24.99, image: "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=500&auto=format&fit=crop&q=60" }
 ];
+
+// In-memory cart store
+let cart = {
+  items: []
+};
+
+// Helper function to calculate cart total
+function calculateCartTotal(cartItems) {
+  const total = cartItems.reduce((sum, item) => {
+    const product = products.find(p => p.id === item.productId);
+    return sum + (product ? product.price * item.quantity : 0);
+  }, 0);
+  return Number(total.toFixed(2));
+}
 
 // GET /api/products
 router.get('/products', (req, res) => {
-    try {
-        res.json(products);
-    } catch (error) {
-        console.error('Error fetching products:', error);
-        res.status(500).json({ success: false, message: 'Internal server error while fetching products.' });
+  try {
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+// GET /api/cart
+router.get('/cart', (req, res) => {
+  try {
+    const total = calculateCartTotal(cart.items);
+    res.json({
+      items: cart.items,
+      total: total
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch cart' });
+  }
+});
+
+// POST /api/cart
+router.post('/cart', (req, res) => {
+  try {
+    const { productId, quantity } = req.body;
+
+    if (!productId || typeof quantity !== 'number' || quantity <= 0) {
+      return res.status(400).json({ error: 'Invalid productId or quantity' });
     }
+
+    const product = products.find(p => p.id === Number(productId));
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const existingItemIndex = cart.items.findIndex(item => item.productId === Number(productId));
+
+    if (existingItemIndex > -1) {
+      cart.items[existingItemIndex].quantity += quantity;
+    } else {
+      cart.items.push({ productId: Number(productId), quantity });
+    }
+
+    res.json({
+      success: true,
+      cart: {
+        items: cart.items,
+        total: calculateCartTotal(cart.items)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add item to cart' });
+  }
+});
+
+// DELETE /api/cart/:id
+router.delete('/cart/:id', (req, res) => {
+  try {
+    const productId = Number(req.params.id);
+
+    const itemIndex = cart.items.findIndex(item => item.productId === productId);
+    if (itemIndex === -1) {
+      return res.status(404).json({ error: 'Item not found in cart' });
+    }
+
+    cart.items.splice(itemIndex, 1);
+
+    res.json({
+      success: true,
+      cart: {
+        items: cart.items,
+        total: calculateCartTotal(cart.items)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove item from cart' });
+  }
 });
 
 // POST /api/checkout
 router.post('/checkout', (req, res) => {
-    try {
-        const { items, total, payment_details } = req.body;
+  try {
+    const { shippingAddress, paymentDetails } = req.body;
 
-        // Basic validation for request body structure
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid request: Cart is empty or items are missing.' 
-            });
-        }
-
-        if (typeof total !== 'number' || total <= 0) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid request: Total amount is invalid.' 
-            });
-        }
-
-        if (!payment_details || !payment_details.cardNumber) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid request: Payment details are missing.' 
-            });
-        }
-
-        // Server-side price verification and total calculation
-        let calculatedTotal = 0;
-        for (const item of items) {
-            const product = products.find(p => p.id === item.id);
-            if (!product) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: `Product with ID ${item.id} not found.` 
-                });
-            }
-            if (typeof item.quantity !== 'number' || item.quantity <= 0) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: `Invalid quantity for product ID ${item.id}.` 
-                });
-            }
-            calculatedTotal += product.price * item.quantity;
-        }
-
-        // Floating-point precision check (comparing within 2 decimal places)
-        if (Math.abs(calculatedTotal - total) > 0.01) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Price mismatch detected. Total amount does not match cart items.' 
-            });
-        }
-
-        // Simulate successful payment processing and order generation
-        const orderId = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
-
-        return res.status(200).json({
-            success: true,
-            orderId: orderId,
-            message: "Payment processed successfully"
-        });
-
-    } catch (error) {
-        console.error('Error during checkout processing:', error);
-        return res.status(500).json({ 
-            success: false, 
-            message: 'An internal server error occurred while processing your payment.' 
-        });
+    if (!shippingAddress || !paymentDetails) {
+      return res.status(400).json({ error: 'Shipping address and payment details are required' });
     }
+
+    if (cart.items.length === 0) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
+
+    const total = calculateCartTotal(cart.items);
+    const orderId = 'ORD-' + Math.floor(10000 + Math.random() * 90000);
+
+    // Clear the cart after successful checkout
+    cart.items = [];
+
+    res.json({
+      success: true,
+      orderId: orderId,
+      total: total
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Checkout failed' });
+  }
 });
 
 module.exports = router;

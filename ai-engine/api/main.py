@@ -85,6 +85,7 @@ class RefineRequest(BaseModel):
     prompt: str = Field(..., description="Follow-up instruction describing the change to apply.")
     project_name: str = Field(..., description="Name of the previously generated project to modify.")
     provider: Optional[str] = Field(default=None, description="LLM provider override ('gemini' or 'openai').")
+    files: Optional[Dict[str, str]] = Field(default=None, description="Optional snapshot of existing project files.")
 
 
 class GenerateResponse(BaseModel):
@@ -355,6 +356,10 @@ def refine_project(req: RefineRequest) -> dict:
         raise HTTPException(status_code=400, detail="Prompt parameter cannot be empty.")
 
     existing_files = load_project_files(req.project_name)
+    if not existing_files and req.files:
+        save_project_files(req.project_name, req.files, clean=True)
+        existing_files = req.files
+
     if not existing_files:
         raise HTTPException(
             status_code=404,
@@ -430,6 +435,10 @@ def refine_project_stream(req: RefineRequest):
         raise HTTPException(status_code=400, detail="Prompt parameter cannot be empty.")
 
     existing_files = load_project_files(req.project_name)
+    if not existing_files and req.files:
+        save_project_files(req.project_name, req.files, clean=True)
+        existing_files = req.files
+
     if not existing_files:
         raise HTTPException(
             status_code=404,
