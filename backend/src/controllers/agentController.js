@@ -70,10 +70,16 @@ async function proxyAiStream(aiUrl, body, res, abortSignal) {
 
   if (!aiResponse.ok) {
     const errBody = await aiResponse.json().catch(() => ({}));
-    throw Object.assign(
-      new Error(errBody.detail || errBody.message || "AI engine stream error"),
-      { statusCode: aiResponse.status },
-    );
+    const status = aiResponse.status;
+    let message = errBody.detail || errBody.message;
+    if (!message) {
+      if (status === 502 || status === 503) {
+        message = "AI Engine is waking up from idle. Please wait 15 seconds and try again.";
+      } else {
+        message = `AI engine error (HTTP ${status})`;
+      }
+    }
+    throw Object.assign(new Error(message), { statusCode: status });
   }
 
   const reader = aiResponse.body.getReader();
@@ -208,9 +214,13 @@ export async function postGenerate(req, res, next) {
     }
   } catch (err) {
     if (!res.writableEnded) {
+      let msg = err.name === "AbortError" ? "Generation timed out or was stopped." : err.message;
+      if (err.message && (err.message.includes("fetch failed") || err.message.includes("ECONNREFUSED") || err.message.includes("ENOTFOUND"))) {
+        msg = "AI engine service is starting up on Render. Please wait 15-20 seconds and click Generate App again.";
+      }
       sseWrite(res, {
         stage: "error",
-        message: err.name === "AbortError" ? "Generation timed out or was stopped." : err.message,
+        message: msg,
       });
     }
   } finally {
@@ -276,9 +286,13 @@ export async function postRefine(req, res, next) {
     }
   } catch (err) {
     if (!res.writableEnded) {
+      let msg = err.name === "AbortError" ? "Refinement timed out or was stopped." : err.message;
+      if (err.message && (err.message.includes("fetch failed") || err.message.includes("ECONNREFUSED") || err.message.includes("ENOTFOUND"))) {
+        msg = "AI engine service is starting up on Render. Please wait 15-20 seconds and click Refine again.";
+      }
       sseWrite(res, {
         stage: "error",
-        message: err.name === "AbortError" ? "Refinement timed out or was stopped." : err.message,
+        message: msg,
       });
     }
   } finally {

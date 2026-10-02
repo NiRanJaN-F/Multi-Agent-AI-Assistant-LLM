@@ -1,6 +1,6 @@
 import { env } from "../config/env.js";
 
-const HEALTH_TIMEOUT_MS = 5000;
+const HEALTH_TIMEOUT_MS = 30_000; // 30s to allow Render free-tier cold starts to boot
 const GENERATE_TIMEOUT_MS = 300_000; // 5 minutes for multi-agent pipeline
 
 export async function fetchAiEngineHealth() {
