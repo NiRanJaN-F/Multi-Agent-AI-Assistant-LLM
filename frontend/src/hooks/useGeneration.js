@@ -78,6 +78,14 @@ export default function useGeneration() {
       );
     }
 
+    if (stageKey === "complete" && event.result) {
+      setResult(event.result);
+      const pName = event.result.project_name || event.result.projectName;
+      if (pName) {
+        setActiveProject(pName);
+      }
+    }
+
     if (stageKey === "coder" && event.file) {
       setStepStates((prev) =>
         prev.map((s) => {

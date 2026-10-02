@@ -147,23 +147,27 @@ async function streamPipeline(endpoint, body, onEvent, signal) {
   // The `complete` event contains ALL generated file contents and can be many KB.
   // Splitting on single \n shreds the JSON across lines and causes JSON.parse to fail silently.
   function processBuffer() {
-    const messages = buffer.split(/\n\n/);
+    const messages = buffer.split(/\r?\n\r?\n/);
     buffer = messages.pop() ?? ""; // last element may be a partial incomplete message
 
     for (const message of messages) {
+      if (!message.trim() || message.trim().startsWith(":")) continue; // Skip comments/keep-alives
       // Find the data: line within this SSE message block
-      const dataLine = message.split("\n").find((l) => l.trimStart().startsWith("data:"));
+      const dataLine = message.split(/\r?\n/).find((l) => l.trimStart().startsWith("data:"));
       if (!dataLine) continue;
       const event = parseSseLine(dataLine);
       if (!event) continue;
 
       onEvent?.(event);
 
-      if (event.stage === "complete") {
+      if (event.stage === "complete" || event.result) {
         if (event.result) {
           finalResult = event.result;
-          completeProjectName = event.result.project_name || event.result.projectName || null;
+          completeProjectName = event.result.project_name || event.result.projectName || completeProjectName;
         }
+      }
+      if (event.project_name || event.projectName) {
+        completeProjectName = event.project_name || event.projectName || completeProjectName;
       }
       if (event.stage === "error") {
         throw new Error(event.message || "Generation error received from stream");
