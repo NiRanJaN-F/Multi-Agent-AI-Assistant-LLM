@@ -107,9 +107,9 @@ def _build_readme(state: AgentState, file_paths: list[str]) -> str:
 
 def doc_agent(state: AgentState) -> dict:
     """Executes documentation synthesis for the generated project."""
-    logs = add_log(state.get("logs", []), "DocAgent", "started", "Generating project documentation and README.md...")
+    logs = add_log(state.get("logs") or [], "DocAgent", "started", "Generating project documentation and README.md...")
 
-    files = state.get("files", {})
+    files = state.get("files") or {}
     readme_content = _build_readme(state, [path for path in files if not path.startswith("README")])
 
     updated_files = dict(files)

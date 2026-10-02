@@ -155,7 +155,7 @@ def backend_agent(state: AgentState) -> dict:
 
     if not backend_file_paths:
         logs = add_log(logs, "BackendAgent", "warning", "No backend files to generate for this project type.")
-        return {"logs": logs, "current_step": "backend_coded", "backend_files": {}}
+        return {"files": state.get("files") or {}, "logs": logs, "current_step": "backend_coded", "backend_files": {}}
 
     llm = get_agent_llm(state, temperature=0.15, role="backend")
 
@@ -169,7 +169,7 @@ def backend_agent(state: AgentState) -> dict:
         else:
             backend_files = {"server.js": _node_fallback(user_prompt, api_contract)}
         logs = add_log(logs, "BackendAgent", "completed", f"Generated {len(backend_files)} backend files using fallback templates (no API key).")
-        all_files = {**state.get("files", {}), **backend_files}
+        all_files = {**(state.get("files") or {}), **backend_files}
         return {"files": all_files, "backend_files": backend_files, "logs": logs, "current_step": "backend_coded"}
 
     api_contract_str = _format_api_contract(api_contract)
@@ -188,7 +188,7 @@ def backend_agent(state: AgentState) -> dict:
             else:
                 generated[path] = f"// {path}\n// TODO: implement {path}\n"
 
-    all_files = {**state.get("files", {}), **generated}
+    all_files = {**(state.get("files") or {}), **generated}
 
     if last_error and not generated:
         status = "quota_exceeded" if is_quota_error(last_error) else "error"

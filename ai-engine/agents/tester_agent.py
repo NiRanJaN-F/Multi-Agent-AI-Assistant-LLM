@@ -85,24 +85,28 @@ test('the entry point references its scripts and styles', () => {{
 
 def tester_agent(state: AgentState) -> dict:
     """Builds an automated test suite for the generated project files."""
-    logs = add_log(state.get("logs", []), "TesterAgent", "started", "Generating automated unit test suite...")
+    logs = add_log(state.get("logs") or [], "TesterAgent", "started", "Generating automated unit test suite...")
 
-    project_name = state.get("project_name", "app")
-    tech_stack = state.get("tech_stack", "HTML/CSS/JS")
-    files = state.get("files", {})
+    project_name = state.get("project_name") or "app"
+    tech_stack = state.get("tech_stack") or "HTML/CSS/JS"
+    files = state.get("files") or {}
 
     source_files = sorted(path for path in files if not path.startswith(("README", "tests/")))
+    if not source_files:
+        logs = add_log(logs, "TesterAgent", "warning", "No source files available for automated test generation.")
+        return {"files": files, "logs": logs, "current_step": "tested"}
+
     is_python = "python" in tech_stack.lower() or any(path.endswith(".py") for path in source_files)
     test_path = "tests/test_app.py" if is_python else "tests/app.test.js"
 
     llm = get_agent_llm(state, temperature=0.1, role="tester")
 
-    if llm is not None and source_files:
+    if llm is not None:
         try:
             # Format source snippets for the prompt (capped at 4k chars to avoid token limits)
             snippets = []
             for path in source_files[:6]:
-                content = files[path][:800]
+                content = (files.get(path) or "")[:800]
                 snippets.append(f"--- FILE: {path} ---\n{content}\n")
             source_content_str = "\n".join(snippets)
 

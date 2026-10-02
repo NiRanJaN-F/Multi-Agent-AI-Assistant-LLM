@@ -178,7 +178,7 @@ def frontend_agent(state: AgentState) -> dict:
 
     if not frontend_file_paths:
         logs = add_log(logs, "FrontendAgent", "warning", "No frontend files to generate for this project type.")
-        return {"logs": logs, "current_step": "frontend_coded", "frontend_files": {}}
+        return {"files": state.get("files") or {}, "logs": logs, "current_step": "frontend_coded", "frontend_files": {}}
 
     llm = get_agent_llm(state, temperature=0.2, role="frontend")
 
@@ -188,7 +188,7 @@ def frontend_agent(state: AgentState) -> dict:
         for path in frontend_file_paths:
             frontend_files[path] = _get_fallback_code(path, user_prompt)
         logs = add_log(logs, "FrontendAgent", "completed", f"Generated {len(frontend_files)} frontend files using fallback templates (no API key).")
-        all_files = {**state.get("files", {}), **frontend_files}
+        all_files = {**(state.get("files") or {}), **frontend_files}
         return {"files": all_files, "frontend_files": frontend_files, "logs": logs, "current_step": "frontend_coded"}
 
     api_contract_str = _format_api_contract(api_contract)
@@ -201,7 +201,7 @@ def frontend_agent(state: AgentState) -> dict:
         if path not in generated:
             generated[path] = _get_fallback_code(path, user_prompt)
 
-    all_files = {**state.get("files", {}), **generated}
+    all_files = {**(state.get("files") or {}), **generated}
 
     if last_error and not generated:
         status = "quota_exceeded" if is_quota_error(last_error) else "error"
