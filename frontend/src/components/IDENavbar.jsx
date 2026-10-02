@@ -3,7 +3,7 @@ import { getAiEngineHealth } from "../services/api";
 import UserProfileBadge from "./auth/UserProfileBadge";
 import "../styles/ide.css";
 
-export default function IDENavbar({ activeProject, result }) {
+export default function IDENavbar({ activeProject, result, onOpenHistory }) {
   const [health, setHealth] = useState(null);
 
   const checkHealth = useCallback(async () => {
@@ -55,6 +55,29 @@ export default function IDENavbar({ activeProject, result }) {
       <div className="ide-navbar__spacer" />
 
       <div className="ide-navbar__badges">
+        {onOpenHistory && (
+          <button
+            type="button"
+            className="ide-btn ide-btn--ghost ide-btn--sm"
+            onClick={onOpenHistory}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "12px",
+              padding: "5px 12px",
+              borderRadius: "8px",
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "rgba(255,255,255,0.04)",
+              cursor: "pointer",
+            }}
+            title="Open your generation history (Ctrl+H)"
+          >
+            <span>📜</span>
+            <span style={{ fontWeight: 600 }}>My History</span>
+          </button>
+        )}
+
         {modelLabel && (
           <span className="ide-badge">
             <span style={{ opacity: 0.85 }}>🤖</span> {modelLabel}

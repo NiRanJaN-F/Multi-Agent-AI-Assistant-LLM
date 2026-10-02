@@ -252,6 +252,35 @@ export default function useGeneration() {
     }
   }
 
+  function hydrateFromHistory(gen) {
+    if (!gen) return;
+    const pName = gen.projectName || gen.project_name;
+    setActiveProject(pName);
+    const restoredResult = {
+      id: gen.id || gen._id,
+      status: gen.status || "completed",
+      project_name: pName,
+      projectName: pName,
+      tech_stack: gen.techStack || gen.tech_stack || "",
+      techStack: gen.techStack || gen.tech_stack || "",
+      files: gen.files || {},
+      saved_files: gen.savedFiles || Object.keys(gen.files || {}),
+      changed_files: gen.changedFiles || [],
+      tasks: gen.tasks || [],
+      review_results: gen.reviewResults || {},
+      documentation: gen.documentation || "",
+      logs: gen.logs || [],
+      llm: gen.llm || {},
+      durationMs: gen.durationMs || 0,
+      mode: gen.mode || "generate",
+      prompt: gen.prompt || "",
+    };
+    setResult(restoredResult);
+    setStepStates(buildStepStates(true).map((s) => ({ ...s, status: "done", log: "Restored from history" })));
+    setProgressPercent(100);
+    setLiveMessage(`Restored "${pName}" from history snapshot ✓`);
+  }
+
   function reset() {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -281,6 +310,7 @@ export default function useGeneration() {
     refine,
     stopGeneration,
     loadProject,
+    hydrateFromHistory,
     reset,
     AGENT_STEPS,
     REFINE_STEPS,

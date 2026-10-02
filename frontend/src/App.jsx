@@ -1,13 +1,16 @@
-﻿import React from "react";
+import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import LoginPage from "./components/auth/LoginPage";
 import IDENavbar from "./components/IDENavbar";
 import CommandCenter from "./components/CommandCenter";
 import DevWorkspace from "./components/DevWorkspace";
+import HistoryDrawer from "./components/HistoryDrawer";
 import useGeneration from "./hooks/useGeneration";
 import "./styles/ide.css";
 
 function MainIDE() {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
   const {
     loading,
     error,
@@ -21,12 +24,28 @@ function MainIDE() {
     refine,
     stopGeneration,
     loadProject,
+    hydrateFromHistory,
     reset,
   } = useGeneration();
 
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "h") {
+        e.preventDefault();
+        setIsHistoryOpen((prev) => !prev);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <div className="ide-shell">
-      <IDENavbar activeProject={activeProject} result={result} />
+      <IDENavbar
+        activeProject={activeProject}
+        result={result}
+        onOpenHistory={() => setIsHistoryOpen(true)}
+      />
 
       {error && (
         <div style={{
@@ -77,6 +96,14 @@ function MainIDE() {
           }}
         />
       </div>
+
+      <HistoryDrawer
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelectGeneration={(gen) => {
+          hydrateFromHistory(gen);
+        }}
+      />
     </div>
   );
 }
