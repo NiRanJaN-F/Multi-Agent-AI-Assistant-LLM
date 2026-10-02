@@ -39,30 +39,13 @@ export default function CommandCenter({
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    Promise.allSettled([
-      getGenerationHistory({ limit: 10 }),
-      getProjects(),
-    ]).then(([historyRes, projectsRes]) => {
-      const historyItems = historyRes.status === "fulfilled" ? (historyRes.value?.items ?? []) : [];
-      const diskProjects = projectsRes.status === "fulfilled" ? (projectsRes.value?.projects ?? []) : [];
-      
-      const seen = new Set(historyItems.map((h) => h.projectName));
-      const merged = [...historyItems];
-
-      for (const pName of diskProjects) {
-        if (pName && !seen.has(pName)) {
-          seen.add(pName);
-          merged.push({
-            id: `disk-${pName}`,
-            projectName: pName,
-            createdAt: new Date().toISOString(),
-            techStack: "Local Project",
-            mode: "disk",
-          });
-        }
-      }
-      setHistory(merged);
-    }).catch(() => {});
+    getGenerationHistory({ limit: 10 })
+      .then((res) => {
+        setHistory(res?.items ?? []);
+      })
+      .catch(() => {
+        setHistory([]);
+      });
   }, [result]);
 
   useEffect(() => {
