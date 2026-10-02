@@ -1,0 +1,39 @@
+body.dark-mode {
+    background-color: #121212;
+    color: #f0f0f0;
+}
+
+body.dark-mode a {
+    color: #bb86fc;
+}
+
+body.dark-mode button {
+    background-color: #2d2d2d;
+    color: #f0f0f0;
+    border: 1px solid #444;
+}
+
+body.dark-mode header,
+body.dark-mode footer,
+body.dark-mode nav,
+body.dark-mode .card,
+body.dark-mode .container {
+    background-color: #1e1e1e;
+    border-color: #333;
+}
+
+body.dark-mode input,
+body.dark-mode textarea,
+body.dark-mode select {
+    background-color: #1e1e1e;
+    color: #f0f0f0;
+    border: 1px solid #333;
+}
+
+body.dark-mode table {
+    border-color: #333;
+}
+
+body.dark-mode tr:nth-child(even) {
+    background-color: #1a1a1a;
+}

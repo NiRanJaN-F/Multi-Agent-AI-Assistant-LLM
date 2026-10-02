@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LuxeCart - Modern E-Commerce Store</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-thumb { background: rgba(100,100,100,0.3); border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- Navbar -->
+  <nav class="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-2 cursor-pointer" onclick="switchView('store')">
+        <i data-lucide="shopping-bag" class="w-7 h-7 text-indigo-400"></i>
+        <span class="text-xl font-bold tracking-tight">Luxe<span class="text-indigo-400">Cart</span></span>
+      </div>
+      
+      <div class="flex items-center space-x-4">
+        <!-- Search -->
+        <div class="relative hidden sm:block w-64">
+          <input id="searchInput" type="text" placeholder="Search products..."
+                 class="w-full pl-10 pr-4 py-2 rounded-lg bg-slate-800 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+        </div>
+        
+        <!-- Cart Toggle Button -->
+        <button id="cartBtn" onclick="toggleCartModal(true)" class="relative flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Cart</span>
+          <span id="cartBadge" class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+    <!-- Store View / Catalog -->
+    <div id="storeView" class="space-y-6">
+      <!-- Hero Banner -->
+      <div class="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-6 sm:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between">
+        <div class="space-y-3 max-w-lg mb-6 md:mb-0">
+          <span class="bg-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">New Collection</span>
+          <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Elevate Your Everyday Style</h1>
+          <p class="text-gray-300 text-sm sm:text-base">Discover our curated selection of premium goods designed for quality, comfort, and modern living.</p>
+        </div>
+        <button onclick="document.getElementById('productGrid').scrollIntoView({behavior: 'smooth'})" class="bg-white text-slate-900 font-semibold px-6 py-3 rounded-xl hover:bg-gray-100 transition shadow">
+          Shop Now
+        </button>
+      </div>
+
+      <!-- Categories & Filters -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-gray-200 pb-4">
+        <div id="categoryFilters" class="flex flex-wrap gap-2">
+          <button onclick="filterCategory('all')" class="cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white transition">All Products</button>
+          <button onclick="filterCategory('Electronics')" class="cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-600 hover:bg-gray-100 transition border border-gray-200">Electronics</button>
+          <button onclick="filterCategory('Footwear')" class="cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-600 hover:bg-gray-100 transition border border-gray-200">Footwear</button>
+          <button onclick="filterCategory('Lifestyle')" class="cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-600 hover:bg-gray-100 transition border border-gray-200">Lifestyle</button>
+        </div>
+        <div class="text-sm text-gray-500" id="productCount">Showing all items</div>
+      </div>
+
+      <!-- Product Grid -->
+      <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- Order Success / Confirmation View -->
+    <div id="successView" class="hidden max-w-lg mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center space-y-6 my-12">
+      <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+        <i data-lucide="check" class="w-8 h-8"></i>
+      </div>
+      <div class="space-y-2">
+        <h2 class="text-2xl font-bold text-gray-900">Order Placed Successfully!</h2>
+        <p class="text-gray-500 text-sm">Thank you for your purchase. Your order ID is <span id="orderIdDisplay" class="font-mono font-semibold text-gray-800">#LX-98214</span>.</p>
+      </div>
+      <div class="bg-gray-50 p-4 rounded-xl text-left space-y-2 text-sm">
+        <div class="flex justify-between text-gray-600"><span>Estimated Delivery:</span><span class="font-medium text-gray-900">3-5 Business Days</span></div>
+        <div class="flex justify-between text-gray-600"><span>Confirmation sent to:</span><span id="confirmationEmail" class="font-medium text-gray-900">customer@example.com</span></div>
+      </div>
+      <button onclick="switchView('store')" class="w-full bg-slate-900 text-white font-medium py-3 rounded-xl hover:bg-slate-800 transition">
+        Continue Shopping
+      </button>
+    </div>
+
+  </main>
+
+  <!-- Slide-over Cart / Checkout Drawer -->
+  <div id="cartDrawer" class="fixed inset-0 z-50 overflow-hidden hidden">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onclick="toggleCartModal(false)"></div>
+
+    <div class="absolute inset-y-0 right-0 max-w-full flex pl-10">
+      <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col">
+        
+        <!-- Drawer Header -->
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="shopping-cart" class="w-5 h-5 text-indigo-600"></i>
+            <h2 id="drawerTitle" class="text-lg font-bold text-gray-900">Your Cart</h2>
+          </div>
+          <button onclick="toggleCartModal(false)" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <!-- Cart Items / Checkout Form Body -->
+        <div id="drawerBody" class="flex-1 overflow-y-auto p-6 space-y-4">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Drawer Footer / Summary -->
+        <div id="drawerFooter" class="border-t border-gray-100 p-6 bg-gray-50 space-y-4">
+          <div class="space-y-1.5 text-sm">
+            <div class="flex justify-between text-gray-500"><span>Subtotal</span><span id="subtotalAmount" class="font-medium text-gray-900">$0.00</span></div>
+            <div class="flex justify-between text-gray-500"><span>Shipping</span><span class="font-medium text-gray-900">Free</span></div>
+            <div class="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200"><span>Total</span><span id="totalAmount" class="text-indigo-600">$0.00</span></div>
+          </div>
+          <button id="checkoutProceedBtn" onclick="proceedToCheckout()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl transition shadow-sm flex items-center justify-center space-x-2">
+            <span>Proceed to Checkout</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-gray-200 mt-auto py-8 text-center text-sm text-gray-500">
+    <div class="max-w-7xl mx-auto px-4 space-y-2">
+      <p>&copy; 2025 LuxeCart Inc. All rights reserved.</p>
+      <div class="flex justify-center space-x-6">
+        <a href="#" class="hover:text-gray-900">Privacy Policy</a>
+        <a href="#" class="hover:text-gray-900">Terms of Service</a>
+        <a href="#" class="hover:text-gray-900">Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- App logic -->
+  <script>
+    let products = [];
+    let cart = [];
+    let activeCategory = 'all';
+    let searchQuery = '';
+    let isCheckingOut = false;
+
+    // Fetch initial products from backend API
+    async function fetchProducts() {
+      try {
+        const res = await fetch('/api/products');
+        products = await res.json();
+        renderStore();
+      } catch (err) {
+        console.error('Failed to load products:', err);
+      }
+    }
+
+    async function fetchCart() {
+      try {
+        const res = await fetch('/api/cart');
+        const data = await res.json();
+        cart = data.items || [];
+        updateCartUI();
+      } catch (err) {
+        console.error('Failed to load cart:', err);
+      }
+    }
+
+    // Render Store Product Grid
+    function renderStore() {
+      const grid = document.getElementById('productGrid');
+      const filtered = products.filter(p => {
+        const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
+        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+      });
+
+      document.getElementById('productCount').innerText = `Showing ${filtered.length} items`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-16 text-center space-y-3">
+            <i data-lucide="search-x" class="w-12 h-12 text-gray-300 mx-auto"></i>
+            <p class="text-gray-500 font-medium">No products found matching your criteria.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      grid.innerHTML = filtered.map(p => `
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col overflow-hidden group">
+          <div class="relative bg-gray-100 h-48 overflow-hidden">
+            <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-xs font-semibold px-2.5 py-1 rounded-md text-gray-700">${p.category}</span>
+          </div>
+          <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+            <div class="space-y-1">
+              <h3 class="font-semibold text-gray-900 text-base">${p.name}</h3>
+              <p class="text-gray-500 text-xs line-clamp-2">${p.description}</p>
+            </div>
+            <div class="flex items-center justify-between pt-2">
+              <span class="text-lg font-bold text-gray-900">$${p.price.toFixed(2)}</span>
+              <button onclick="addToCart('${p.id}')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-1">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Add to Cart</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    // Filter by Category
+    function filterCategory(cat) {
+      activeCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        if (btn.innerText.toLowerCase() === cat.toLowerCase() || (cat === 'all' && btn.innerText === 'All Products')) {
+          btn.className = "cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white transition";
+        } else {
+          btn.className = "cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-600 hover:bg-gray-100 transition border border-gray-200";
+        }
+      });
+      renderStore();
+    }
+
+    // Search input listener
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderStore();
+    });
+
+    // Add to Cart API
+    async function addToCart(productId) {
+      try {
+        const res = await fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, quantity: 1 })
+        });
+        const data = await res.json();
+        cart = data.items || [];
+        updateCartUI();
+        toggleCartModal(true);
+      } catch (err) {
+        console.error('Error adding to cart:', err);
+      }
+    }
+
+    // Update quantity
+    async function updateQuantity(productId, delta) {
+      const item = cart.find(i => i.productId === productId || i.id === productId);
+      if (!item) return;
+      const newQty = item.quantity + delta;
+      
+      try {
+        const res = await fetch(`/api/cart/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: newQty })
+        });
+        const data = await res.json();
+        cart = data.items || [];
+        updateCartUI();
+      } catch (err) {
+        console.error('Error updating quantity:', err);
+      }
+    }
+
+    // Remove item
+    async function removeFromCart(productId) {
+      try {
+        const res = await fetch(`/api/cart/${productId}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        cart = data.items || [];
+        updateCartUI();
+      } catch (err) {
+        console.error('Error removing item:', err);
+      }
+    }
+
+    // Cart Badge and UI updates
+    function updateCartUI() {
+      const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+      document.getElementById('cartBadge').innerText = totalCount;
+
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      document.getElementById('subtotalAmount').innerText = `$${subtotal.toFixed(2)}`;
+      document.getElementById('totalAmount').innerText = `$${subtotal.toFixed(2)}`;
+
+      if (!isCheckingOut) {
+        renderCartItemsList();
+      }
+    }
+
+    function renderCartItemsList() {
+      const body = document.getElementById('drawerBody');
+      const footer = document.getElementById('drawerFooter');
+      
+      document.getElementById('drawerTitle').innerText = 'Your Cart';
+      footer.style.display = 'block';
+
+      if (cart.length === 0) {
+        body.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-center space-y-3 py-12">
+            <i data-lucide="shopping-bag" class="w-12 h-12 text-gray-300"></i>
+            <p class="text-gray-500 font-medium">Your cart is empty.</p>
+            <button onclick="toggleCartModal(false)" class="text-indigo-600 text-sm font-semibold hover:underline">Start Shopping</button>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      body.innerHTML = cart.map(item => `
+        <div class="flex items-center space-x-4 py-3 border-b border-gray-100">
+          <img src="${item.image}" alt="${item.name}" class="w-16 h-16 object-cover rounded-xl bg-gray-100 flex-shrink-0">
+          <div class="flex-1 min-w-0">
+            <h4 class="font-medium text-gray-900 text-sm truncate">${item.name}</h4>
+            <p class="text-xs text-gray-500 font-semibold mt-0.5">$${item.price.toFixed(2)}</p>
+            <div class="flex items-center space-x-2 mt-2">
+              <button onclick="updateQuantity('${item.productId || item.id}', -1)" class="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 text-xs">-</button>
+              <span class="text-xs font-medium text-gray-800">${item.quantity}</span>
+              <button onclick="updateQuantity('${item.productId || item.id}', 1)" class="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 text-xs">+</button>
+            </div>
+          </div>
+          <button onclick="removeFromCart('${item.productId || item.id}')" class="text-gray-400 hover:text-rose-500 p-1">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    // Toggle Modal Drawer
+    function toggleCartModal(open) {
+      const drawer = document.getElementById('cartDrawer');
+      if (open) {
+        drawer.classList.remove('hidden');
+        if (isCheckingOut) {
+          renderCheckoutForm();
+        } else {
+          renderCartItemsList();
+        }
+      } else {
+        drawer.classList.add('hidden');
+        if (isCheckingOut) {
+          isCheckingOut = false;
+        }
+      }
+    }
+
+    // Checkout Flow Step 1: Render Checkout Form in Drawer
+    function proceedToCheckout() {
+      if (cart.length === 0) return;
+      isCheckingOut = true;
+      
+      document.getElementById('drawerTitle').innerText = 'Checkout';
+      document.getElementById('drawerFooter').style.display = 'none';
+
+      const body = document.getElementById('drawerBody');
+      body.innerHTML = `
+        <form id="checkoutForm" onsubmit="submitCheckout(event)" class="space-y-4">
+          <div class="space-y-1">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Shipping Information</h3>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
+            <input type="text" id="shippingName" required placeholder="John Doe" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
+            <input type="email" id="shippingEmail" required placeholder="john@example.com" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Street Address</label>
+            <input type="text" id="shippingAddress" required placeholder="123 Main St" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">City</label>
+              <input type="text" id="shippingCity" required placeholder="San Francisco" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Postal Code</label>
+              <input type="text" id="shippingZip" required placeholder="94105" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+          </div>
+
+          <div class="pt-4 space-y-1">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Payment Details</h3>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Card Number</label>
+            <input type="text" required placeholder="4242 •••• •••• 4242" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Expiry Date</label>
+              <input type="text" required placeholder="MM/YY" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">CVV</label>
+              <input type="text" required placeholder="123" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+          </div>
+
+          <div class="pt-4">
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl transition shadow-sm">
+              Place Order
+            </button>
+            <button type="button" onclick="renderCartItemsList()" class="w-full mt-2 text-center text-xs text-gray-500 hover:text-gray-800 py-2">
+              Back to Cart
+            </button>
+          </div>
+        </form>
+      `;
+    }
+
+    // Submit Checkout API
+    async function submitCheckout(e) {
+      e.preventDefault();
+      const email = document.getElementById('shippingEmail').value;
+      const name = document.getElementById('shippingName').value;
+      const address = document.getElementById('shippingAddress').value;
+
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shipping: { name, email, address } })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          cart = [];
+          updateCartUI();
+          toggleCartModal(false);
+          isCheckingOut = false;
+
+          // Show Success View
+          document.getElementById('storeView').classList.add('hidden');
+          document.getElementById('successView').classList.remove('hidden');
+          document.getElementById('orderIdDisplay').innerText = `#LX-${Math.floor(10000 + Math.random() * 90000)}`;
+          document.getElementById('confirmationEmail').innerText = email;
+        } else {
+          alert(data.error || 'Checkout failed');
+        }
+      } catch (err) {
+        console.error('Checkout error:', err);
+      }
+    }
+
+    // Switch View Helper
+    function switchView(view) {
+      if (view === 'store') {
+        document.getElementById('successView').classList.add('hidden');
+        document.getElementById('storeView').classList.remove('hidden');
+        fetchProducts();
+        fetchCart();
+      }
+    }
+
+    // Initial load
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchProducts();
+      fetchCart();
+    });
+  </script>
+</body>
+</html>

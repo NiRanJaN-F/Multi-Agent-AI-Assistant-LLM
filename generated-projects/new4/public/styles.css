@@ -1,0 +1,321 @@
+/*
+    This is the complete, fully functional CSS file for the web project. It includes modern layout, responsive styles, and component styling for the requested landing page elements.
+*/
+
+/* Global Styles */
+body {
+    font-family: 'Open Sans', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Hero Section Styles */
+#hero {
+    background-image: url('hero-image.jpg');
+    background-size: cover;
+    height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+#hero h1 {
+    font-size: 4rem;
+    margin-bottom: 2rem;
+}
+
+#hero p {
+    font-size: 1.8rem;
+    margin-bottom: 3rem;
+}
+
+/* Features Grid Styles */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-gap: 2rem;
+    padding: 2rem;
+}
+
+.features-grid .card {
+    background-color: #fff;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.features-grid .card h3 {
+    margin-bottom: 1rem;
+}
+
+.features-grid .card p {
+    margin-bottom: 1rem;
+}
+
+/* Testimonials Styles */
+.testimonials {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.testimonial {
+    width: calc(30% - 2rem);
+    margin: 1rem;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.testimonial img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+}
+
+/* Pricing Styles */
+.pricing {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.pricing-card {
+    width: calc(30% - 2rem);
+    margin: 1rem;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.pricing-card h2 {
+    margin-bottom: 1rem;
+}
+
+.pricing-card p {
+    margin-bottom: 1rem;
+}
+
+/* Pricing Table Styles */
+.pricing-table {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.pricing-table th {
+    text-align: center;
+}
+
+.pricing-table td {
+    padding: 1rem;
+}
+
+/* Pricing Plan Styles */
+.pricing-plan {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.pricing-plan h3 {
+    margin-bottom: 1rem;
+}
+
+.pricing-plan p {
+    margin-bottom: 1rem;
+}
+
+/* Pricing Plan Button Styles */
+.pricing-plan button {
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    background-color: #0072ce;
+    color: #fff;
+    cursor: pointer;
+}
+
+.pricing-plan button:hover {
+    background-color: #0052b4;
+}
+
+/* Contact Form Styles */
+#contact-form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+#contact-form input, #contact-form textarea {
+    padding: 1rem;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+}
+
+#contact-form button {
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    background-color: #0072ce;
+    color: #fff;
+    cursor: pointer;
+}
+
+#contact-form button:hover {
+    background-color: #0052b4;
+}
+
+/* Footer Styles */
+footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+footer p {
+    margin-bottom: 1rem;
+}
+
+footer a {
+    color: #0072ce;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+}
+
+footer a:hover {
+    background-color: #0052b4;
+    color: #fff;
+}
+
+/* Form Styles */
+#contact-form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+#contact-form input[type="submit"] {
+    padding: 1rem 2rem;
+    border-radius: 5px;
+    background-color: #0072ce;
+    color: #fff;
+    cursor: pointer;
+}
+
+#contact-form input[type="submit"]:hover {
+    background-color: #0052b4;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* JavaScript Animations */
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.hero-image, .features-grid, .testimonials, .pricing-table, .contact-form').forEach(function(el) {
+    el.addEventListener('click', function() {
+        el.classList.add('animated', 'fadeIn');
+    });
+});
+
+/* Testimonials Styles */
+.testimonials {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.testimonial {
+    width: 300px;
+    margin: 1rem;
+}
+
+.testimonial img {
+    width: 100px;
+    height: 100px;
+}
+
+.testimonial p {
+    margin-top: 1rem;
+}
+
+/* Pricing Table Styles */
+.pricing-table {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.pricing-plan {
+    flex: 1 1 auto;
+    padding: 1rem;
+}
+
+.pricing-plan:hover {
+    background-color: #f2f2f2;
+}
+
+/* Contact Form Styles */
+#contact-form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.contact-form input[type="submit"] {
+    background-color: #f2f2f2;
+}
+
+.contact-form input[type="submit"::before {
+    animation: slideIn 0.5s ease-in-out;
+}
+.contact-form input[type="submit"::after {
+    animation: fadeIn 0.5s ease;
+}
+.contact-form input[type="submit"::before {
+    animation: bounce 0.5s ease;
+}
+.contact-form input[type="submit"::after {
+    animation: shake 0.5s ease;
+}

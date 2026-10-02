@@ -1,0 +1,289 @@
+/* -------------------------------------------------
+   Variables
+   ------------------------------------------------- */
+:root {
+  --color-primary: #3498db;
+  --color-primary-dark: #2980b9;
+  --color-primary-light: #85c1e9;
+  --color-bg: #f5f7fa;
+  --color-text: #333;
+  --color-muted: #777;
+  --color-header: #2c3e50;
+  --color-card-bg: #fff;
+  --color-card-border: #e0e0e0;
+}
+
+/* -------------------------------------------------
+   Reset & base
+   ------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+/* -------------------------------------------------
+   Layout
+   ------------------------------------------------- */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* -------------------------------------------------
+   Header & Navigation
+   ------------------------------------------------- */
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  font-size: 2.2rem;
+  color: var(--color-header);
+}
+
+/* Optional top navigation bar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 6px;
+  margin-bottom: 2rem;
+}
+
+.navbar .logo {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.navbar .nav-links a {
+  margin-left: 1rem;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.navbar .nav-links a:hover {
+  opacity: 0.8;
+}
+
+/* -------------------------------------------------
+   Hero Section
+   ------------------------------------------------- */
+.hero {
+  position: relative;
+  background: url('hero.jpg') center/cover no-repeat;
+  color: #fff;
+  text-align: center;
+  padding: 4rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 0;
+}
+
+.hero .hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.hero h2 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.hero p {
+  font-size: 1.125rem;
+  margin-bottom: 1.5rem;
+}
+
+/* -------------------------------------------------
+   Voting Section
+   ------------------------------------------------- */
+.vote-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Options Grid */
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* Individual Option Card */
+.option-card {
+  flex: 1 1 200px;
+  background: var(--color-card-bg);
+  border: 2px solid var(--color-card-border);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.option-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.option-card.selected {
+  border-color: var(--color-primary);
+  background: #ecf5ff;
+}
+
+/* Option Content */
+.option-card img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.option-card .option-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+/* Vote Button */
+.vote-btn {
+  align-self: center;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.vote-btn:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+/* -------------------------------------------------
+   Results Section
+   ------------------------------------------------- */
+.results {
+  margin-top: 2rem;
+  background: var(--color-card-bg);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.result-item {
+  margin-bottom: 1rem;
+}
+
+.result-item:last-child {
+  margin-bottom: 0;
+}
+
+.result-label {
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+  color: #555;
+}
+
+/* Result Bar */
+.result-bar {
+  height: 20px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+  border-radius: 4px;
+  width: 0%;
+  transition: width 0.6s ease;
+}
+
+/* -------------------------------------------------
+   Footer
+   ------------------------------------------------- */
+footer {
+  text-align: center;
+  margin-top: 3rem;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+/* -------------------------------------------------
+   Responsive
+   ------------------------------------------------- */
+@media (max-width: 600px) {
+  header h1 {
+    font-size: 1.8rem;
+  }
+
+  .option-card {
+    flex: 1 1 100%;
+  }
+
+  .vote-btn {
+    width: 100%;
+  }
+
+  .hero {
+    padding: 2.5rem 1rem;
+  }
+
+  .hero h2 {
+    font-size: 2rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+  }
+
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .navbar .nav-links {
+    margin-top: 0.5rem;
+  }
+
+  .navbar .nav-links a {
+    margin-left: 0;
+    margin-right: 1rem;
+  }
+}

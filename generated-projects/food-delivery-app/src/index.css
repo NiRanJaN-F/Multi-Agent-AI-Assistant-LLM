@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global base styles */
+@layer base {
+  body {
+    @apply bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased;
+  }
+}
+
+/* Component specific styles */
+@layer components {
+  /* Modal overlay and content */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+  }
+  .modal-content {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md mx-4;
+  }
+
+  /* Cart counter badge */
+  .cart-counter {
+    @apply inline-flex items-center justify-center rounded-full bg-red-600 text-white text-xs font-semibold w-5 h-5;
+  }
+
+  /* Sticky header */
+  .header-sticky {
+    @apply sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-md;
+  }
+
+  /* Footer */
+  .footer {
+    @apply bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-4;
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2;
+  }
+}

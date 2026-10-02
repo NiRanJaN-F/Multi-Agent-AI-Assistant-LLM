@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Midnight Feast — Premium Dark Food Store</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            900: '#090a0f',
+                            800: '#12141c',
+                            700: '#1a1d29',
+                            600: '#272b3b',
+                        },
+                        brand: {
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            glow: 'rgba(245, 158, 11, 0.15)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom scrollbars & smooth transitions */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090a0f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #272b3b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f4660;
+        }
+        .glass-panel {
+            background: rgba(18, 20, 28, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -10px rgba(245, 158, 11, 0.2);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-dark-900">
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- Sticky Top Navbar -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-white/5 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <!-- Brand Badge -->
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-amber-700 flex items-center justify-center text-dark-900 font-bold shadow-lg shadow-brand-glow group-hover:scale-105 transition-transform">
+                    <i data-lucide="utensils" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-gray-200 to-brand-500 bg-clip-text text-transparent">Midnight Feast</span>
+                    <span class="block text-[10px] tracking-widest uppercase text-brand-500 font-semibold">Dark Kitchen & Bar</span>
+                </div>
+            </a>
+
+            <!-- Search Input -->
+            <div class="hidden md:flex flex-1 max-w-md relative">
+                <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                <input type="text" id="search-input" placeholder="Search for gourmet burgers, sushi, drinks..." 
+                    class="w-full bg-dark-800/80 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
+            </div>
+
+            <!-- Action Buttons / Cart Badge -->
+            <div class="flex items-center gap-3">
+                <button id="cart-btn" class="relative flex items-center gap-2 bg-dark-800 hover:bg-dark-700 border border-white/10 px-4 py-2.5 rounded-full transition-all group">
+                    <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-500 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-sm font-medium hidden sm:inline">Cart</span>
+                    <span id="cart-badge" class="absolute -top-1.5 -right-1.5 bg-brand-500 text-dark-900 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-md scale-0 transition-transform duration-300">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+        
+        <!-- Hero Header -->
+        <section class="relative rounded-3xl overflow-hidden glass-panel border border-white/10 p-8 sm:p-12 lg:p-16 flex flex-col lg:flex-row items-center justify-between gap-8 bg-gradient-to-r from-dark-800/90 via-dark-800/50 to-brand-glow">
+            <div class="absolute -right-20 -bottom-20 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="max-w-xl space-y-6 z-10">
+                <div class="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 px-3 py-1 rounded-full text-brand-500 text-xs font-semibold tracking-wide uppercase">
+                    <i data-lucide="zap" class="w-3.5 h-3.5"></i> Lightning Fast Night Delivery
+                </div>
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-none">
+                    Midnight cravings, <span class="bg-gradient-to-r from-brand-500 to-amber-300 bg-clip-text text-transparent">delivered hot.</span>
+                </h1>
+                <p class="text-gray-400 text-base sm:text-lg">
+                    Explore artisan burgers, wood-fired pizzas, exotic sushi, and handcrafted elixirs crafted for your late-night appetite.
+                </p>
+                <div class="flex flex-wrap gap-4 pt-2">
+                    <a href="#menu" class="bg-brand-500 hover:bg-brand-600 text-dark-900 font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-brand-glow flex items-center gap-2">
+                        Explore Menu <i data-lucide="arrow-down" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="relative w-full lg:w-1/2 flex justify-center z-10">
+                <div class="relative w-full max-w-md aspect-video sm:aspect-square rounded-2xl overflow-hidden shadow-2xl border border-white/10 group">
+                    <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1000" alt="Gourmet Feast" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                    <div class="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent"></div>
+                    <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                        <span class="bg-dark-900/80 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-medium border border-white/10">Chef's Special Combo</span>
+                        <span class="text-brand-500 font-bold">$24.99</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Category Filters -->
+        <section id="menu" class="space-y-6 pt-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Our Menu</h2>
+                    <p class="text-sm text-gray-400">Select a category to filter your favorite cravings</p>
+                </div>
+                <!-- Filters Bar -->
+                <div id="category-filters" class="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
+                    <button data-category="all" class="category-btn active px-4 py-2 rounded-xl text-sm font-medium transition-all bg-brand-500 text-dark-900 shadow-md shadow-brand-glow shrink-0">
+                        All Items
+                    </button>
+                    <button data-category="fast-food" class="category-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-dark-800 hover:bg-dark-700 text-gray-300 border border-white/5 shrink-0">
+                        Fast Food
+                    </button>
+                    <button data-category="pizza" class="category-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-dark-800 hover:bg-dark-700 text-gray-300 border border-white/5 shrink-0">
+                        Pizza
+                    </button>
+                    <button data-category="asian" class="category-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-dark-800 hover:bg-dark-700 text-gray-300 border border-white/5 shrink-0">
+                        Asian & Sushi
+                    </button>
+                    <button data-category="beverages" class="category-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-dark-800 hover:bg-dark-700 text-gray-300 border border-white/5 shrink-0">
+                        Beverages
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamically populated via app.js -->
+                <div class="col-span-full py-16 text-center text-gray-500">
+                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-brand-500 mb-2"></i>
+                    Loading menu items...
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-panel border-t border-white/5 mt-20 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-dark-900 font-bold">
+                    <i data-lucide="utensils" class="w-4 h-4"></i>
+                </div>
+                <span class="text-base font-bold text-white">Midnight Feast</span>
+            </div>
+            <p class="text-xs text-gray-500 text-center">&copy; 2025 Midnight Feast Inc. All rights reserved. Crafted for night owls.</p>
+            <div class="flex items-center gap-4 text-gray-400">
+                <a href="#" class="hover:text-brand-500 transition-colors"><i data-lucide="instagram" class="w-5 h-5"></i></a>
+                <a href="#" class="hover:text-brand-500 transition-colors"><i data-lucide="twitter" class="w-5 h-5"></i></a>
+                <a href="#" class="hover:text-brand-500 transition-colors"><i data-lucide="facebook" class="w-5 h-5"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Drawer Component -->
+    <div id="cart-drawer" class="fixed inset-0 z-50 pointer-events-none opacity-0 transition-opacity duration-300">
+        <!-- Backdrop -->
+        <div id="cart-backdrop" class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm pointer-events-auto"></div>
+        
+        <!-- Drawer Panel -->
+        <div class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-dark-800 border-l border-white/10 shadow-2xl flex flex-col pointer-events-auto transform translate-x-full transition-transform duration-300 ease-in-out" id="cart-panel">
+            <!-- Header -->
+            <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 text-brand-500"></i>
+                    <h3 class="text-lg font-bold text-white">Your Cart</h3>
+                    <span id="cart-count-badge" class="bg-dark-700 text-brand-500 text-xs px-2 py-0.5 rounded-full font-semibold">0 items</span>
+                </div>
+                <button id="close-cart-btn" class="w-8 h-8 rounded-full bg-dark-700 hover:bg-dark-600 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Cart Items List -->
+            <div id="cart-items-container" class="flex-1 overflow-y-auto p-6 space-y-4 divide-y divide-white/5">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Footer / Checkout trigger -->
+            <div class="p-6 border-t border-white/5 bg-dark-900/50 space-y-4">
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm text-gray-400">
+                        <span>Subtotal</span>
+                        <span id="cart-subtotal" class="font-medium text-gray-200">$0.00</span>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-400">
+                        <span>Delivery Fee</span>
+                        <span class="font-medium text-gray-200">$3.99</span>
+                    </div>
+                    <div class="flex justify-between text-base font-bold text-white pt-2 border-t border-white/5">
+                        <span>Total</span>
+                        <span id="cart-total" class="text-brand-500">$3.99</span>
+                    </div>
+                </div>
+                <button id="checkout-open-btn" class="w-full bg-brand-500 hover:bg-brand-600 text-dark-900 font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-brand-glow flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Proceed to Checkout <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal Component -->
+    <div id="checkout-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none opacity-0 transition-opacity duration-300">
+        <!-- Backdrop -->
+        <div id="checkout-backdrop" class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm pointer-events-auto"></div>
+
+        <!-- Modal Box -->
+        <div class="relative w-full max-w-lg bg-dark-800 border border-white/10 rounded-3xl shadow-2xl overflow-hidden pointer-events-auto transform scale-95 transition-transform duration-300" id="checkout-panel">
+            <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-5 h-5 text-brand-500"></i>
+                    <h3 class="text-lg font-bold text-white">Checkout Details</h3>
+                </div>
+                <button id="close-checkout-btn" class="w-8 h-8 rounded-full bg-dark-700 hover:bg-dark-600 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form id="checkout-form" class="p-6 space-y-4">
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Full Name</label>
+                    <input type="text" required placeholder="Alex Mercer" 
+                        class="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-brand-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Delivery Address</label>
+                    <input type="text" required placeholder="104 Midnight Avenue, Apt 4B" 
+                        class="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-brand-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Card Number</label>
+                        <input type="text" required placeholder="4242 •••• •••• 4242" 
+                            class="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Expiry / CVC</label>
+                        <input type="text" required placeholder="MM/YY 123" 
+                            class="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-brand-500">
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit" id="submit-order-btn" class="w-full bg-brand-500 hover:bg-brand-600 text-dark-900 font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-brand-glow flex items-center justify-center gap-2">
+                        Complete Order <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success Confirmation Modal -->
+    <div id="success-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none opacity-0 transition-opacity duration-300">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-dark-900/90 backdrop-blur-md"></div>
+        
+        <!-- Panel -->
+        <div id="success-panel" class="relative w-full max-w-md bg-dark-800 border border-white/10 rounded-3xl p-8 text-center space-y-6 shadow-2xl pointer-events-auto transform scale-95 transition-transform duration-300">
+            <div class="w-16 h-16 bg-brand-500/20 border border-brand-500/30 rounded-full flex items-center justify-center mx-auto text-brand-500 shadow-xl shadow-brand-glow">
+                <i data-lucide="check" class="w-8 h-8"></i>
+            </div>
+            <div class="space-y-2">
+                <h3 class="text-2xl font-bold text-white">Order Confirmed!</h3>
+                <p class="text-sm text-gray-400">Your midnight feast is being prepared by our top chefs and will be delivered shortly.</p>
+            </div>
+            <div class="bg-dark-900 rounded-2xl p-4 border border-white/5 space-y-1 text-sm">
+                <div class="flex justify-between text-gray-400">
+                    <span>Order ID:</span>
+                    <span id="success-order-id" class="font-mono text-brand-500 font-semibold">ORD-00000</span>
+                </div>
+                <div class="flex justify-between text-gray-400">
+                    <span>Total Paid:</span>
+                    <span id="success-total" class="font-semibold text-gray-250">$0.00</span>
+                </div>
+            </div>
+            <button id="success-close-btn" class="w-full bg-dark-700 hover:bg-dark-600 text-white font-bold py-3 rounded-xl transition-colors">
+                Back to Store
+            </button>
+        </div>
+    </div>
+
+    <!-- App JavaScript Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Lucide Icons
+            lucide.createIcons();
+
+            // Mock Data fallback in case backend is offline
+            const fallbackProducts = [
+                { id: 1, name: "Truffle Wagyu Burger", category: "fast-food", price: 16.99, rating: 4.9, image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=800", description: "A5 Wagyu patty, black truffle mayo, aged white cheddar." },
+                { id: 2, name: "Wood-Fired Diavola Pizza", category: "pizza", price: 18.50, rating: 4.8, image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=800", description: "Spicy sopressata, Calabrian chilies, fior di latte." },
+                { id: 3, name: "Dragon Roll Deluxe", category: "asian", price: 21.00, rating: 4.9, image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&q=80&w=800", description: "Eel, avocado, tempura shrimp, spicy unagi sauce." },
+                { id: 4, name: "Midnight Espresso Martini", category: "beverages", price: 12.00, rating: 4.7, image: "https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&q=80&w=800", description: "Vodka, fresh espresso, coffee liqueur, golden foam." },
+                { id: 5, name: "Crispy Truffle Fries", category: "fast-food", price: 8.50, rating: 4.6, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&q=80&w=800", description: "Hand-cut potatoes, parmesan reggiano, truffle oil." },
+                { id: 6, name: "Matcha Velvet Shake", category: "beverages", price: 9.00, rating: 4.8, image: "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&q=80&w=800", description: "Ceremonial grade Uji matcha, sweet vanilla cream." }
+            ];
+
+            let products = [];
+            let cart = [];
+            let currentCategory = 'all';
+            let searchQuery = '';
+
+            // DOM Elements
+            const productGrid = document.getElementById('product-grid');
+            const searchInput = document.getElementById('search-input');
+            const categoryBtns = document.querySelectorAll('.category-btn');
+            const cartBtn = document.getElementById('cart-btn');
+            const cartBadge = document.getElementById('cart-badge');
+            const cartDrawer = document.getElementById('cart-drawer');
+            const cartBackdrop = document.getElementById('cart-backdrop');
+            const cartPanel = document.getElementById('cart-panel');
+            const closeCartBtn = document.getElementById('close-cart-btn');
+            const cartItemsContainer = document.getElementById('cart-items-container');
+            const cartCountBadge = document.getElementById('cart-count-badge');
+            const cartSubtotal = document.getElementById('cart-subtotal');
+            const cartTotal = document.getElementById('cart-total');
+            const checkoutOpenBtn = document.getElementById('checkout-open-btn');
+            
+            const checkoutModal = document.getElementById('checkout-modal');
+            const checkoutBackdrop = document.getElementById('checkout-backdrop');
+            const checkoutPanel = document.getElementById('checkout-panel');
+            const closeCheckoutBtn = document.getElementById('close-checkout-btn');
+            const checkoutForm = document.getElementById('checkout-form');
+
+            const successModal = document.getElementById('success-modal');
+            const successPanel = document.getElementById('success-panel');
+            const successOrderId = document.getElementById('success-order-id');
+            const successTotal = document.getElementById('success-total');
+            const successCloseBtn = document.getElementById('success-close-btn');
+            const toastContainer = document.getElementById('toast-container');
+
+            // Fetch Products from API (with fallback)
+            async function fetchProducts() {
+                try {
+                    const res = await fetch('/api/products');
+                    if (!res.ok) throw new Error('API unreachable');
+                    products = await res.json();
+                } catch (err) {
+                    console.warn('Using fallback mock items due to backend state:', err);
+                    products = fallbackProducts;
+                }
+                renderProducts();
+            }
+
+            // Render Product Grid
+            function renderProducts() {
+                const filtered = products.filter(p => {
+                    const matchesCategory = currentCategory === 'all' || p.category === currentCategory;
+                    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                          p.description.toLowerCase().includes(searchQuery.toLowerCase());
+                    return matchesCategory && matchesSearch;
+                });
+
+                if (filtered.length === 0) {
+                    productGrid.innerHTML = `
+                        <div class="col-span-full py-16 text-center space-y-3">
+                            <i data-lucide="search-x" class="w-10 h-10 mx-auto text-gray-500"></i>
+                            <p class="text-gray-400 font-medium">No cravings found matching your filter.</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+
+                productGrid.innerHTML = filtered.map(p => `
+                    <div class="glass-panel rounded-2xl overflow-hidden card-hover flex flex-col group border border-white/5">
+                        <div class="relative aspect-video sm:aspect-square overflow-hidden bg-dark-900">
+                            <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <div class="absolute top-3 right-3 bg-dark-900/80 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-semibold text-brand-500 border border-white/10 flex items-center gap-1 shadow-md">
+                                <i data-lucide="star" class="w-3.5 h-3.5 fill-brand-500 text-brand-500"></i> ${p.rating}
+                            </div>
+                        </div>
+                        <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+                            <div class="space-y-1">
+                                <h3 class="text-lg font-bold text-white group-hover:text-brand-500 transition-colors">${p.name}</h3>
+                                <p class="text-xs text-gray-400 line-clamp-2">${p.description}</p>
+                            </div>
+                            <div class="flex items-center justify-between pt-2">
+                                <span class="text-xl font-extrabold text-white">$${p.price.toFixed(2)}</span>
+                                <button onclick="window.addToCart(${p.id})" class="bg-dark-700 hover:bg-brand-500 hover:text-dark-900 text-brand-500 font-semibold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 border border-white/5 shadow-md">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            }
+
+            // Toast Notification System
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = `glass-panel pointer-events-auto px-4 py-3 rounded-2xl border border-white/10 shadow-2xl flex items-center gap-3 animate-fade-in text-sm font-medium ${type === 'success' ? 'text-white' : 'text-red-400'}`;
+                toast.innerHTML = `
+                    <div class="w-6 h-6 rounded-full bg-brand-500/20 text-brand-500 flex items-center justify-center shrink-0">
+                        <i data-lucide="${type === 'success' ? 'check' : 'alert-circle'}" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <span>${message}</span>
+                `;
+                toastContainer.appendChild(toast);
+                lucide.createIcons();
+
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateY(10px)';
+                    toast.style.transition = 'all 0.3s ease';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+            // Cart Actions
+            window.addToCart = function(productId) {
+                const product = products.find(p => p.id === productId);
+                if (!product) return;
+
+                const existingItem = cart.find(item => item.id === productId);
+                if (existingItem) {
+                    existingItem.quantity += 1;
+                } else {
+                    cart.push({ ...product, quantity: 1 });
+                }
+
+                updateCartUI();
+                showToast(`Added ${product.name} to your cart!`);
+            };
+
+            window.updateQuantity = function(productId, delta) {
+                const itemIndex = cart.findIndex(item => item.id === productId);
+                if (itemIndex > -1) {
+                    cart[itemIndex].quantity += delta;
+                    if (cart[itemIndex].quantity <= 0) {
+                        cart.splice(itemIndex, 1);
+                    }
+                }
+                updateCartUI();
+            };
+
+            function updateCartUI() {
+                const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+                const subtotalAmt = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const deliveryFee = totalItems > 0 ? 3.99 : 0;
+                const totalAmt = subtotalAmt + deliveryFee;
+
+                // Badge updates
+                if (totalItems > 0) {
+                    cartBadge.textContent = totalItems;
+                    cartBadge.classList.remove('scale-0');
+                } else {
+                    cartBadge.classList.add('scale-0');
+                }
+
+                cartCountBadge.textContent = `${totalItems} item${totalItems === 1 ? '' : 's'}`;
+                cartSubtotal.textContent = `$${subtotalAmt.toFixed(2)}`;
+                cartTotal.textContent = `$${totalAmt.toFixed(2)}`;
+                checkoutOpenBtn.disabled = totalItems === 0;
+
+                // Render cart list
+                if (cart.length === 0) {
+                    cartItemsContainer.innerHTML = `
+                        <div class="py-20 text-center space-y-3">
+                            <i data-lucide="shopping-bag" class="w-10 h-10 mx-auto text-gray-600"></i>
+                            <p class="text-gray-500 font-medium">Your cart is currently empty.</p>
+                        </div>
+                    `;
+                } else {
+                    cartItemsContainer.innerHTML = cart.map(item => `
+                        py-4 flex items-center justify-between gap-4 first:pt-0 last:pb-0
+                        <div class="flex items-center gap-3 py-3">
+                            <img src="${item.image}" alt="${item.name}" class="w-14 h-14 rounded-xl object-cover bg-dark-900 border border-white/5 shrink-0">
+                            <div class="space-y-0.5">
+                                <h4 class="text-sm font-bold text-white">${item.name}</h4>
+                                <span class="text-xs text-brand-500 font-semibold">$${item.price.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button onclick="window.updateQuantity(${item.id}, -1)" class="w-7 h-7 rounded-lg bg-dark-700 hover:bg-dark-600 flex items-center justify-center text-gray-300 transition-colors">
+                                <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <span class="text-sm font-semibold w-5 text-center text-white">${item.quantity}</span>
+                            <button onclick="window.updateQuantity(${item.id}, 1)" class="w-7 h-7 rounded-lg bg-dark-700 hover:bg-dark-600 flex items-center justify-center text-gray-300 transition-colors">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                }
+                lucide.createIcons();
+            }
+
+            // Drawer Toggle Helpers
+            function openCart() {
+                cartDrawer.classList.remove('pointer-events-none');
+                cartDrawer.classList.remove('opacity-0');
+                cartPanel.classList.remove('translate-x-full');
+            }
+
+            function closeCart() {
+                cartDrawer.classList.add('opacity-0');
+                cartPanel.classList.add('translate-x-full');
+                setTimeout(() => {
+                    cartDrawer.classList.add('pointer-events-none');
+                }, 300);
+            }
+
+            function openCheckout() {
+                closeCart();
+                checkoutModal.classList.remove('pointer-events-none');
+                checkoutModal.classList.remove('opacity-0');
+                checkoutPanel.classList.remove('scale-95');
+                checkoutPanel.classList.add('scale-100');
+            }
+
+            function closeCheckout() {
+                checkoutModal.classList.add('opacity-0');
+                checkoutPanel.classList.remove('scale-100');
+                checkoutPanel.classList.add('scale-95');
+                setTimeout(() => {
+                    checkoutModal.classList.add('pointer-events-none');
+                }, 300);
+            }
+
+            // Event Listeners
+            cartBtn.addEventListener('click', openCart);
+            closeCartBtn.addEventListener('click', closeCart);
+            cartBackdrop.addEventListener('click', closeCart);
+            
+            checkoutOpenBtn.addEventListener('click', openCheckout);
+            closeCheckoutBtn.addEventListener('click', closeCheckout);
+            checkoutBackdrop.addEventListener('click', closeCheckout);
+
+            // Search Filter Listener
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                renderProducts();
+            });
+
+            // Category Filter Listeners
+            categoryBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    categoryBtns.forEach(b => {
+                        b.classList.remove('bg-brand-500', 'text-dark-900', 'shadow-md', 'shadow-brand-glow');
+                        b.classList.add('bg-dark-800', 'text-gray-300', 'border', 'border-white/5');
+                    });
+                    btn.classList.remove('bg-dark-800', 'text-gray-300', 'border', 'border-white/5');
+                    btn.classList.add('bg-brand-500', 'text-dark-900', 'shadow-md', 'shadow-brand-glow');
+
+                    currentCategory = btn.getAttribute('data-category');
+                    renderProducts();
+                });
+            });
+
+            // Checkout Form Submission
+            checkoutForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = document.getElementById('submit-order-btn');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Processing...`;
+                lucide.createIcons();
+
+                const totalAmt = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + (cart.length > 0 ? 3.99 : 0);
+
+                try {
+                    const res = await fetch('/api/checkout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            items: cart,
+                            total: totalAmt
+                        })
+                    });
+                    
+                    const data = await res.json();
+                    
+                    closeCheckout();
+                    cart = [];
+                    updateCartUI();
+
+                    successOrderId.textContent = data.orderId || 'ORD-' + Math.floor(10000 + Math.random() * 90000);
+                    successTotal.textContent = `$${totalAmt.toFixed(2)}`;
+
+                    successModal.classList.remove('pointer-events-none');
+                    successModal.classList.remove('opacity-0');
+                    successPanel.classList.remove('scale-95');
+                    successPanel.classList.add('scale-100');
+
+                } catch (err) {
+                    console.warn('Backend checkout call failed, simulating success response:', err);
+                    
+                    closeCheckout();
+                    const simulatedOrderId = 'ORD-' + Math.floor(10000 + Math.random() * 90000);
+                    cart = [];
+                    updateCartUI();
+
+                    successOrderId.textContent = simulatedOrderId;
+                    successTotal.textContent = `$${totalAmt.toFixed(2)}`;
+
+                    successModal.classList.remove('pointer-events-none');
+                    successModal.classList.remove('opacity-0');
+                    successPanel.classList.remove('scale-95');
+                    successPanel.classList.add('scale-100');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `Complete Order <i data-lucide="shield-check" class="w-4 h-4"></i>`;
+                    lucide.createIcons();
+                }
+            });
+
+            successCloseBtn.addEventListener('click', () => {
+                successModal.classList.add('opacity-0');
+                successPanel.classList.remove('scale-100');
+                successPanel.classList.add('scale-95');
+                setTimeout(() => {
+                    successModal.classList.add('pointer-events-none');
+                }, 300);
+            });
+
+            // Initial load
+            fetchProducts();
+            updateCartUI();
+        });
+    </script>
+</body>
+</html>

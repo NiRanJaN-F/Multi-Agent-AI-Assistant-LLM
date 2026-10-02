@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login Portal</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                    </svg>
+                </div>
+                <h1>Student Login Portal</h1>
+                <p class="login-subtitle">Access your academic dashboard</p>
+            </div>
+
+            <div id="alert-container" class="alert-container" aria-live="polite"></div>
+
+            <form id="login-form" class="login-form" novalidate>
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        <span class="label-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="20" height="16" x="2" y="4" rx="2"/>
+                                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                            </svg>
+                        </span>
+                        Email Address
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        class="form-input"
+                        placeholder="student@university.edu"
+                        autocomplete="email"
+                        required
+                        aria-describedby="email-error"
+                    >
+                    <span id="email-error" class="error-message" role="alert"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="reg-number" class="form-label">
+                        <span class="label-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="18" height="18" x="3" y="3" rx="2"/>
+                                <path d="M7 7h10M7 12h10M7 17h6"/>
+                            </svg>
+                        </span>
+                        College Registration Number
+                    </label>
+                    <input
+                        type="text"
+                        id="reg-number"
+                        name="reg-number"
+                        class="form-input"
+                        placeholder="e.g., CS2024001"
+                        autocomplete="off"
+                        required
+                        aria-describedby="reg-number-error"
+                    >
+                    <span id="reg-number-error" class="error-message" role="alert"></span>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="remember-me" name="remember-me">
+                        <span class="checkmark"></span>
+                        Remember me
+                    </label>
+                    <a href="#" id="forgot-link" class="forgot-link">Forgot credentials?</a>
+                </div>
+
+                <button type="submit" id="login-btn" class="btn btn-primary">
+                    <span class="btn-text">Sign In</span>
+                    <span class="btn-loader" hidden>
+                        <svg class="spinner" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                        </svg>
+                    </span>
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>Don't have an account? <a href="#" id="register-link">Register here</a></p>
+            </div>
+
+            <div class="demo-credentials" id="demo-credentials">
+                <button type="button" id="toggle-demo" class="btn-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 16v-4M12 8h.01"/>
+                    </svg>
+                    Demo Credentials
+                </button>
+                <div id="demo-details" class="demo-details" hidden>
+                    <p><strong>Email:</strong> demo@university.edu</p>
+                    <p><strong>Reg No:</strong> CS2024001</p>
+                    <button type="button" id="use-demo-btn" class="btn btn-secondary">Use Demo Credentials</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="background-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

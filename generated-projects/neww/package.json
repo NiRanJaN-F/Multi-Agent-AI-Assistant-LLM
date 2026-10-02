@@ -1,0 +1,28 @@
+{
+  "name": "ecommerce-store",
+  "version": "1.0.0",
+  "description": "Full-stack e-commerce store with product listings, shopping cart, and checkout flow",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "ecommerce",
+    "express",
+    "nodejs",
+    "shopping-cart",
+    "checkout"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

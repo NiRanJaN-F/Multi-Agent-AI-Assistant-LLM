@@ -1,0 +1,18 @@
+{
+  "name": "eCommerce-API",
+  "version": "1.0.0",
+  "description": "Full-stack eCommerce API using Node.js and Express",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Your Name",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "body-parser": "^1.19.0",
+    "dotenv": "^8.2.0",
+    "morgan": "^1.10.0"
+  }
+}

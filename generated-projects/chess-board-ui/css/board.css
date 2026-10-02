@@ -1,0 +1,60 @@
+/* css/board.css */
+
+/* -------------------------------------------------
+   Chess board layout – 8 x 8 grid
+   ------------------------------------------------- */
+.chess-board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  width: 100%;
+  max-width: 480px;            /* reasonable max size */
+  aspect-ratio: 1 / 1;         /* keep board square */
+  border: 2px solid #333;
+  margin: 0 auto;              /* center horizontally */
+  box-sizing: border-box;
+}
+
+/* -------------------------------------------------
+   Individual squares
+   ------------------------------------------------- */
+.chess-board .square {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;           /* for Unicode chess pieces if used */
+  user-select: none;
+}
+
+/* Light and dark square colours – classic palette */
+.chess-board .square.light {
+  background-color: #f0d9b5;   /* light beige */
+}
+
+.chess-board .square.dark {
+  background-color: #b58863;   /* dark brown */
+}
+
+/* Optional hover effect for interactivity */
+.chess-board .square:hover {
+  outline: 2px solid #ff0;
+  outline-offset: -2px;
+}
+
+/* -------------------------------------------------
+   Responsive scaling
+   ------------------------------------------------- */
+@media (max-width: 600px) {
+  .chess-board {
+    max-width: 90vw;
+  }
+}
+
+/* -------------------------------------------------
+   Piece placeholder styling (if you embed Unicode pieces)
+   ------------------------------------------------- */
+.chess-board .piece {
+  pointer-events: none;        /* pieces themselves shouldn't capture clicks */
+}

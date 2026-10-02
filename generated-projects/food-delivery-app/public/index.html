@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Food Delivery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-mode">
+
+<header id="header">
+  <h1>Food Delivery</h1>
+  <div id="cart-icon" aria-label="Cart">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6 6H21L19 14H7L6 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="9" cy="20" r="1" fill="currentColor"/>
+      <circle cx="18" cy="20" r="1" fill="currentColor"/>
+    </svg>
+    <span id="cart-count" class="badge">0</span>
+  </div>
+</header>
+
+<main id="main-content">
+  <section id="menu">
+    <div class="menu-item" data-id="1" data-name="Pizza" data-price="12.99">
+      <h2>Pizza</h2>
+      <p>Cheesy delight with fresh toppings.</p>
+      <p class="price">$12.99</p>
+      <button class="add-to-cart" data-id="1">Add to Cart</button>
+    </div>
+    <div class="menu-item" data-id="2" data-name="Burger" data-price="9.99">
+      <h2>Burger</h2>
+      <p>Juicy beef patty with lettuce and tomato.</p>
+      <p class="price">$9.99</p>
+      <button class="add-to-cart" data-id="2">Add to Cart</button>
+    </div>
+    <div class="menu-item" data-id="3" data-name="Sushi" data-price="14.99">
+      <h2>Sushi</h2>
+      <p>Fresh salmon and avocado rolls.</p>
+      <p class="price">$14.99</p>
+      <button class="add-to-cart" data-id="3">Add to Cart</button>
+    </div>
+  </section>
+
+  <aside id="cart">
+    <h2>Your Cart</h2>
+    <ul id="cart-items"></ul>
+    <div class="totals">
+      <p>Subtotal: $<span id="cart-subtotal">0.00</span></p>
+      <p>Tax (10%): $<span id="cart-tax">0.00</span></p>
+      <p>Delivery: $<span id="cart-delivery">5.00</span></p>
+      <hr>
+      <p>Total: $<span id="cart-total">0.00</span></p>
+    </div>
+    <button id="checkout-btn" disabled>Checkout</button>
+  </aside>
+</main>
+
+<div id="checkout-modal" class="modal hidden">
+  <div id="checkout-modal-content" class="modal-content">
+    <span id="close-modal" class="close">&times;</span>
+    <h2>Checkout</h2>
+    <form id="checkout-form">
+      <label for="customer-name">Name</label>
+      <input type="text" id="customer-name" name="name" required>
+      <label for="customer-address">Address</label>
+      <input type="text" id="customer-address" name="address" required>
+      <label for="customer-phone">Phone</label>
+      <input type="tel" id="customer-phone" name="phone" required>
+      <button type="submit" id="submit-order">Place Order</button>
+    </form>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

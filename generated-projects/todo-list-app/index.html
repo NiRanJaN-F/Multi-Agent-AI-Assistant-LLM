@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build A Todo List Web App With Add, Complete, And Delete Tasks.</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Build A Todo List Web App With Add, Complete, And Delete Tasks.</h1>
+            <p class="subtitle">Multi-Agent AI Generated Workspace</p>
+        </header>
+        <main class="card">
+            <form id="todoForm" class="input-group">
+                <input type="text" id="taskInput" placeholder="Enter a new task..." required autocomplete="off">
+                <button type="submit" id="addBtn" class="btn primary">Add Task</button>
+            </form>
+            <div class="controls">
+                <span id="taskCounter">0 tasks remaining</span>
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="active">Active</button>
+                    <button class="filter-btn" data-filter="completed">Completed</button>
+                </div>
+            </div>
+            <ul id="taskList" class="task-list"></ul>
+            <div id="emptyState" class="empty-state">No tasks yet. Add one above!</div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

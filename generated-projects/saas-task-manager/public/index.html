@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SynergyOS — Real-time Team Workspaces & Kanban</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons & Google Fonts -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Custom scrollbars & smooth interactions */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.8);
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .task-card-dragging {
+            opacity: 0.4;
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased overflow-hidden selection:bg-brand-500 selection:text-white">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- AUTH CONTAINER -->
+    <div id="auth-container" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-xl transition-opacity duration-300">
+        <div class="relative w-full max-w-md p-8 mx-4 glass-panel rounded-2xl shadow-2xl border border-slate-800">
+            <div class="flex flex-col items-center mb-8">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/30 mb-4">
+                    <i data-lucide="layers" class="w-6 h-6 text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight text-white">Welcome to SynergyOS</h1>
+                <p class="text-sm text-slate-400 mt-1">Real-time collaborative task management</p>
+            </div>
+
+            <!-- Auth Tabs -->
+            <div class="flex rounded-lg bg-slate-900 p-1 mb-6 border border-slate-800">
+                <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-medium rounded-md transition-all bg-brand-600 text-white shadow">Sign In</button>
+                <button id="tab-signup" onclick="switchAuthTab('signup')" class="flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-all">Create Account</button>
+            </div>
+
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
+                            <i data-lucide="user" class="w-4 h-4"></i>
+                        </span>
+                        <input type="text" id="auth-username" required placeholder="Enter your username" 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                        </span>
+                        <input type="password" id="auth-password" required placeholder="••••••••" 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
+                    </div>
+                </div>
+
+                <button type="submit" id="auth-submit-btn" class="w-full mt-2 py-3 px-4 bg-brand-600 hover:bg-brand-500 active:bg-brand-700 text-white font-medium rounded-lg shadow-lg shadow-brand-600/20 transition-all flex items-center justify-center gap-2">
+                    <span id="auth-btn-text">Sign In</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD (Hidden until auth) -->
+    <div id="dashboard" class="hidden h-full flex flex-col">
+        
+        <!-- Sticky Top Navbar -->
+        <header class="h-16 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-6 flex items-center justify-between z-30 shrink-0">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center shadow-md shadow-brand-500/20">
+                        <i data-lucide="layers" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">SynergyOS</span>
+                </div>
+                
+                <div class="h-5 w-px bg-slate-800 mx-2"></div>
+
+                <!-- Workspace Selector Component -->
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <select id="workspace-select" onchange="handleWorkspaceChange(this.value)" class="appearance-none bg-slate-950 border border-slate-800 text-slate-200 text-sm rounded-lg px-3 py-1.5 pr-8 focus:outline-none focus:border-brand-500 cursor-pointer">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-slate-400">
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </span>
+                    </div>
+                    <button onclick="openNewWorkspaceModal()" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors" title="New Workspace">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search & Actions -->
+            <div class="flex items-center gap-4">
+                <div class="relative hidden sm:block w-64">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="task-search-input" oninput="handleTaskSearch(this.value)" placeholder="Search tasks..." 
+                        class="w-full pl-9 pr-4 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div class="flex items-center gap-3 pl-2 border-l border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400 font-semibold text-xs" id="user-avatar-initial">
+                            U
+                        </div>
+                        <span class="text-sm font-medium text-slate-300 hidden md:inline" id="current-username">Username</span>
+                    </div>
+                    <button onclick="logout()" class="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all" title="Sign out">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Subheader / Action Bar -->
+        <div class="px-6 py-3 bg-slate-900/40 border-b border-slate-800/60 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2 text-sm text-slate-400">
+                <i data-lucide="hard-drive" class="w-4 h-4 text-brand-400"></i>
+                <span id="active-workspace-name" class="font-medium text-slate-200">Select a workspace</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 ml-2" id="task-counter">0 tasks</span>
+            </div>
+            
+            <button onclick="openTaskModal()" class="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-3.5 py-1.5 rounded-lg text-sm font-medium shadow-md shadow-brand-600/20 transition-all">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>New Task</span>
+            </button>
+        </div>
+
+        <!-- Kanban Board Component -->
+        <main class="flex-1 overflow-x-auto p-6 flex gap-6 bg-slate-950 items-start">
+            
+            <!-- Todo Column -->
+            <div class="w-80 shrink-0 flex flex-col max-h-full bg-slate-900/60 border border-slate-800/80 rounded-xl overflow-hidden shadow-xl"
+                 ondragover="allowDrop(event)" ondrop="dropTask(event, 'todo')">
+                <div class="p-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <h3 class="font-semibold text-sm text-slate-200">To Do</h3>
+                        <span id="count-todo" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium">0</span>
+                    </div>
+                    <button onclick="openTaskModal('todo')" class="text-slate-400 hover:text-white p-1 rounded transition-colors">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="column-todo" class="p-3 flex-1 overflow-y-auto space-y-3 min-h-[150px]">
+                    <!-- Task Cards injected here -->
+                </div>
+            </div>
+
+            <!-- In Progress Column -->
+            <div class="w-80 shrink-0 flex flex-col max-h-full bg-slate-900/60 border border-slate-800/80 rounded-xl overflow-hidden shadow-xl"
+                 ondragover="allowDrop(event)" ondrop="dropTask(event, 'in_progress')">
+                <div class="p-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span>
+                        <h3 class="font-semibold text-sm text-slate-200">In Progress</h3>
+                        <span id="count-in_progress" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium">0</span>
+                    </div>
+                    <button onclick="openTaskModal('in_progress')" class="text-slate-400 hover:text-white p-1 rounded transition-colors">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="column-in_progress" class="p-3 flex-1 overflow-y-auto space-y-3 min-h-[150px]">
+                    <!-- Task Cards injected here -->
+                </div>
+            </div>
+
+            <!-- Done Column -->
+            <div class="w-80 shrink-0 flex flex-col max-h-full bg-slate-900/60 border border-slate-800/80 rounded-xl overflow-hidden shadow-xl"
+                 ondragover="allowDrop(event)" ondrop="dropTask(event, 'done')">
+                <div class="p-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <h3 class="font-semibold text-sm text-slate-200">Done</h3>
+                        <span id="count-done" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium">0</span>
+                    </div>
+                    <button onclick="openTaskModal('done')" class="text-slate-400 hover:text-white p-1 rounded transition-colors">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="column-done" class="p-3 flex-1 overflow-y-auto space-y-3 min-h-[150px]">
+                    <!-- Task Cards injected here -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Task Modal Component -->
+    <div id="task-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-200">
+        <div class="w-full max-w-lg p-6 mx-4 glass-panel rounded-2xl shadow-2xl border border-slate-800 transform scale-95 transition-all duration-200" id="task-modal-content">
+            <div class="flex items-center justify-between mb-5">
+                <h3 id="task-modal-title" class="text-lg font-bold text-white">Create New Task</h3>
+                <button onclick="closeTaskModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <form id="task-form" onsubmit="handleTaskSubmit(event)" class="space-y-4">
+                <input type="hidden" id="task-id">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Task Title</label>
+                    <input type="text" id="task-title-input" required placeholder="e.g. Design landing page hero section" 
+                        class="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Description</label>
+                    <textarea id="task-desc-input" rows="3" placeholder="Add detailed notes, acceptance criteria..." 
+                        class="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Status Column</label>
+                    <select id="task-status-input" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-brand-500">
+                        <option value="todo">To Do</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="done">Done</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeTaskModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-brand-600/20 transition-all">
+                        Save Task
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Workspace Modal -->
+    <div id="workspace-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-200">
+        <div class="w-full max-w-md p-6 mx-4 glass-panel rounded-2xl shadow-2xl border border-slate-800 transform scale-95 transition-all duration-200" id="workspace-modal-content">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-bold text-white">Create New Workspace</h3>
+                <button onclick="closeNewWorkspaceModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <form onsubmit="handleWorkspaceSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Workspace Name</label>
+                    <input type="text" id="workspace-name-input" required placeholder="e.g. Q3 Growth Initiative" 
+                        class="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeNewWorkspaceModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-brand-600/20 transition-all">
+                        Create Workspace
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // State Management
+        let appState = {
+            token: localStorage.getItem('synergy_token') || null,
+            user: JSON.parse(localStorage.getItem('synergy_user')) || null,
+            workspaces: [],
+            activeWorkspaceId: null,
+            tasks: [],
+            searchQuery: '',
+            authMode: 'login' // 'login' or 'signup'
+        };
+
+        let wsConnection = null;
+
+        // Initialize Lucide icons on boot
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            checkAuthState();
+        });
+
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgColors = type === 'success' ? 'bg-emerald-950/90 border-emerald-500/30 text-emerald-200' : 'bg-red-950/90 border-red-500/30 text-red-200';
+            const icon = type === 'success' ? 'check-circle-2' : 'alert-circle';
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl backdrop-blur-xl transition-all duration-300 transform translate-y-2 opacity-0 ${bgColors}`;
+            toast.innerHTML = `
+                <i data-lucide="${icon}" class="w-5 h-5 shrink-0"></i>
+                <span class="text-sm font-medium">${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // Authentication Handler
+        function switchAuthTab(mode) {
+            appState.authMode = mode;
+            const loginBtn = document.getElementById('tab-login');
+            const signupBtn = document.getElementById('tab-signup');
+            const submitBtnText = document.getElementById('auth-btn-text');
+
+            if (mode === 'login') {
+                loginBtn.className = "flex-1 py-2 text-sm font-medium rounded-md transition-all bg-brand-600 text-white shadow";
+                signupBtn.className = "flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-all";
+                submitBtnText.textContent = "Sign In";
+            } else {
+                signupBtn.className = "flex-1 py-2 text-sm font-medium rounded-md transition-all bg-brand-600 text-white shadow";
+                loginBtn.className = "flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-all";
+                submitBtnText.textContent = "Create Account";
+            }
+        }
+
+        function checkAuthState() {
+            const authContainer = document.getElementById('auth-container');
+            const dashboard = document.getElementById('dashboard');
+
+            if (appState.token && appState.user) {
+                authContainer.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => authContainer.style.display = 'none', 300);
+                dashboard.classList.remove('hidden');
+                
+                document.getElementById('current-username').textContent = appState.user.username;
+                document.getElementById('user-avatar-initial').textContent = appState.user.username.charAt(0).toUpperCase();
+
+                initWorkspaceData();
+                initWebSocket();
+            } else {
+                authContainer.style.display = 'flex';
+                authContainer.classList.remove('opacity-0', 'pointer-events-none');
+                dashboard.classList.add('hidden');
+            }
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const username = document.getElementById('auth-username').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            const endpoint = appState.authMode === 'login' ? '/api/auth/login' : '/api/auth/signup';
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data.error || 'Authentication failed');
+
+                appState.token = data.token;
+                appState.user = data.user;
+
+                localStorage.setItem('synergy_token', data.token);
+                localStorage.setItem('synergy_user', JSON.stringify(data.user));
+
+                showToast(`Welcome back, ${data.user.username}!`);
+                checkAuthState();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function logout() {
+            appState.token = null;
+            appState.user = null;
+            appState.workspaces = [];
+            appState.tasks = [];
+            appState.activeWorkspaceId = null;
+
+            localStorage.removeItem('synergy_token');
+            localStorage.removeItem('synergy_user');
+
+            if (wsConnection) wsConnection.close();
+
+            showToast('Logged out successfully');
+            checkAuthState();
+        }
+
+        // Workspace Management
+        async function initWorkspaceData() {
+            try {
+                const res = await fetch('/api/workspaces', {
+                    headers: { 'Authorization': `Bearer ${appState.token}` }
+                });
+                if (!res.ok) throw new Error('Failed to load workspaces');
+                
+                appState.workspaces = await res.json();
+                renderWorkspaceSelector();
+
+                if (appState.workspaces.length > 0) {
+                    if (!appState.activeWorkspaceId || !appState.workspaces.some(w => w.id === appState.activeWorkspaceId)) {
+                        appState.activeWorkspaceId = appState.workspaces[0].id;
+                    }
+                    document.getElementById('workspace-select').value = appState.activeWorkspaceId;
+                    await loadTasksForActiveWorkspace();
+                } else {
+                    // Auto-create default workspace if empty
+                    await createDefaultWorkspace();
+                }
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function createDefaultWorkspace() {
+            try {
+                const res = await fetch('/api/workspaces', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${appState.token}`
+                    },
+                    body: JSON.stringify({ name: 'General Workspace' })
+                });
+                const ws = await res.json();
+                appState.workspaces.push(ws);
+                appState.activeWorkspaceId = ws.id;
+                renderWorkspaceSelector();
+                await loadTasksForActiveWorkspace();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderWorkspaceSelector() {
+            const select = document.getElementById('workspace-select');
+            select.innerHTML = appState.workspaces.map(w => `
+                <option value="${w.id}">${escapeHtml(w.name)}</option>
+            `).join('');
+            
+            const activeWs = appState.workspaces.find(w => w.id === appState.activeWorkspaceId);
+            if (activeWs) {
+                document.getElementById('active-workspace-name').textContent = activeWs.name;
+                select.value = activeWs.id;
+            }
+        }
+
+        async function handleWorkspaceChange(wsId) {
+            appState.activeWorkspaceId = parseInt(wsId);
+            const activeWs = appState.workspaces.find(w => w.id === appState.activeWorkspaceId);
+            if (activeWs) {
+                document.getElementById('active-workspace-name').textContent = activeWs.name;
+            }
+            await loadTasksForActiveWorkspace();
+        }
+
+        function openNewWorkspaceModal() {
+            const modal = document.getElementById('workspace-modal');
+            const content = document.getElementById('workspace-modal-content');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-95');
+        }
+
+        function closeNewWorkspaceModal() {
+            const modal = document.getElementById('workspace-modal');
+            const content = document.getElementById('workspace-modal-content');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            content.classList.add('scale-95');
+            document.getElementById('workspace-name-input').value = '';
+        }
+
+        async function handleWorkspaceSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('workspace-name-input').value.trim();
+            if (!name) return;
+
+            try {
+                const res = await fetch('/api/workspaces', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${appState.token}`
+                    },
+                    body: JSON.stringify({ name })
+                });
+                if (!res.ok) throw new Error('Failed to create workspace');
+
+                const newWs = await res.json();
+                appState.workspaces.push(newWs);
+                appState.activeWorkspaceId = newWs.id;
+                renderWorkspaceSelector();
+                closeNewWorkspaceModal();
+                showToast(`Workspace "${newWs.name}" created`);
+                await loadTasksForActiveWorkspace();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // Task & Kanban Management
+        async function loadTasksForActiveWorkspace() {
+            if (!appState.activeWorkspaceId) return;
+            try {
+                const res = await fetch(`/api/workspaces/${appState.activeWorkspaceId}/tasks`, {
+                    headers: { 'Authorization': `Bearer ${appState.token}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch tasks');
+                appState.tasks = await res.json();
+                renderKanbanBoard();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function handleTaskSearch(query) {
+            appState.searchQuery = query.toLowerCase().trim();
+            renderKanbanBoard();
+        }
+
+        function renderKanbanBoard() {
+            const statuses

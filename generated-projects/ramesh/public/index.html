@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple E‑Commerce Store</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header id="header">
+        <h1 class="logo">ShopEasy</h1>
+        <div id="cart-icon" class="cart-icon" aria-label="Shopping cart">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+                <path d="M7 4h-2l-3 7v2h2l3-7h12l3 7h2v-2l-3-7h-2l-3 7h-12l-3-7z"/>
+            </svg>
+            <span id="cart-count" class="cart-count">0</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main">
+        <section id="product-list" class="product-list">
+            <!-- Products will be injected here by app.js -->
+        </section>
+    </main>
+
+    <!-- Cart Overlay -->
+    <div id="cart-overlay" class="overlay hidden" aria-hidden="true">
+        <div id="cart-content" class="cart-content" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+            <h2 id="cart-title">Shopping Cart</h2>
+            <div id="cart-items" class="cart-items">
+                <!-- Cart items will be injected here by app.js -->
+            </div>
+            <div class="cart-summary">
+                <span>Total: $<span id="cart-total">0.00</span></span>
+                <button id="checkout-btn" class="btn primary">Checkout</button>
+                <button id="close-cart-btn" class="btn secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkout-overlay" class="overlay hidden" aria-hidden="true">
+        <div id="checkout-content" class="checkout-content" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
+            <h2 id="checkout-title">Checkout</h2>
+            <form id="checkout-form" class="checkout-form">
+                <label>
+                    Full Name
+                    <input type="text" name="name" required>
+                </label>
+                <label>
+                    Email
+                    <input type="email" name="email" required>
+                </label>
+                <label>
+                    Shipping Address
+                    <textarea name="address" rows="3" required></textarea>
+                </label>
+                <label>
+                    Phone Number
+                    <input type="tel" name="phone" required>
+                </label>
+                <label>
+                    Payment Method
+                    <select name="payment" required>
+                        <option value="">Select</option>
+                        <option value="credit">Credit Card</option>
+                        <option value="paypal">PayPal</option>
+                    </select>
+                </label>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">Place Order</button>
+                    <button type="button" id="cancel-checkout-btn" class="btn secondary">Cancel</button>
+                </div>
+            </form>
+            <div id="order-confirmation" class="order-confirmation hidden">
+                <p>Thank you for your purchase! Your order has been placed.</p>
+                <button id="close-confirmation-btn" class="btn secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>

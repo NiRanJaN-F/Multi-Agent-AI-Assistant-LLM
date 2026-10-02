@@ -1,0 +1,25 @@
+{
+  "name": "devgear-storefront",
+  "version": "1.0.0",
+  "description": "Modern e-commerce storefront for developer hardware and mechanical keyboards",
+  "main": "public/js/app.js",
+  "scripts": {
+    "start": "npx serve public"
+  },
+  "keywords": [
+    "ecommerce",
+    "mechanical-keyboards",
+    "developer-hardware",
+    "tailwind",
+    "vanilla-js"
+  ],
+  "author": "Principal Software Engineer & Senior UI/UX Designer",
+  "license": "MIT",
+  "dependencies": {
+    "tailwindcss": "^3.4.1",
+    "lucide": "^0.330.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-zinc-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build A Saas Task Management App With User Authentication, Team Workspaces, Kanban Board, And Real-Time Updates Using Express + Html/Js.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="min-h-full bg-zinc-950 text-zinc-100 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
+    <header class="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-30">
+        <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white">✓</div>
+                <h1 class="text-base font-bold text-white">Build A Saas Task Management App With User Authentication, Team Workspaces, Kanban Board, And Real-Time Updates Using Express + Html/Js.</h1>
+            </div>
+            <span id="taskCounter" class="text-xs text-zinc-400 bg-zinc-800 px-3 py-1 rounded-full border border-zinc-700">0 tasks</span>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-8 space-y-6">
+        <form id="todoForm" class="flex gap-2">
+            <input type="text" id="taskInput" placeholder="Add a new item or task..." required
+                   class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition">
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition">Add</button>
+        </form>
+
+        <div class="flex gap-2 border-b border-zinc-800 pb-3">
+            <button class="filter-btn active px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white" data-filter="all">All</button>
+            <button class="filter-btn px-3 py-1 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-400" data-filter="active">Active</button>
+            <button class="filter-btn px-3 py-1 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-400" data-filter="completed">Completed</button>
+        </div>
+
+        <ul id="taskList" class="space-y-3"></ul>
+        <div id="emptyState" class="text-center py-12 text-zinc-500 text-sm">No items yet. Create one above!</div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

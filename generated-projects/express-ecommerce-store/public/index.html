@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura — Modern Minimalist Commerce</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f4f4f5',
+                            100: '#e4e4e7',
+                            800: '#27272a',
+                            900: '#18181b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom scrollbar and micro-interactions */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f3;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d4d4d8;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1aa;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="bg-zinc-50 text-zinc-900 font-sans antialiased min-h-screen flex flex-col selection:bg-zinc-900 selection:text-white">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- 1. Navbar Component -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-zinc-200/80 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <!-- Brand Badge -->
+            <a href="#" class="flex items-center gap-2 text-zinc-900 group">
+                <div class="w-10 h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center font-bold tracking-wider text-lg shadow-sm group-hover:scale-105 transition-transform">
+                    A
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-bold text-lg tracking-tight leading-none">AURA</span>
+                    <span class="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Storefront</span>
+                </div>
+            </a>
+
+            <!-- Search Bar -->
+            <div class="hidden md:flex items-center flex-1 max-w-md mx-8">
+                <div class="relative w-full">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Search minimalist essentials..." 
+                        class="w-full pl-10 pr-4 py-2.5 bg-zinc-100/80 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-900 transition-all">
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3">
+                <button id="cartToggleBtn" class="relative p-2.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-800 transition-all shadow-sm flex items-center gap-2 group">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 text-zinc-700 group-hover:text-zinc-900"></i>
+                    <span class="text-sm font-medium hidden sm:inline">Cart</span>
+                    <span id="cartBadge" class="absolute -top-1.5 -right-1.5 bg-zinc-900 text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm transition-transform scale-0">0</span>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Search Bar -->
+        <div class="md:hidden px-4 pb-3">
+            <div class="relative w-full">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </span>
+                <input type="text" id="mobileSearchInput" placeholder="Search essentials..." 
+                    class="w-full pl-10 pr-4 py-2 bg-zinc-100/80 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-900">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Flow -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Hero Header -->
+        <section class="mb-10 text-center sm:text-left flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-8 border-b border-zinc-200">
+            <div class="space-y-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-200/70 text-zinc-800">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Spring Collection 2025
+                </span>
+                <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900">Curated Living & Tech</h1>
+                <p class="text-zinc-500 max-w-xl text-sm sm:text-base">Thoughtfully engineered products designed to elevate your daily workflow and personal space.</p>
+            </div>
+        </section>
+
+        <!-- ProductFilter Component -->
+        <section class="mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none" id="filterContainer">
+            <button data-category="All" class="filter-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-zinc-900 text-white shadow-sm whitespace-nowrap">
+                All Products
+            </button>
+            <button data-category="Electronics" class="filter-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300 whitespace-nowrap">
+                Electronics
+            </button>
+            <button data-category="Accessories" class="filter-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300 whitespace-nowrap">
+                Accessories
+            </button>
+            <button data-category="Living" class="filter-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300 whitespace-nowrap">
+                Living
+            </button>
+        </section>
+
+        <!-- ProductCatalog (Grid Container) -->
+        <section id="productCatalog" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Dynamic Product Cards will be rendered here -->
+            <div class="col-span-full py-16 flex flex-col items-center justify-center text-zinc-400">
+                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-3"></i>
+                <p class="text-sm">Loading collection...</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-zinc-200 mt-20 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-zinc-900 text-white flex items-center justify-center font-bold text-sm">A</div>
+                <span class="font-bold tracking-tight text-sm text-zinc-900">AURA Commerce Inc.</span>
+            </div>
+            <p class="text-xs text-zinc-500">Crafted with precision. Built using Node.js Express & Modern Vanilla Stack.</p>
+            <div class="flex items-center gap-4 text-xs text-zinc-500">
+                <a href="#" class="hover:text-zinc-900 transition-colors">Privacy</a>
+                <a href="#" class="hover:text-zinc-900 transition-colors">Terms</a>
+                <a href="#" class="hover:text-zinc-900 transition-colors">Support</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ShoppingCartDrawer Component -->
+    <div id="cartDrawer" class="fixed inset-0 z-50 overflow-hidden hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div id="cartBackdrop" class="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm transition-opacity opacity-0 duration-300"></div>
+
+        <div class="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div id="cartPanel" class="w-screen max-w-md bg-white shadow-2xl transform transition-transform duration-300 ease-in-out translate-x-full flex flex-col">
+                <!-- Drawer Header -->
+                <div class="p-6 border-b border-zinc-200 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="shopping-bag" class="w-5 h-5 text-zinc-900"></i>
+                        <h2 class="text-lg font-bold text-zinc-900" id="slide-over-title">Your Cart</h2>
+                        <span id="cartItemCountBadge" class="bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded-full text-xs font-semibold">0</span>
+                    </div>
+                    <button id="closeCartBtn" class="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Drawer Items Body -->
+                <div id="cartItemsContainer" class="flex-1 overflow-y-auto p-6 divide-y divide-zinc-100">
+                    <!-- Dynamically rendered cart items -->
+                </div>
+
+                <!-- Drawer Footer Summary -->
+                <div class="p-6 border-t border-zinc-200 bg-zinc-50/50 space-y-4">
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between text-zinc-500">
+                            <span>Subtotal</span>
+                            <span id="cartSubtotal" class="font-medium text-zinc-800">$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-zinc-500">
+                            <span>Shipping</span>
+                            <span class="text-zinc-800 font-medium">Free</span>
+                        </div>
+                        <div class="flex justify-between text-base font-bold text-zinc-900 pt-2 border-t border-zinc-200">
+                            <span>Total</span>
+                            <span id="cartTotal">$0.00</span>
+                        </div>
+                    </div>
+                    <button id="checkoutBtn" disabled class="w-full py-3.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        <span>Proceed to Checkout</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CheckoutModal Component -->
+    <div id="checkoutModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div id="checkoutBackdrop" class="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm transition-opacity opacity-0 duration-300"></div>
+
+        <div class="min-h-screen px-4 text-center flex items-center justify-center">
+            <div id="checkoutPanel" class="inline-block w-full max-w-lg p-8 my-8 text-left align-middle transition-all transform bg-white shadow-2xl rounded-2xl opacity-0 scale-95 duration-300">
+                <div class="flex items-center justify-between pb-4 mb-6 border-b border-zinc-200">
+                    <div>
+                        <h3 class="text-lg font-bold text-zinc-900" id="modal-title">Secure Checkout</h3>
+                        <p class="text-xs text-zinc-500">Complete your transaction details below.</p>
+                    </div>
+                    <button id="closeCheckoutBtn" class="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form id="checkoutForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-700 mb-1">First Name</label>
+                            <input required type="text" name="firstName" value="Alex" class="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-900">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-700 mb-1">Last Name</label>
+                            <input required type="text" name="lastName" value="Morgan" class="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-900">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 mb-1">Email Address</label>
+                        <input required type="email" name="email" value="alex.morgan@example.com" class="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-900">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 mb-1">Shipping Address</label>
+                        <input required type="text" name="address" value="742 Evergreen Terrace" class="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-900">
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-zinc-700 mb-1">City</label>
+                            <input required type="text" name="city" value="Springfield" class="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-900">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-700 mb-1">Postal Code</label>
+                            <input required type="text" name="zip" value="97477" class="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-900">
+                        </div>
+                    </div>
+                    <div class="pt-4 border-t border-zinc-200 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-zinc-500 block">Total Amount Due</span>
+                            <span id="checkoutModalTotal" class="text-lg font-bold text-zinc-900">$0.00</span>
+                        </div>
+                        <button type="submit" id="submitOrderBtn" class="py-3 px-6 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium shadow-sm transition-all flex items-center gap-2">
+                            <span>Place Order</span>
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- OrderConfirmation Modal Component -->
+    <div id="confirmationModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div id="confirmationBackdrop" class="fixed inset-0 bg-zinc-900/50 backdrop-blur-sm transition-opacity opacity-0 duration-300"></div>
+
+        <div class="min-h-screen px-4 text-center flex items-center justify-center">
+            <div id="confirmationPanel" class="inline-block w-full max-w-md p-8 my-8 text-center align-middle transition-all transform bg-white shadow-2xl rounded-2xl opacity-0 scale-95 duration-300 space-y-6">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="text-xl font-bold text-zinc-900">Order Confirmed!</h3>
+                    <p class="text-sm text-zinc-500">Thank you for your purchase. We are preparing your items for swift dispatch.</p>
+                </div>
+                <div class="bg-zinc-50 p-4 rounded-xl border border-zinc-200/80 text-left space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-zinc-500">Order ID</span>
+                        <span id="confOrderId" class="font-mono font-medium text-zinc-800">ORD-00000</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-zinc-500">Final Total</span>
+                        <span id="confOrderTotal" class="font-medium text-zinc-900">$0.00</span>
+                    </div>
+                </div>
+                <button id="closeConfirmationBtn" class="w-full py-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-sm">
+                    Continue Shopping
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Module -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- State Management ---
+            let state = {
+                products: [],
+                filteredProducts: [],
+                cart: [],
+                activeCategory: 'All',
+                searchQuery: ''
+            };
+
+            // --- Fallback Mock Products (if API is unreachable) ---
+            const fallbackProducts = [
+                { id: 1, name: "Aura Noise-Canceling Headphones", price: 299.99, category: "Electronics", rating: 4.8, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=800" },
+                { id: 2, name: "Minimalist Mechanical Keyboard", price: 149.50, category: "Electronics", rating: 4.9, image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&q=80&w=800" },
+                { id: 3, name: "Ergonomic Aluminum Laptop Stand", price: 65.00, category: "Accessories", rating: 4.6, image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&q=80&w=800" },
+                { id:

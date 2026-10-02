@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpendSmart Pro | Financial & Expense Command Center</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="h-full font-sans antialiased selection:bg-brand-500 selection:text-white flex flex-col">
+
+    <!-- AppLayout Component -->
+    <div id="app" class="min-h-full flex flex-col">
+
+        <!-- DashboardHeader Component (Sticky Navigation) -->
+        <header class="sticky top-0 z-40 backdrop-blur-xl bg-slate-900/80 border-b border-slate-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                        <i data-lucide="wallet" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">SpendSmart</span>
+                        <span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 ml-1.5 border border-brand-500/20">PRO</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 max-w-md hidden md:block">
+                    <div class="relative">
+                        <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                        <input type="text" id="globalSearch" placeholder="Search transactions, savings goals..." class="w-full bg-slate-800/50 border border-slate-700/60 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-500">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="app.openCheckoutModal()" class="relative inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700/80 text-slate-200 px-3.5 py-2 rounded-xl text-sm font-medium border border-slate-700 transition-all shadow-sm">
+                        <i data-lucide="credit-card" class="w-4 h-4 text-brand-400"></i>
+                        <span class="hidden sm:inline">Checkout / Settlement</span>
+                        <span id="cartBadge" class="absolute -top-1.5 -right-1.5 bg-brand-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-900 shadow">0</span>
+                    </button>
+                    <div class="h-8 w-px bg-slate-800 mx-1"></div>
+                    <div class="flex items-center gap-2">
+                        <div class="h-9 w-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-semibold text-sm">
+                            JS
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+            <!-- FinancialSummaryCards Component -->
+            <section id="FinancialSummaryCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <!-- Total Balance -->
+                <div class="bg-slate-900/60 backdrop-blur border border-slate-800/80 rounded-2xl p-5 shadow-xl relative overflow-hidden group hover:border-slate-700 transition-all">
+                    <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-brand-500/10 rounded-full blur-2xl group-hover:bg-brand-500/20 transition-all"></div>
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Total Net Balance</span>
+                        <div class="p-2 rounded-xl bg-brand-500/10 text-brand-400">
+                            <i data-lucide="wallet-cards" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <h3 id="statTotalBalance" class="text-3xl font-bold tracking-tight text-white">$0.00</h3>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                        <i data-lucide="trending-up" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span class="text-emerald-400 font-medium">+12.3%</span> from last month
+                    </p>
+                </div>
+
+                <!-- Monthly Income -->
+                <div class="bg-slate-900/60 backdrop-blur border border-slate-800/80 rounded-2xl p-5 shadow-xl relative overflow-hidden group hover:border-slate-700 transition-all">
+                    <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Total Income</span>
+                        <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                            <i data-lucide="arrow-down-left" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <h3 id="statTotalIncome" class="text-3xl font-bold tracking-tight text-white">$0.00</h3>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Active cash inflow streams</p>
+                </div>
+
+                <!-- Monthly Expenses -->
+                <div class="bg-slate-900/60 backdrop-blur border border-slate-800/80 rounded-2xl p-5 shadow-xl relative overflow-hidden group hover:border-slate-700 transition-all">
+                    <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all"></div>
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Total Expenses</span>
+                        <div class="p-2 rounded-xl bg-rose-500/10 text-rose-400">
+                            <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <h3 id="statTotalExpense" class="text-3xl font-bold tracking-tight text-white">$0.00</h3>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Tracked outgoing spending</p>
+                </div>
+
+                <!-- Savings Progress -->
+                <div class="bg-slate-900/60 backdrop-blur border border-slate-800/80 rounded-2xl p-5 shadow-xl relative overflow-hidden group hover:border-slate-700 transition-all">
+                    <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Savings Goal Pool</span>
+                        <div class="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                            <i data-lucide="piggy-bank" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <h3 id="statTotalSavings" class="text-3xl font-bold tracking-tight text-white">$0.00</h3>
+                    </div>
+                    <p id="statSavingsSubtitle" class="text-xs text-slate-500 mt-2">Target pool progress</p>
+                </div>
+            </section>
+
+            <!-- AnalyticsChart Component -->
+            <section id="AnalyticsChart" class="bg-slate-900/60 backdrop-blur border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-5 h-5 text-brand-400"></i>
+                            Spending & Cashflow Analytics
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Visual breakdown of your financial distribution over time</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                        <button onclick="app.setChartType('bar')" id="btnBarChart" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow transition-all">Comparison</button>
+                        <button onclick="app.setChartType('doughnut')" id="btnDoughnutChart" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all">Distribution</button>
+                    </div>
+                </div>
+                <div class="h-72 w-full relative">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </section>
+
+            <!-- TransactionManager & SavingsTracker Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- TransactionManager (TransactionForm & TransactionList) - Span 2 -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- TransactionForm Component -->
+                    <div id="TransactionForm" class="bg-slate-900/60 backdrop-blur border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+                        <h2 class="text-base font-bold text-white tracking-tight flex items-center gap-2 mb-4">
+                            <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-400"></i>
+                            Add New Transaction
+                        </h2>
+                        <form id="transactionForm" onsubmit="app.handleTransactionSubmit(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                            <div class="sm:col-span-4">
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Title / Merchant</label>
+                                <input type="text" id="txTitle" required placeholder="e.g., Apple Store, Salary" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-slate-200">
+                            </div>
+                            <div class="sm:col-span-3">
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Amount ($)</label>
+                                <input type="number" step="0.01" id="txAmount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-slate-200">
+                            </div>
+                            <div class="sm:col-span-3">
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Type</label>
+                                <select id="txType" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-slate-200">
+                                    <option value="expense">Expense</option>
+                                    <option value="income">Income</option>
+                                </select>
+                            </div>
+                            <div class="sm:col-span-2 flex items-end">
+                                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2 px-4 rounded-xl text-sm transition-all shadow-lg shadow-brand-600/20 flex items-center justify-center gap-1.5">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Add
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- TransactionList Component -->
+                    <div id="TransactionList" class="bg-slate-900/60 backdrop-blur border border-slate-800/80 rounded-2xl p-6 shadow-xl space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                                    <i data-lucide="receipt" class="w-5 h-5 text-brand-400"></i>
+                                    Recent Transactions
+                                </h2>
+                                <p class="text-xs text-slate-400 mt-0.5">Manage and audit your transaction history</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="app.filterTransactions('all')" id="filterAll" class="px-3 py-1 rounded-lg text-xs font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/30">All</button>
+                                <button onclick="app.filterTransactions('expense')" id="filterExpense" class="px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-950 border border-slate-800">Expenses</button>
+                                <button onclick="app.filterTransactions('income')" id="filterIncome" class="px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-950 border border-slate-800">Income</button>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                                        <th class="py-3 px-4">Transaction</th>
+                                        <th class="py-3 px-4">Type</th>
+                                        <th class="py-3 px-4">Date</th>
+                                        <th class="py-3 px-4 text-right">Amount</th>
+                                        <th class="py-3 px-4 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionTableBody" class="divide-y divide-slate-800/60 text-sm">
+                                    <!-- Dynamic rows injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SavingsTracker Component - Span 1 -->
+                <div class="space-y-6">
+                    <div id="SavingsTracker" class="bg-slate-900/60 backdrop-blur border border-slate-800/80 rounded-2xl p-6 shadow-xl space-y-5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                                    <i data-lucide="target" class="w-5 h-5 text-blue-400"></i>
+                                    Savings Goals
+                                </h2>
+                                <p class="text-xs text-slate-400 mt-0.5">Track milestones and allocations</p>
+                            </div>
+                        </div>
+
+                        <!-- Add Saving Goal Form -->
+                        <form id="savingForm" onsubmit="app.handleSavingSubmit(event)" class="space-y-3 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+                            <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">New Goal Milestone</h3>
+                            <div>
+                                <input type="text" id="savingGoal" required placeholder="Goal Name (e.g. Vacation)" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500 text-slate-200">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="number" step="0.01" id="savingTarget" required placeholder="Target ($)" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500 text-slate-200">
+                                <input type="number" step="0.01" id="savingCurrent" placeholder="Current ($)" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500 text-slate-200">
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-1.5 rounded-lg text-xs transition-all shadow">
+                                Create Savings Goal
+                            </button>
+                        </form>
+
+                        <!-- Goals List Container -->
+                        <div id="savingsListContainer" class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                            <!-- Dynamic items injected here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+        <!-- CheckoutModal Component -->
+        <div id="checkoutModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-300">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-6 relative transform scale-95 transition-transform duration-300" id="checkoutModalContent">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2 rounded-xl bg-brand-500/10 text-brand-400">
+                            <i data-lucide="shield-check" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-base">Secure Checkout Flow</h3>
+                            <p class="text-xs text-slate-400">Simulate final financial settlement</p>
+                        </div>
+                    </div>
+                    <button onclick="app.closeCheckoutModal()" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-400">Pending Transactions Balance</span>
+                            <span id="checkoutModalBalance" class="font-bold text-white">$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-400">Processing Fee</span>
+                            <span class="font-bold text-emerald-400">Free</span>
+                        </div>
+                        <div class="border-t border-slate-800 pt-3 flex justify-between text-base font-bold">
+                            <span class="text-slate-200">Net Settlement Total</span>
+                            <span id="checkoutModalTotal" class="text-brand-400">$0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-slate-400">Payment Authorization PIN</label>
+                        <input type="password" maxlength="4" value="1234" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-center tracking-widest text-slate-300">
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button onclick="app.closeCheckoutModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium py-2.5 rounded-xl text-sm transition-all">
+                        Cancel
+                    </button>
+                    <button onclick="app.executeCheckout()" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-xl text-sm shadow-lg shadow-brand-600/30 transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="lock" class="w-4 h-4"></i> Complete Checkout
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="border-t border-slate-900 bg-slate-950 py-6 mt-12 text-center text-xs text-slate-500">
+            <p>SpendSmart Pro Engine &bull; Built with Node.js Express, Tailwind CSS & Vanilla JavaScript</p>
+        </footer>
+
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- JavaScript API & App logic -->
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

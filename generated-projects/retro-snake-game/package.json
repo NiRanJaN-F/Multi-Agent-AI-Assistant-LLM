@@ -1,0 +1,21 @@
+{
+  "name": "retro-snake-game",
+  "version": "1.0.0",
+  "description": "A retro Snake game built with HTML5 Canvas, Vanilla JavaScript, and Tailwind CSS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "keywords": [
+    "game",
+    "snake",
+    "retro",
+    "html5-canvas",
+    "vanilla-js"
+  ],
+  "author": "",
+  "license": "ISC"
+}

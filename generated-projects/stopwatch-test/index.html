@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Stopwatch</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="stopwatch">
+        <h1 class="stopwatch-title">Stopwatch</h1>
+
+        <div class="time-display" id="time-display" aria-live="polite" aria-atomic="true">
+            <span class="time-segment" id="hours">00</span>
+            <span class="time-separator">:</span>
+            <span class="time-segment" id="minutes">00</span>
+            <span class="time-separator">:</span>
+            <span class="time-segment" id="seconds">00</span>
+            <span class="time-decimal">.</span>
+            <span class="time-segment time-segment--centiseconds" id="centiseconds">00</span>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn--start" id="start-btn" type="button">Start</button>
+            <button class="btn btn--pause" id="pause-btn" type="button" disabled>Pause</button>
+            <button class="btn btn--lap" id="lap-btn" type="button" disabled>Lap</button>
+            <button class="btn btn--reset" id="reset-btn" type="button" disabled>Reset</button>
+        </div>
+
+        <div class="laps-container" id="laps-container">
+            <h2 class="laps-title" id="laps-title" hidden>Lap Times</h2>
+            <ol class="laps-list" id="laps-list" aria-label="Lap times"></ol>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

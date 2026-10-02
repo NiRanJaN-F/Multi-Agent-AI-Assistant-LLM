@@ -1,0 +1,24 @@
+/* Custom Modern Polish Stylesheet */
+@layer utilities {
+    .glass-card {
+        background: rgba(24, 24, 27, 0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(63, 63, 70, 0.4);
+    }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+}

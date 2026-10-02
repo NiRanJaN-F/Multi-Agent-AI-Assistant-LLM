@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="N/A" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevCore™ | Premium Developer Hardware & Mechanical Keyboards</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#090d16',
+                            800: '#0f172a',
+                            700: '#1e293b',
+                            600: '#334155',
+                        },
+                        accent: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            400: '#818cf8',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body class="bg-dark-900 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-accent-500 selection:text-white">
+
+    <!-- Sticky Glassmorphic Navbar -->
+    <header class="sticky top-0 z-40 backdrop-blur-md bg-dark-900/80 border-b border-slate-800/80 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            
+            <!-- Brand Logo -->
+            <a href="#" id="brand-logo" class="flex items-center gap-3 group focus:outline-none">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-accent-500/25 group-hover:scale-105 transition-transform">
+                    <i data-lucide="terminal" class="w-5 h-5 text-white"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+                        DevCore<span class="text-accent-400">.io</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Hardware Suite</span>
+                </div>
+            </a>
+
+            <!-- Search Bar -->
+            <div class="flex-1 max-w-md hidden md:block">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="search-input" placeholder="Search mechanical keyboards, audio, desks..." 
+                        class="w-full pl-10 pr-4 py-2 bg-dark-800/80 border border-slate-700/60 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 transition-all">
+                </div>
+            </div>
+
+            <!-- Actions / Cart Badge -->
+            <div class="flex items-center gap-3">
+                <button id="cart-btn" aria-label="Open Shopping Cart" class="relative p-2.5 rounded-xl bg-dark-800 hover:bg-dark-700 border border-slate-700/60 text-slate-200 hover:text-white transition-all flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-accent-500">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 text-accent-400"></i>
+                    <span class="hidden sm:inline text-xs font-semibold pr-1">Cart</span>
+                    <span id="cart-count-badge" class="absolute -top-1.5 -right-1.5 bg-accent-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-md shadow-accent-500/50 scale-100 transition-transform">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Search Bar Sub-row -->
+        <div class="px-4 pb-4 md:hidden">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </span>
+                <input type="text" id="mobile-search-input" placeholder="Search keyboards, audio, desks..." 
+                    class="w-full pl-10 pr-4 py-2 bg-dark-800 border border-slate-700 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-accent-500">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Wrapper -->
+    <main class="flex-1">
+        
+        <!-- Hero Section -->
+        <section class="relative overflow-hidden pt-12 pb-16 lg:pt-20 lg:pb-24 border-b border-slate-800/60 bg-gradient-to-b from-dark-800/40 via-dark-900 to-dark-900">
+            <!-- Decorative Glow Elements -->
+            <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute top-10 right-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent-500/10 border border-accent-500/20 text-accent-400 text-xs font-semibold mb-6">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    Engineered for Maximum Developer Velocity
+                </div>
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight max-w-3xl mx-auto leading-tight mb-6">
+                    Craft Your Ultimate <span class="text-transparent bg-clip-text bg-gradient-to-r from-accent-400 via-indigo-300 to-indigo-500">Developer BattleStation</span>
+                </h1>
+                <p class="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+                    Precision-milled mechanical keyboards, ergonomic audio gear, and pristine desk setups designed for deep work and lightning-fast compilation.
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="#store-catalog" class="px-6 py-3 rounded-xl bg-accent-600 hover:bg-accent-500 text-white font-semibold text-sm shadow-lg shadow-accent-600/30 transition-all flex items-center gap-2">
+                        Explore Hardware
+                        <i data-lucide="arrow-down" class="w-4 h-4"></i>
+                    </a>
+                    <a href="#features" class="px-6 py-3 rounded-xl bg-dark-800 hover:bg-dark-700 text-slate-200 border border-slate-700 font-semibold text-sm transition-all">
+                        Why DevCore?
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Store Catalog Section -->
+        <section id="store-catalog" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            
+            <!-- Section Header & Category Filter Tabs -->
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Hardware Catalog</h2>
+                    <p class="text-sm text-slate-400 mt-1">Select a category to filter professional development peripherals.</p>
+                </div>
+
+                <!-- Category Tabs Container -->
+                <div id="category-tabs" class="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+                    <button data-category="all" class="category-tab active px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap bg-accent-600 text-white shadow-md shadow-accent-600/20">
+                        All Gear
+                    </button>
+                    <button data-category="Keyboards" class="category-tab px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap bg-dark-800 text-slate-300 hover:bg-dark-700 hover:text-white border border-slate-700/60">
+                        Keyboards
+                    </button>
+                    <button data-category="Audio" class="category-tab px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap bg-dark-800 text-slate-300 hover:bg-dark-700 hover:text-white border border-slate-700/60">
+                        Audio
+                    </button>
+                    <button data-category="Desks" class="category-tab px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap bg-dark-800 text-slate-300 hover:bg-dark-700 hover:text-white border border-slate-700/60">
+                        Desks
+                    </button>
+                    <button data-category="Accessories" class="category-tab px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap bg-dark-800 text-slate-300 hover:bg-dark-700 hover:text-white border border-slate-700/60">
+                        Accessories
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamically populated via products.js & app.js -->
+            </div>
+
+            <!-- Empty State (Hidden by default) -->
+            <div id="empty-state" class="hidden flex-col items-center justify-center py-20 text-center">
+                <div class="w-16 h-16 rounded-2xl bg-dark-800 border border-slate-700 flex items-center justify-center text-slate-400 mb-4">
+                    <i data-lucide="search-x" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white">No hardware found</h3>
+                <p class="text-sm text-slate-400 mt-1 max-w-sm">We couldn't find any products matching your current search or category filter.</p>
+                <button id="reset-filters-btn" class="mt-5 px-4 py-2 rounded-xl bg-dark-800 hover:bg-dark-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-all">
+                    Reset Filters
+                </button>
+            </div>
+
+        </section>
+
+        <!-- Feature Highlights Section -->
+        <section id="features" class="border-t border-slate-800/80 bg-dark-800/20 py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="p-6 rounded-2xl bg-dark-800/60 border border-slate-700/60 flex flex-col gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center text-accent-400">
+                            <i data-lucide="zap" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-white">Zero Latency Guarantee</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed">Sub-millisecond polling rates across all keyboards and mice to ensure your keystrokes register instantly.</p>
+                    </div>
+                    <div class="p-6 rounded-2xl bg-dark-800/60 border border-slate-700/60 flex flex-col gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center text-accent-400">
+                            <i data-lucide="shield-check" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-white">Hot-Swappable Build Quality</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed">Aircraft-grade aluminum chassis and modular PCB designs built to endure millions of test-driven cycles.</p>
+                    </div>
+                    <div class="p-6 rounded-2xl bg-dark-800/60 border border-slate-700/60 flex flex-col gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center text-accent-400">
+                            <i data-lucide="truck" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-white">Express Dev Delivery</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed">Priority global shipping packed with ESD-safe materials so your hardware arrives ready for deployment.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Slide-over Cart Drawer -->
+    <div id="cart-drawer" class="fixed inset-0 z-50 overflow-hidden pointer-events-none">
+        <!-- Backdrop -->
+        <div id="cart-backdrop" class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm opacity-0 transition-opacity duration-300 pointer-events-none"></div>
+
+        <div class="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div id="cart-panel" class="w-screen max-w-md bg-dark-800 border-l border-slate-700 shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out pointer-events-auto flex flex-col">
+                
+                <!-- Drawer Header -->
+                <div class="p-6 border-b border-slate-700/80 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-accent-500/10 flex items-center justify-center text-accent-400">
+                            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                        </div>
+                        <h2 class="text-lg font-bold text-white tracking-tight">Your Hardware Cart</h2>
+                    </div>
+                    <button id="close-cart-btn" aria-label="Close Cart" class="p-2 rounded-xl hover:bg-dark-700 text-slate-400 hover:text-white transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Drawer Body / Item List -->
+                <div id="cart-items-container" class="flex-1 overflow-y-auto p-6 space-y-4 divide-y divide-slate-700/50">
+                    <!-- Populated dynamically via cart.js -->
+                </div>
+
+                <!-- Drawer Footer / Summary -->
+                <div id="cart-footer" class="p-6 border-t border-slate-700/80 bg-dark-900/60">
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-center justify-between text-sm text-slate-400">
+                            <span>Subtotal</span>
+                            <span id="cart-subtotal" class="font-semibold text-slate-200">$0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-slate-400">
+                            <span>Shipping</span>
+                            <span class="text-emerald-400 font-medium">Calculated at checkout</span>
+                        </div>
+                        <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-base font-bold text-white">
+                            <span>Total</span>
+                            <span id="cart-total" class="text-accent-400">$0.00</span>
+                        </div>
+                    </div>
+                    <button id="checkout-btn" class="w-full py-3.5 px-4 rounded-xl bg-accent-600 hover:bg-accent-500 text-white font-semibold text-sm shadow-lg shadow-accent-600/30 transition-all flex items-center justify-center gap-2">
+                        <span>Proceed to Checkout</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-dark-900 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-accent-600 to-indigo-400 flex items-center justify-center shadow-md">
+                    <i data-lucide="terminal" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="text-sm font-bold text-white tracking-tight">DevCore<span class="text-accent-400">.io</span></span>
+            </div>
+            <p class="text-xs text-slate-500">
+                &copy; <span id="current-year">2025</span> DevCore Hardware Suite. Built for elite software engineers. All rights reserved.
+            </p>
+            <div class="flex items-center gap-4 text-slate-400 text-xs">
+                <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-white transition-colors">Terms of Service</a>
+                <a href="#" class="hover:text-white transition-colors">GitHub</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Script Imports -->
+    <script src="./js/products.js"></script>
+    <script src="./js/cart.js"></script>
+    <script src="./js/ui.js"></script>
+    <script src="./js/app.js"></script>
+</body>
+</html>

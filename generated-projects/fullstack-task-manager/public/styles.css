@@ -1,0 +1,297 @@
+/* public/styles.css */
+
+/* ------------------------------------------------------------------
+   CSS Variables
+------------------------------------------------------------------- */
+:root {
+  --primary-color: #4a90e2;
+  --secondary-color: #f5f5f5;
+  --accent-color: #e74c3c;
+  --text-color: #333;
+  --bg-color: #fff;
+  --border-radius: 4px;
+  --transition: 0.3s ease;
+  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --max-width: 800px;
+}
+
+/* ------------------------------------------------------------------
+   Global Styles
+------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  line-height: 1.5;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background: var(--secondary-color);
+  color: var(--text-color);
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+#app {
+  width: 100%;
+  max-width: var(--max-width);
+  background: var(--bg-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------
+   Header
+------------------------------------------------------------------- */
+header {
+  background: var(--primary-color);
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+/* ------------------------------------------------------------------
+   Add Task Form
+------------------------------------------------------------------- */
+.add-task-form {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.add-task-form .form-group {
+  margin-bottom: 0.75rem;
+}
+
+.add-task-form label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.add-task-form input,
+.add-task-form textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: border-color var(--transition);
+}
+
+.add-task-form input:focus,
+.add-task-form textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.add-task-form button {
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.add-task-form button:hover {
+  background: darken(var(--primary-color), 10%);
+}
+
+/* ------------------------------------------------------------------
+   Task List
+------------------------------------------------------------------- */
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.task-item {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  transition: background var(--transition);
+}
+
+.task-item:last-child {
+  border-bottom: none;
+}
+
+.task-item.completed {
+  background: #f0f8ff;
+  text-decoration: line-through;
+  color: #777;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.task-actions button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  font-size: 1rem;
+  color: #777;
+  transition: color var(--transition);
+}
+
+.task-actions button:hover {
+  color: var(--accent-color);
+}
+
+.task-actions .edit-btn::before {
+  content: '✏️';
+}
+
+.task-actions .delete-btn::before {
+  content: '🗑️';
+}
+
+.task-actions .complete-btn::before {
+  content: '✅';
+}
+
+/* ------------------------------------------------------------------
+   Modal
+------------------------------------------------------------------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--bg-color);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.modal-body .form-group {
+  margin-bottom: 1rem;
+}
+
+.modal-body input,
+.modal-body textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.modal-footer button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.modal-footer .save-btn {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.modal-footer .cancel-btn {
+  background: #ccc;
+  color: #333;
+}
+
+.modal-footer .save-btn:hover {
+  background: darken(var(--primary-color), 10%);
+}
+
+.modal-footer .cancel-btn:hover {
+  background: #bbb;
+}
+
+/* ------------------------------------------------------------------
+   Responsive Design
+------------------------------------------------------------------- */
+@media (min-width: 600px) {
+  .add-task-form {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .add-task-form .form-group {
+    flex: 1;
+    margin-right: 1rem;
+  }
+
+  .add-task-form button {
+    margin-left: 0;
+    margin-top: 0;
+  }
+
+  .task-header {
+    flex-direction: row;
+  }
+
+  .task-actions {
+    display: flex;
+  }
+}
+
+@media (min-width: 900px) {
+  .task-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .task-title {
+    flex: 1;
+  }
+}

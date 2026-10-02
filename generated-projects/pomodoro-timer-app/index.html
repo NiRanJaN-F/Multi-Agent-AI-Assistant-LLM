@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main id="app">
+        <h1>Pomodoro Timer</h1>
+
+        <!-- Timer Display -->
+        <section class="timer-section">
+            <div id="timer-display" aria-live="polite">25:00</div>
+        </section>
+
+        <!-- Controls -->
+        <section class="controls-section">
+            <button id="start-btn" type="button">Start</button>
+            <button id="pause-btn" type="button" disabled>Pause</button>
+            <button id="reset-btn" type="button" disabled>Reset</button>
+        </section>
+
+        <!-- Settings -->
+        <section class="settings-section">
+            <h2>Custom Settings</h2>
+            <form id="settings-form">
+                <label for="work-duration">Work (minutes):</label>
+                <input type="number" id="work-duration" name="work-duration" min="1" max="120" value="25" required>
+
+                <label for="break-duration">Break (minutes):</label>
+                <input type="number" id="break-duration" name="break-duration" min="1" max="60" value="5" required>
+
+                <button id="save-settings-btn" type="submit">Save Settings</button>
+            </form>
+        </section>
+
+        <!-- Session Counter -->
+        <section class="session-section">
+            <div id="session-counter">Sessions Completed: 0</div>
+        </section>
+    </main>
+
+    <script src="app.js" defer></script>
+</body>
+</html>

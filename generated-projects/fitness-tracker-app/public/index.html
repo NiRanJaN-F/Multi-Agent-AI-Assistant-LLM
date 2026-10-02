@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fitness Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Fitness Tracker</h1>
+  </header>
+  <nav class="tabs">
+    <button class="tab-btn active" data-target="steps-section">Steps</button>
+    <button class="tab-btn" data-target="calories-section">Calories</button>
+    <button class="tab-btn" data-target="workouts-section">Workouts</button>
+  </nav>
+
+  <section id="steps-section" class="tab-section active">
+    <h2>Daily Steps</h2>
+    <form id="step-form">
+      <label for="step-input">Steps:</label>
+      <input type="number" id="step-input" name="step-input" min="0" required>
+      <button type="submit">Add</button>
+    </form>
+    <div id="step-list"></div>
+    <p id="step-total">Total Steps: 0</p>
+  </section>
+
+  <section id="calories-section" class="tab-section">
+    <h2>Calorie Log</h2>
+    <form id="calorie-form">
+      <label for="calorie-input">Calories:</label>
+      <input type="number" id="calorie-input" name="calorie-input" min="0" required>
+      <button type="submit">Add</button>
+    </form>
+    <ul id="calorie-list"></ul>
+    <p id="calorie-total">Total Calories: 0</p>
+  </section>
+
+  <section id="workouts-section" class="tab-section">
+    <h2>Workout History</h2>
+    <form id="workout-form">
+      <label for="workout-input">Workout:</label>
+      <input type="text" id="workout-input" name="workout-input" required>
+      <button type="submit">Add</button>
+    </form>
+    <ul id="workout-list"></ul>
+  </section>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

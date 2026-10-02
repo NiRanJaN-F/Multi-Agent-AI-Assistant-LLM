@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Snake Arcade | Play HTML5 Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-slate-950">
+
+    <!-- Sticky Navbar -->
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="window.location.reload()">
+                <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+                    <i data-lucide="gamepad-2" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <span class="font-bold tracking-wider text-lg bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent font-mono">SNAKE_95</span>
+                    <span class="block text-[10px] text-slate-400 font-mono tracking-widest uppercase">Arcade Edition</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <button id="sound-toggle" class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-emerald-400 transition-all" title="Toggle Sound">
+                    <i data-lucide="volume-2" class="w-5 h-5"></i>
+                </button>
+                <button id="info-btn" class="flex items-center space-x-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-all text-sm font-medium">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">How to Play</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Arcade Arena -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col items-center justify-center">
+        
+        <!-- Game Status / Dashboard Bar -->
+        <div class="w-full max-w-2xl flex items-center justify-between bg-slate-900/90 border border-slate-800 rounded-t-xl px-6 py-3 font-mono text-xs sm:text-sm text-slate-300 shadow-lg">
+            <div class="flex items-center space-x-6">
+                <div>
+                    <span class="text-slate-500 block text-[10px]">SCORE</span>
+                    <span id="current-score" class="text-emerald-400 font-bold text-base sm:text-lg">000000</span>
+                </div>
+                <div>
+                    <span class="text-slate-500 block text-[10px]">HIGH SCORE</span>
+                    <span id="high-score" class="text-cyan-400 font-bold text-base sm:text-lg">000000</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div id="game-status-badge" class="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-xs">
+                    PRESS SPACEBAR TO START
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="relative w-full max-w-2xl bg-slate-900 border-x border-b border-slate-800 rounded-b-xl shadow-2xl p-4 flex flex-col items-center">
+            
+            <div class="relative border-4 border-slate-800 rounded-lg overflow-hidden bg-slate-950 shadow-inner">
+                <canvas id="gameCanvas" width="400" height="400" class="block w-full max-w-[400px] aspect-square"></canvas>
+
+                <!-- Overlay Screen (Start / Pause / Game Over) -->
+                <div id="game-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center transition-all">
+                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4 shadow-lg shadow-emerald-500/20 animate-bounce">
+                        <i data-lucide="gamepad-2" class="w-8 h-8"></i>
+                    </div>
+                    <h2 id="overlay-title" class="text-2xl sm:text-3xl font-black font-mono text-white mb-2 tracking-wider">RETRO SNAKE</h2>
+                    <p id="overlay-subtitle" class="text-slate-400 text-xs sm:text-sm max-w-xs mb-6 font-mono">Use arrow keys or WASD to guide the snake. Eat pellets and avoid walls or your own tail!</p>
+                    
+                    <button id="start-game-btn" class="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold font-mono text-sm rounded-lg shadow-lg shadow-emerald-500/25 transition-all transform hover:scale-105 active:scale-95 flex items-center space-x-2">
+                        <i data-lucide="play" class="w-4 h-4 fill-slate-950"></i>
+                        <span>INSERT COIN / START</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Controls Helper Footer -->
+            <div class="mt-6 w-full flex items-center justify-between text-xs text-slate-400 font-mono px-2">
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300">W A S D</span>
+                    <span>/</span>
+                    <span class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300">ARROWS</span>
+                    <span class="hidden sm:inline">to steer</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300">SPACE</span>
+                    <span>Pause / Resume</span>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-6 border-t border-slate-900 bg-slate-950 text-center text-xs text-slate-500 font-mono">
+        <p>RETRO SNAKE ARCADE • BUILT FOR HTML5 / JS</p>
+    </footer>
+
+    <!-- Instructions Modal -->
+    <div id="info-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 shadow-2xl relative">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold font-mono text-white flex items-center space-x-2">
+                    <i data-lucide="help-circle" class="w-5 h-5 text-emerald-400"></i>
+                    <span>How To Play</span>
+                </h3>
+                <button id="close-modal-btn" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-sm text-slate-300 mb-6 font-sans">
+                <p>1. <strong class="text-emerald-400">Objective:</strong> Eat glowing food pellets to grow longer and score points.</p>
+                <p>2. <strong class="text-emerald-400">Controls:</strong> Use Arrow keys or W, A, S, D keys to change direction.</p>
+                <p>3. <strong class="text-emerald-400">Danger:</strong> Avoid crashing into the outer boundaries or the snake's own tail.</p>
+                <p>4. <strong class="text-emerald-400">Pause:</strong> Press Spacebar anytime to pause your game session.</p>
+            </div>
+            <button id="modal-got-it" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold font-mono text-sm rounded-lg transition-all">
+                GOT IT, LET'S PLAY!
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        lucide.createIcons();
+    </script>
+    <script src="./js/game.js"></script>
+</body>
+</html>

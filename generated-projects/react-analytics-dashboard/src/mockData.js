@@ -1,0 +1,212 @@
+export const kpiData = [
+  {
+    id: 'kpi-1',
+    title: 'Total Revenue',
+    value: '$128,430.85',
+    change: '+14.2%',
+    isPositive: true,
+    timeframe: 'vs last month',
+    icon: 'dollar-sign',
+    color: 'indigo',
+  },
+  {
+    id: 'kpi-2',
+    title: 'Active Subscribers',
+    value: '24,892',
+    change: '+8.1%',
+    isPositive: true,
+    timeframe: 'vs last month',
+    icon: 'users',
+    color: 'blue',
+  },
+  {
+    id: 'kpi-3',
+    title: 'Conversion Rate',
+    value: '3.64%',
+    change: '-0.4%',
+    isPositive: false,
+    timeframe: 'vs last month',
+    icon: 'trending-up',
+    color: 'amber',
+  },
+  {
+    id: 'kpi-4',
+    title: 'Avg. Order Value',
+    value: '$148.50',
+    change: '+5.3%',
+    isPositive: true,
+    timeframe: 'vs last month',
+    icon: 'shopping-bag',
+    color: 'emerald',
+  },
+];
+
+export const revenueData = [
+  { month: 'Jan', revenue: 65000, expenses: 32000, profit: 33000 },
+  { month: 'Feb', revenue: 72000, expenses: 34000, profit: 38000 },
+  { month: 'Mar', revenue: 85000, expenses: 38000, profit: 47000 },
+  { month: 'Apr', revenue: 78000, expenses: 36000, profit: 42000 },
+  { month: 'May', revenue: 94000, expenses: 41000, profit: 53000 },
+  { month: 'Jun', revenue: 105000, expenses: 44000, profit: 61000 },
+  { month: 'Jul', revenue: 112000, expenses: 46000, profit: 66000 },
+  { month: 'Aug', revenue: 118000, expenses: 48000, profit: 70000 },
+  { month: 'Sep', revenue: 124000, expenses: 50000, profit: 74000 },
+  { month: 'Oct', revenue: 121000, expenses: 49000, profit: 72000 },
+  { month: 'Nov', revenue: 135000, expenses: 52000, profit: 83000 },
+  { month: 'Dec', revenue: 148000, expenses: 55000, profit: 93000 },
+];
+
+export const trafficData = [
+  { day: 'Mon', visitors: 12400, pageviews: 34200 },
+  { day: 'Tue', visitors: 15600, pageviews: 45100 },
+  { day: 'Wed', visitors: 18200, pageviews: 52400 },
+  { day: 'Thu', visitors: 16800, pageviews: 48900 },
+  { day: 'Fri', visitors: 19400, pageviews: 58200 },
+  { day: 'Sat', visitors: 14200, pageviews: 39800 },
+  { day: 'Sun', visitors: 11100, pageviews: 31000 },
+];
+
+export const categoryData = [
+  { name: 'Enterprise SaaS', value: 45, color: '#6366f1' },
+  { name: 'Cloud Infrastructure', value: 25, color: '#3b82f6' },
+  { name: 'Professional Services', value: 18, color: '#10b981' },
+  { name: 'API & Developer Tools', value: 12, color: '#f59e0b' },
+];
+
+export const recentTransactions = [
+  {
+    id: 'TRX-9482',
+    customer: {
+      name: 'Sophia Martinez',
+      email: 'sophia.m@acme.corp',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
+    },
+    product: 'Enterprise Suite (Annual)',
+    amount: '$4,800.00',
+    status: 'Completed',
+    date: 'Oct 24, 2023',
+    category: 'Enterprise',
+  },
+  {
+    id: 'TRX-9481',
+    customer: {
+      name: 'Liam Chen',
+      email: 'liam.chen@nexus.io',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+    },
+    product: 'Cloud Compute Tier 3',
+    amount: '$1,250.50',
+    status: 'Completed',
+    date: 'Oct 24, 2023',
+    category: 'Cloud',
+  },
+  {
+    id: 'TRX-9480',
+    customer: {
+      name: 'Emma Watson',
+      email: 'emma@starlight.tech',
+      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80',
+    },
+    product: 'Developer API Addon',
+    amount: '$299.00',
+    status: 'Pending',
+    date: 'Oct 23, 2023',
+    category: 'API',
+  },
+  {
+    id: 'TRX-9479',
+    customer: {
+      name: 'Marcus Vance',
+      email: 'm.vance@apexglobal.net',
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
+    },
+    product: 'Consulting & Setup Pack',
+    amount: '$2,500.00',
+    status: 'Completed',
+    date: 'Oct 23, 2023',
+    category: 'Services',
+  },
+  {
+    id: 'TRX-9478',
+    customer: {
+      name: 'Olivia Sterling',
+      email: 'olivia@lumina.design',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+    },
+    product: 'Design System License',
+    amount: '$599.00',
+    status: 'Failed',
+    date: 'Oct 22, 2023',
+    category: 'Enterprise',
+  },
+  {
+    id: 'TRX-9477',
+    customer: {
+      name: 'Dmitri Sokolov',
+      email: 'dmitri@cyberdyne.ru',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80',
+    },
+    product: 'Dedicated Node Cluster',
+    amount: '$3,400.00',
+    status: 'Completed',
+    date: 'Oct 22, 2023',
+    category: 'Cloud',
+  },
+  {
+    id: 'TRX-9476',
+    customer: {
+      name: 'Aisha Patel',
+      email: 'aisha.p@fintech.co',
+      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+    },
+    product: 'Security Addon Pack',
+    amount: '$850.00',
+    status: 'Completed',
+    date: 'Oct 21, 2023',
+    category: 'Enterprise',
+  },
+  {
+    id: 'TRX-9475',
+    customer: {
+      name: 'Carlos Santana',
+      email: 'carlos@musicsphere.com',
+      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&auto=format&fit=crop&q=80',
+    },
+    product: 'Basic Tier Monthly',
+    amount: '$49.00',
+    status: 'Refunded',
+    date: 'Oct 21, 2023',
+    category: 'API',
+  },
+];
+
+export const activityLog = [
+  {
+    id: 'act-1',
+    type: 'success',
+    title: 'Enterprise license renewed',
+    description: 'Acme Corp extended Annual Enterprise Plan for 120 seats.',
+    time: '2 minutes ago',
+  },
+  {
+    id: 'act-2',
+    type: 'warning',
+    title: 'High API latency detected',
+    description: 'Region us-east-1 experienced a 180ms spike.',
+    time: '14 minutes ago',
+  },
+  {
+    id: 'act-3',
+    type: 'alert',
+    title: 'Failed payment webhook',
+    description: 'Invoice #INV-2023-889 returned card declined.',
+    time: '42 minutes ago',
+  },
+  {
+    id: 'act-4',
+    type: 'info',
+    title: 'Automated backup completed',
+    description: 'Postgres clusters synchronized to S3 storage bucket.',
+    time: '1 hour ago',
+  },
+];

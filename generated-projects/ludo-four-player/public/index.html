@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureVote — Next-Gen Decentralized Online Voting Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white min-h-screen flex flex-col">
+
+    <!-- Sticky Glassmorphism Navbar -->
+    <header class="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/25 ring-1 ring-white/20">
+                    <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-bold bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent tracking-tight">SecureVote</span>
+                    <span class="block text-[10px] uppercase tracking-widest text-indigo-400 font-semibold">Encrypted Ballot</span>
+                </div>
+            </div>
+
+            <!-- Search Bar & Navigation Actions -->
+            <div class="flex items-center space-x-4">
+                <div class="relative hidden md:block w-72">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="candidateSearch" placeholder="Search candidates or manifestos..." 
+                        class="w-full pl-10 pr-4 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
+                </div>
+
+                <!-- Admin Action Trigger -->
+                <button id="openAdminModalBtn" class="flex items-center space-x-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-xl text-sm font-medium transition-all shadow-sm">
+                    <i data-lucide="user-cog" class="w-4 h-4 text-brand-400"></i>
+                    <span class="hidden sm:inline">Admin Portal</span>
+                </button>
+
+                <!-- Live Results Toggle Button / Ballot Receipt Badge -->
+                <button id="viewResultsBtn" class="relative flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-indigo-600/20 ring-1 ring-indigo-400/30">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Live Tally</span>
+                    <span id="totalVotesBadge" class="absolute -top-1.5 -right-1.5 px-2 py-0.5 bg-emerald-500 text-slate-950 font-bold text-[10px] rounded-full shadow-md animate-pulse">0 Votes</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow">
+        <!-- Hero Section -->
+        <section class="relative overflow-hidden py-16 lg:py-24 border-b border-slate-900 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/30 via-slate-950 to-slate-950">
+            <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+            
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-6 animate-bounce">
+                    <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                    <span>Zero-Knowledge Verified Election</span>
+                </div>
+                <h1 class="text-4xl sm:text-6xl font-extrabold text-white tracking-tight max-w-4xl mx-auto leading-[1.1]">
+                    Shape the Future. <br class="hidden sm:inline">
+                    <span class="bg-gradient-to-r from-brand-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">Cast Your Secure Vote Today.</span>
+                </h1>
+                <p class="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto font-light leading-relaxed">
+                    Welcome to the official digital ballot. Review the qualified candidates below, examine their manifestos, and cast your single verifiable vote. Results update in real-time.
+                </p>
+
+                <!-- Category Filters -->
+                <div id="categoryTabs" class="mt-10 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                    <button data-category="all" class="category-btn px-5 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-600 text-white shadow-md shadow-brand-600/30">
+                        All Candidates
+                    </button>
+                    <button data-category="Leadership" class="category-btn px-5 py-2.5 rounded-xl text-sm font-medium transition-all bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">
+                        Leadership
+                    </button>
+                    <button data-category="Technology" class="category-btn px-5 py-2.5 rounded-xl text-sm font-medium transition-all bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">
+                        Technology
+                    </button>
+                    <button data-category="Sustainability" class="category-btn px-5 py-2.5 rounded-xl text-sm font-medium transition-all bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">
+                        Sustainability
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Candidates Grid Section -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Qualified Candidates</h2>
+                    <p class="text-sm text-slate-400 mt-1">Select a candidate to review details or cast your ballot.</p>
+                </div>
+                <div class="text-sm text-slate-400">
+                    Showing <span id="candidateCount" class="font-semibold text-white">0</span> candidates
+                </div>
+            </div>
+
+            <!-- Responsive Card Grid -->
+            <div id="candidatesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamic candidate cards injected via UI.js / app.js -->
+            </div>
+
+            <!-- Empty State (hidden by default) -->
+            <div id="emptyState" class="hidden text-center py-24">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-900 flex items-center justify-center text-slate-500 border border-slate-800">
+                    <i data-lucide="user-x" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white">No candidates found</h3>
+                <p class="text-sm text-slate-400 mt-1">Try adjusting your search query or category filter.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-12 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold">
+                    SV
+                </div>
+                <div>
+                    <span class="text-sm font-semibold text-white">SecureVote Enterprise v2.4</span>
+                    <p class="text-xs text-slate-500">Cryptographically secured voting ledger.</p>
+                </div>
+            </div>
+            <div class="text-xs text-slate-500 flex items-center space-x-6">
+                <span class="flex items-center space-x-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span>System Status: Fully Operational</span>
+                </span>
+                <span>&copy; 2025 All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal: Candidate Detail & Voting Confirmation -->
+    <div id="candidateModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300">
+        <div id="candidateModalContent" class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl transform scale-95 transition-all duration-300 relative overflow-hidden">
+            <!-- Close Button -->
+            <button id="closeModalBtn" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-xl transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div id="modalBody">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Live Tally & Analytics Results -->
+    <div id="resultsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl transform scale-95 transition-all duration-300 relative">
+            <button id="closeResultsModalBtn" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-xl transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="p-3 bg-brand-500/10 text-brand-400 rounded-xl border border-brand-500/20">
+                    <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white tracking-tight">Live Election Results & Analytics</h3>
+                    <p class="text-xs text-slate-400">Real-time cryptographic vote counting and percentage distribution.</p>
+                </div>
+            </div>
+
+            <div id="resultsContainer" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <!-- Dynamically populated bar charts -->
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-slate-800 flex items-center justify-between">
+                <div class="text-xs text-slate-400">
+                    Total Certified Ballots Cast: <span id="modalTotalVotes" class="font-bold text-white text-sm">0</span>
+                </div>
+                <button id="resetVotesBtn" class="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-semibold transition-all">
+                    Reset Election Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Admin Portal (Add/Manage Candidates) -->
+    <div id="adminModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl transform scale-95 transition-all duration-300 relative">
+            <button id="closeAdminModalBtn" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-xl transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                    <i data-lucide="user-plus" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white tracking-tight">Admin Candidate Manager</h3>
+                    <p class="text-xs text-slate-400">Add a new verified candidate to the official ballot.</p>
+                </div>
+            </div>
+
+            <form id="addCandidateForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Candidate Full Name</label>
+                    <input type="text" id="newCandidateName" required placeholder="e.g. Dr. Jane Doe"
+                        class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Category</label>
+                        <select id="newCandidateCategory" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="Leadership">Leadership</option>
+                            <option value="Technology">Technology</option>
+                            <option value="Sustainability">Sustainability</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Photo Image URL</label>
+                        <input type="url" id="newCandidateImage" required placeholder="https://images.unsplash.com/..."
+                            class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Manifesto / Platform Summary</label>
+                    <textarea id="newCandidateManifesto" rows="3" required placeholder="Briefly describe the candidate's core goals..."
+                        class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                </div>
+
+                <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-brand-600/25">
+                    Register Candidate on Ballot
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3 pointer-events-none"></div>
+
+    <!-- Application Scripts -->
+    <script src="./js/storage.js"></script>
+    <script src="./js/candidates.js"></script>
+    <script src="./js/ui.js"></script>
+    <script src="./js/app.js"></script>
+</body>
+</html>

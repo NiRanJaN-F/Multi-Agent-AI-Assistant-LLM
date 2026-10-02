@@ -1,0 +1,196 @@
+/* -------------------------------------------------
+   styles.css – Student Registration / Login Page
+   Tech: HTML5 + CSS3 (Vanilla)
+   ------------------------------------------------- */
+
+/* ---- Root variables for easy theming ---- */
+:root {
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --primary-color: #2c7be5;
+    --primary-dark: #1a5bb8;
+    --accent-color: #f5a623;
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --border-radius: 8px;
+    --transition-speed: 0.2s;
+    --error-color: #e74c3c;
+    --success-color: #27ae60;
+}
+
+/* ---- Global resets ---- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: #333;
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+/* ---- Main container ---- */
+.container {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    max-width: 720px;
+    width: 100%;
+    padding: 2rem;
+}
+
+/* ---- Header ---- */
+.container h1 {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+/* ---- Form layout ---- */
+form#registrationForm {
+    display: grid;
+    gap: 1.5rem;
+}
+
+/* Group each label+input pair */
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Labels */
+.form-group label {
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+    color: #555;
+}
+
+/* Text inputs, selects, textarea */
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #cbd5e0;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    background-color: #fff;
+    transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+/* Focus state */
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(44, 123, 229, 0.15);
+}
+
+/* Error state */
+.form-group.error input,
+.form-group.error select,
+.form-group.error textarea {
+    border-color: var(--error-color);
+}
+
+/* Error message */
+.error-message {
+    color: var(--error-color);
+    font-size: 0.875rem;
+    margin-top: 0.3rem;
+}
+
+/* ---- Buttons ---- */
+.button-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+button {
+    cursor: pointer;
+    padding: 0.7rem 1.5rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: var(--border-radius);
+    transition: background-color var(--transition-speed), transform var(--transition-speed);
+    min-width: 120px;
+}
+
+/* Primary action (e.g., Register / Submit) */
+button.primary {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+button.primary:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+/* Secondary action (e.g., Reset) */
+button.secondary {
+    background-color: #e2e8f0;
+    color: #333;
+}
+
+button.secondary:hover {
+    background-color: #cbd5e0;
+}
+
+/* Disabled state */
+button:disabled,
+button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ---- Academic Details Section ---- */
+.academic-section {
+    border-top: 2px solid var(--primary-color);
+    padding-top: 1.5rem;
+}
+
+/* Grid for academic rows (e.g., degree, GPA, etc.) */
+.academic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+/* ---- Responsive adjustments ---- */
+@media (max-width: 600px) {
+    .container {
+        padding: 1.5rem;
+    }
+
+    .container h1 {
+        font-size: 1.75rem;
+    }
+
+    button {
+        width: 100%;
+        min-width: auto;
+    }
+
+    .button-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

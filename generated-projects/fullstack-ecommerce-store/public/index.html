@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Modern Store — Premium E-Commerce Experience</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons & Google Fonts -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Custom scrollbar & smooth transitions */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f5;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-left {
+            animation: slideLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideLeft {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-50 text-slate-900 antialiased flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <!-- StoreApp Root Component Container -->
+    <div id="store-app" class="flex flex-col min-h-full">
+
+        <!-- HEADER: Header Component -->
+        <header id="header-component" class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/80 transition-all">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+                <!-- Brand Badge -->
+                <a href="#" onclick="StoreApp.handleReset(event)" class="flex items-center gap-3 group focus:outline-none">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">
+                        <i data-lucide="zap" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">AURA</span>
+                        <span class="block text-[10px] uppercase tracking-widest font-semibold text-brand-600">Modern Living</span>
+                    </div>
+                </a>
+
+                <!-- Search Input Bar -->
+                <div class="hidden md:flex flex-1 max-w-md relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="search-input" oninput="StoreApp.handleSearch(event)" placeholder="Search premium products..." 
+                        class="w-full pl-10 pr-4 py-2.5 bg-slate-100/80 hover:bg-slate-100 focus:bg-white text-sm rounded-full border border-transparent focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all">
+                </div>
+
+                <!-- Action Buttons & Cart Badge -->
+                <div class="flex items-center gap-3">
+                    <button onclick="StoreApp.toggleCartDrawer(true)" class="relative p-2.5 rounded-full hover:bg-slate-100 text-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/20" aria-label="Shopping Cart">
+                        <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                        <span id="cart-badge" class="absolute top-1 right-1 bg-brand-600 text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm scale-0 transition-transform">0</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Search Bar Sub-row -->
+            <div class="md:hidden px-4 pb-3">
+                <div class="relative w-full">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="mobile-search-input" oninput="StoreApp.handleSearch(event)" placeholder="Search premium products..." 
+                        class="w-full pl-10 pr-4 py-2 bg-slate-100 text-sm rounded-full border border-transparent focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none">
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-grow">
+            
+            <!-- Hero Header Section -->
+            <section class="relative bg-gradient-to-b from-white to-slate-100/50 py-12 lg:py-16 border-b border-slate-200/60 overflow-hidden">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <div class="max-w-2xl">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 mb-4 border border-brand-100">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> New 2025 Collection
+                        </span>
+                        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
+                            Elevate your everyday aesthetic.
+                        </h1>
+                        <p class="text-base sm:text-lg text-slate-600 mb-8">
+                            Curated design objects, high-performance electronics, and lifestyle essentials built for modern living.
+                        </p>
+                    </div>
+
+                    <!-- Category Filter Bar -->
+                    <div id="category-filters" class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+                
+                <!-- Decorative background elements -->
+                <div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/3 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            </section>
+
+            <!-- Product Catalog Component -->
+            <section id="product-catalog" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 id="catalog-title" class="text-2xl font-bold tracking-tight text-slate-900">Featured Catalog</h2>
+                    <span id="product-count" class="text-sm text-slate-500 font-medium">Loading products...</span>
+                </div>
+
+                <!-- Product Grid Container -->
+                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Skeleton Loaders -->
+                    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 animate-pulse">
+                        <div class="w-full h-64 bg-slate-200 rounded-xl mb-4"></div>
+                        <div class="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-4 bg-slate-200 rounded w-1/2"></div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 animate-pulse hidden sm:block">
+                        <div class="w-full h-64 bg-slate-200 rounded-xl mb-4"></div>
+                        <div class="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-4 bg-slate-200 rounded w-1/2"></div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 animate-pulse hidden lg:block">
+                        <div class="w-full h-64 bg-slate-200 rounded-xl mb-4"></div>
+                        <div class="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-4 bg-slate-200 rounded w-1/2"></div>
+                    </div>
+                </div>
+
+                <!-- Empty State (hidden by default) -->
+                <div id="empty-state" class="hidden text-center py-16">
+                    <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="search-x" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-800 mb-1">No products found</h3>
+                    <p class="text-sm text-slate-500 mb-6">We couldn't find anything matching your search criteria.</p>
+                    <button onclick="StoreApp.resetFilters()" class="px-5 py-2.5 bg-slate-900 text-white font-medium text-sm rounded-xl hover:bg-slate-800 transition-colors">
+                        Clear Search & Filters
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- FOOTER: Clean Footer -->
+        <footer class="bg-white border-t border-slate-200 py-10 mt-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white">
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                    </div>
+                    <span class="font-bold text-slate-900">Aura E-Commerce Store</span>
+                </div>
+                <p class="text-sm text-slate-500">&copy; 2025 Aura Inc. All rights reserved. Powered by Express & Vanilla JS.</p>
+                <div class="flex items-center gap-4 text-slate-400">
+                    <span class="text-xs uppercase tracking-wider font-semibold text-slate-400">Secure Checkout</span>
+                    <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i>
+                </div>
+            </div>
+        </footer>
+
+        <!-- CART DRAWER COMPONENT -->
+        <div id="cart-drawer" class="fixed inset-0 z-50 overflow-hidden pointer-events-none transition-opacity duration-300 opacity-0">
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="StoreApp.toggleCartDrawer(false)"></div>
+
+            <div class="absolute inset-y-0 right-0 max-w-full flex pl-10">
+                <div id="cart-drawer-panel" class="w-screen max-w-md bg-white shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out pointer-events-auto">
+                    
+                    <!-- Drawer Header -->
+                    <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="shopping-bag" class="w-5 h-5 text-brand-600"></i>
+                            <h2 class="text-lg font-bold text-slate-900">Shopping Cart</h2>
+                            <span id="cart-item-count-badge" class="ml-1 px-2 py-0.5 bg-brand-50 text-brand-700 font-semibold text-xs rounded-full">0 items</span>
+                        </div>
+                        <button onclick="StoreApp.toggleCartDrawer(false)" class="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Cart Item List Container -->
+                    <div id="cart-items-container" class="flex-1 overflow-y-auto p-6 divide-y divide-slate-100">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- Cart Drawer Footer / Summary -->
+                    <div id="cart-footer" class="p-6 border-t border-slate-100 bg-slate-50/50">
+                        <div class="space-y-3 mb-6">
+                            <div class="flex justify-between text-sm text-slate-600">
+                                <span>Subtotal</span>
+                                <span id="cart-subtotal" class="font-semibold text-slate-900">$0.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm text-slate-600">
+                                <span>Shipping</span>
+                                <span class="text-emerald-600 font-medium">Free</span>
+                            </div>
+                            <div class="pt-3 border-t border-slate-200 flex justify-between text-base font-bold text-slate-900">
+                                <span>Total</span>
+                                <span id="cart-total" class="text-brand-600">$0.00</span>
+                            </div>
+                        </div>
+                        <button onclick="StoreApp.openCheckout()" id="checkout-btn" class="w-full py-3.5 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-semibold rounded-xl shadow-lg shadow-brand-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none">
+                            <span>Proceed to Checkout</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHECKOUT MODAL COMPONENT -->
+        <div id="checkout-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto pointer-events-none opacity-0 transition-opacity duration-300">
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="StoreApp.closeCheckout()"></div>
+
+            <div id="checkout-modal-panel" class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden pointer-events-auto transform scale-95 transition-all duration-300">
+                <div class="p-6 sm:p-8 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">Checkout Details</h3>
+                        <p class="text-sm text-slate-500">Complete your order securely.</p>
+                    </div>
+                    <button onclick="StoreApp.closeCheckout()" class="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form id="checkout-form" onsubmit="StoreApp.submitCheckout(event)" class="p-6 sm:p-8 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Full Name</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <i data-lucide="user" class="w-4 h-4"></i>
+                            </span>
+                            <input type="text" required name="name" placeholder="Alex Morgan" value="Jane Doe"
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Email Address</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <i data-lucide="mail" class="w-4 h-4"></i>
+                            </span>
+                            <input type="email" required name="email" placeholder="alex@example.com" value="jane.doe@example.com"
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Shipping Address</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <i data-lucide="map-pin" class="w-4 h-4"></i>
+                            </span>
+                            <input type="text" required name="address" placeholder="123 Innovation Way, Suite 400" value="742 Evergreen Terrace"
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">City</label>
+                            <input type="text" required name="city" placeholder="San Francisco" value="Springfield"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Postal Code</label>
+                            <input type="text" required name="postal" placeholder="94107" value="97477"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-slate-500 block">Total Amount</span>
+                            <span id="modal-checkout-total" class="text-lg font-bold text-brand-600">$0.00</span>
+                        </div>
+                        <button type="submit" id="pay-now-btn" class="px-6 py-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-semibold rounded-xl shadow-lg shadow-brand-600/30 transition-all flex items-center gap-2">
+                            <span>Confirm & Pay</span>
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- PRODUCT DETAILS / QUICK VIEW MODAL COMPONENT -->
+        <div id="product-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto pointer-events-none opacity-0 transition-opacity duration-300">
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="StoreApp.closeProductModal()"></div>
+
+            <div id="product-modal-panel" class="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden pointer-events-auto transform scale-95 transition-all duration-300 flex flex-col md:flex-row">
+                <button onclick="StoreApp.closeProductModal()" class="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 backdrop-blur-md hover:bg-white text-slate-700 transition-colors shadow-sm">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+                
+                <!-- Product Image -->
+                <div class="md:w-1/2 bg-slate-100 relative min-h-[280px] md:min-h-[420px]">
+                    <img id="modal-product-img" src="" alt="" class="w-full h-full object-cover">
+                </div>
+
+                <!-- Product Info -->
+                <div class="md:w-1/2 p-6 sm:p-8 flex flex-col justify-between">
+                    <div>
+                        <span id="modal-product-category" class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 mb-3 uppercase tracking-wider"></span>
+                        <h3 id="modal-product-name" class="text-2xl font-bold text-slate-900 mb-2"></h3>
+                        <div class="flex items-center gap-1.5 text-amber-500 mb-4">
+                            <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                            <span id="modal-product-rating" class="text-sm font-semibold text-slate-700">4.9</span>
+                            <span class="text-xs text-slate-400">(128 reviews)</span>
+                        </div>
+                        <div id="modal-product-price" class="text-2xl font-extrabold text-brand-600 mb-4"></div>
+                        <p id="modal-product-desc" class="text-sm text-slate-600 leading-relaxed mb-6"></p>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100">
+                        <button id="modal-add-to-cart-btn" onclick="" class="w-full py-3.5 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-semibold rounded-xl shadow-lg shadow-brand-600/30 transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                            <span>Add to Cart</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ORDER CONFIRMATION MODAL / SUCCESS STATE -->
+        <div id="confirmation-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto pointer-events-none opacity-0 transition-opacity duration-300">
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+
+            <div id="confirmation-modal-panel" class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden p-8 text-center pointer-events-auto transform scale-95 transition-all duration-300">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <i data-lucide="check" class="w-8 h-8 stroke-[3]"></i>
+                </div>
+                
+                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 mb-2">Order Confirmed</span>
+                <h3 class="text-2xl font-bold text-slate-900 mb-2">Thank you for your order!</h3>
+                <p class="text-sm text-slate-500 mb-6">Your order has been successfully placed and is being prepared for shipment.</p>
+
+                <div class="bg-slate-50 rounded-2xl p-4 mb-6 text-left space-y-2 border border-slate-100">
+                    <div class="flex justify-between text-xs text-slate-500">
+                        <span>Order ID</span>
+                        <span id="conf-order-id" class="font-mono font-semibold text-slate-800">ORD-XXXXX</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-500">
+                        <span>Total Paid</span>
+                        <span id="conf-total" class="font-semibold text-brand-600">$0.00</span>
+                    </div>
+                </div>
+
+                <button onclick="StoreApp.handleReset(event)" class="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-lg transition-all">
+                    Continue Shopping
+                </button>
+            </div>
+        </div>
+
+        <!-- Toast Notification Container -->
+        <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    </div>
+
+    <!-- MAIN CLIENT APP SCRIPT -->
+    <script>
+        /**
+         * Principal Frontend Architecture & State Management
+         */
+        const StoreApp = {
+            state: {
+                products: [],
+                filteredProducts: [],
+                cart: [],
+                activeCategory: 'All',
+                searchQuery: '',
+                isLoading: true,
+                checkoutTotal: 0,
+                lastOrderId: null
+            },
+
+            // Rich fallback mock items in case API is unreachable
+            fallbackProducts: [
+                {
+                    id: 1,
+                    name: "Aura Minimalist Mechanical Keyboard",
+                    price: 149.99,
+                    category: "Electronics",
+                    rating: 4.9,
+                    image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&q=80&w=800",
+                    description: "Precision-crafted aluminum mechanical keyboard with hot-swappable switches, custom PBT keycaps, and immersive RGB underglow."
+                },
+                {
+                    id: 2,
+                    name: "Luminary Ambient Desk Lamp",
+                    price: 89.50,
+                    category: "Lifestyle",
+                    rating: 4.8,
+                    image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=800",
+                    description: "Sleek wireless charging desk lamp with tunable color temperature, touch brightness controls, and solid walnut base."
+                },
+                {
+                    id: 3,
+                    name: "Nimbus Studio Wireless Headphones",
+                    price: 299.00,
+                    category: "Electronics",
+                    rating: 4.9,
+                    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=800",
+                    description: "Industry-leading active noise cancellation, custom 40mm drivers, and plush memory foam ear cushions for all-day listening comfort."
+                },
+                {
+                    id: 4,
+                    name: "Ceramic Artisan Pour-Over Set",
+                    price: 64.00,
+                    category: "Kitchen",
+                    rating: 4.7,
+                    image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&q=80&w=800",
+                    description: "Hand-glazed ceramic dripper with wooden collar and borosilicate glass carafe for the ultimate morning coffee ritual."
+                },
+                {
+                    id: 5,
+                    name: "Apex Ergonomic Leather Backpack",
+                    price: 185.00,
+                    category: "Lifestyle",
+                    rating: 4.9,
+                    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=800",
+                    description: "Weather-resistant full-grain leather backpack featuring a dedicated 16-inch laptop compartment, magnetic quick-release buckles, and trolley sleeve."
+                },
+                {
+                    id: 6,
+                    name: "Vortex Smart Fitness Watch",
+                    price: 219.99,
+                    category: "Electronics",
+                    rating: 4.6,
+                    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800",
+                    description: "Advanced biometric tracking, AMOLED vibrant display, built-in GPS, and 7-day battery life encased in aerospace-grade titanium."
+                },
+                {
+                    id: 7,
+                    name: "Botanical Glass Terrarium Planter",
+                    price: 45.00,
+                    category: "Lifestyle",
+                    rating: 4.7,
+                    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&q=80&w=800",
+                    description: "Hand-blown geometric glass terrarium container designed for indoor succulents, air plants, and moss gardens."
+                },
+                {
+                    id: 8,
+                    name: "Nomad Stainless Steel Tumbler",
+                    price: 34.50,
+                    category: "Kitchen",
+                    rating: 4.8,
+                    image: "https://images.unsplash.com/photo-1514228742587-6b15

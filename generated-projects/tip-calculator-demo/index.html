@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tip Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Tip Calculator</h1>
+            <label class="dark-mode-toggle">
+                <input type="checkbox" id="darkModeToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </header>
+
+        <main class="app-main">
+            <section class="input-section">
+                <div class="input-group">
+                    <label for="billInput">Bill Amount</label>
+                    <input type="number" id="billInput" placeholder="0.00" min="0" step="0.01">
+                </div>
+
+                <div class="input-group">
+                    <label>Tip %</label>
+                    <div class="tip-buttons">
+                        <button type="button" class="tip-btn" data-percent="10">10%</button>
+                        <button type="button" class="tip-btn" data-percent="15">15%</button>
+                        <button type="button" class="tip-btn" data-percent="20">20%</button>
+                        <input type="number" id="customTipInput" placeholder="Custom" min="0" step="1">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="splitInput">Split Between</label>
+                    <input type="number" id="splitInput" placeholder="1" min="1" step="1" value="1">
+                </div>
+            </section>
+
+            <section class="result-section">
+                <div class="result-item">
+                    <span>Tip Amount</span>
+                    <span id="tipAmount">$0.00</span>
+                </div>
+                <div class="result-item">
+                    <span>Total Bill</span>
+                    <span id="totalBill">$0.00</span>
+                </div>
+                <div class="result-item">
+                    <span>Total Per Person</span>
+                    <span id="totalPerPerson">$0.00</span>
+                </div>
+            </section>
+
+            <button id="resetButton" class="reset-btn">Reset</button>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

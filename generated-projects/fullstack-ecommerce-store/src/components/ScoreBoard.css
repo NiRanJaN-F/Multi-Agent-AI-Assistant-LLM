@@ -1,0 +1,154 @@
+/* src/components/ScoreBoard.css */
+
+.scoreboard-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  perspective: 1000px;
+}
+
+.score-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 0.5rem;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(30, 41, 59, 0.5) 100%);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 1rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.score-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  transition: background 0.3s ease;
+}
+
+/* Player X Card Theme */
+.score-card.player-x {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.score-card.player-x.active {
+  border-color: rgba(59, 130, 246, 0.8);
+  box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.4), inset 0 0 15px -5px rgba(59, 130, 246, 0.2);
+  transform: translateY(-2px);
+}
+
+.score-card.player-x.active::before {
+  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+}
+
+/* Player O Card Theme */
+.score-card.player-o {
+  border-color: rgba(236, 72, 153, 0.3);
+}
+
+.score-card.player-o.active {
+  border-color: rgba(236, 72, 153, 0.8);
+  box-shadow: 0 0 25px -5px rgba(236, 72, 153, 0.4), inset 0 0 15px -5px rgba(236, 72, 153, 0.2);
+  transform: translateY(-2px);
+}
+
+.score-card.player-o.active::before {
+  background: linear-gradient(90deg, transparent, #ec4899, transparent);
+}
+
+/* Draws Card Theme */
+.score-card.draws {
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.score-card.draws.active {
+  border-color: rgba(148, 163, 184, 0.6);
+  box-shadow: 0 0 20px -5px rgba(148, 163, 184, 0.3);
+  transform: translateY(-2px);
+}
+
+.score-card.draws.active::before {
+  background: linear-gradient(90deg, transparent, #94a3b8, transparent);
+}
+
+/* Label Styling */
+.score-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-bottom: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.score-card.player-x .score-label {
+  color: #60a5fa;
+}
+
+.score-card.player-o .score-label {
+  color: #f472b6;
+}
+
+/* Value / Number Styling */
+.score-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #f8fafc;
+  line-height: 1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  animation: pulseScore 0.3s ease-in-out;
+}
+
+@keyframes pulseScore {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Subtle background glow effect on active card */
+.score-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.score-card.active::after {
+  opacity: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .score-value {
+    font-size: 1.4rem;
+  }
+  .score-label {
+    font-size: 0.65rem;
+  }
+}

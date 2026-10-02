@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The National Institute of Engineering | Excellence in Education</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nie: {
+                            blue: '#1e3a8a',
+                            gold: '#fbbf24',
+                            dark: '#0f172a',
+                            light: '#f8fafc'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        [v-cloak] { display: none; }
+        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+        .nav-link-active { color: #1e3a8a; font-weight: 600; border-bottom: 2px solid #1e3a8a; }
+        .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e3a8a; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-nie-light font-sans text-nie-dark antialiased custom-scrollbar">
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 glass-effect border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                <!-- Brand -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('home')">
+                    <div class="bg-nie-blue p-2 rounded-lg">
+                        <i data-lucide="graduation-cap" class="text-white w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight text-nie-blue leading-none">NIE</h1>
+                        <p class="text-[10px] uppercase tracking-widest font-semibold text-slate-500">Autonomous Institute</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <button onclick="navigateTo('home')" class="nav-btn text-sm font-medium hover:text-nie-blue transition-colors" data-route="home">Home</button>
+                    <button onclick="navigateTo('departments')" class="nav-btn text-sm font-medium hover:text-nie-blue transition-colors" data-route="departments">Departments</button>
+                    <button onclick="navigateTo('courses')" class="nav-btn text-sm font-medium hover:text-nie-blue transition-colors" data-route="courses">Courses</button>
+                    <button onclick="navigateTo('academics')" class="nav-btn text-sm font-medium hover:text-nie-blue transition-colors" data-route="academics">Academics</button>
+                    <button onclick="navigateTo('placements')" class="nav-btn text-sm font-medium hover:text-nie-blue transition-colors" data-route="placements">Placements</button>
+                </div>
+
+                <!-- Search & Actions -->
+                <div class="flex items-center gap-4">
+                    <div class="relative hidden lg:block">
+                        <input type="text" id="globalSearch" placeholder="Search courses..." 
+                               class="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-nie-blue w-64 transition-all">
+                        <i data-lucide="search" class="absolute left-3 top-2.5 text-slate-400 w-4 h-4"></i>
+                    </div>
+                    <button class="bg-nie-blue text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20">
+                        Apply Now
+                    </button>
+                    <button class="md:hidden p-2" id="mobileMenuBtn">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main id="spa-container" class="min-h-screen">
+        <!-- Content will be injected here by app.js -->
+        <div id="loading-state" class="flex flex-col items-center justify-center min-h-[60vh]">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-nie-blue"></div>
+            <p class="mt-4 text-slate-500 font-medium">Loading NIE Portal...</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-nie-dark text-white pt-16 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="graduation-cap" class="text-nie-gold w-8 h-8"></i>
+                        <span class="text-xl font-bold">NIE Mysore</span>
+                    </div>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Established in 1946, The National Institute of Engineering is one of the oldest and most prestigious engineering colleges in India.
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="#" class="p-2 bg-slate-800 rounded-full hover:bg-nie-blue transition-colors"><i data-lucide="facebook" class="w-4 h-4"></i></a>
+                        <a href="#" class="p-2 bg-slate-800 rounded-full hover:bg-nie-blue transition-colors"><i data-lucide="twitter" class="w-4 h-4"></i></a>
+                        <a href="#" class="p-2 bg-slate-800 rounded-full hover:bg-nie-blue transition-colors"><i data-lucide="linkedin" class="w-4 h-4"></i></a>
+                        <a href="#" class="p-2 bg-slate-800 rounded-full hover:bg-nie-blue transition-colors"><i data-lucide="instagram" class="w-4 h-4"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-semibold mb-6">Quick Links</h4>
+                    <ul class="space-y-3 text-slate-400 text-sm">
+                        <li><a href="#" class="hover:text-nie-gold transition-colors">About NIE</a></li>
+                        <li><a href="#" class="hover:text-nie-gold transition-colors">Administration</a></li>
+                        <li><a href="#" class="hover:text-nie-gold transition-colors">Campus Life</a></li>
+                        <li><a href="#" class="hover:text-nie-gold transition-colors">Research</a></li>
+                        <li><a href="#" class="hover:text-nie-gold transition-colors">Alumni</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-semibold mb-6">Contact Us</h4>
+                    <ul class="space-y-4 text-slate-400 text-sm">
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="map-pin" class="w-5 h-5 text-nie-gold shrink-0"></i>
+                            <span>Manandavadi Road, Mysuru, Karnataka 570008</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i data-lucide="phone" class="w-5 h-5 text-nie-gold shrink-0"></i>
+                            <span>+91 821 2480475</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i data-lucide="mail" class="w-5 h-5 text-nie-gold shrink-0"></i>
+                            <span>principal@nie.ac.in</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-semibold mb-6">Newsletter</h4>
+                    <p class="text-slate-400 text-sm mb-4">Stay updated with the latest news and events.</p>
+                    <div class="flex flex-col gap-2">
+                        <input type="email" placeholder="Enter your email" class="bg-slate-800 border-none rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-nie-gold">
+                        <button class="bg-nie-gold text-nie-dark font-bold py-2 rounded-lg hover:bg-yellow-500 transition-colors">Subscribe</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 text-xs">
+                <p>© 2023 The National Institute of Engineering. All rights reserved.</p>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-white">Privacy Policy</a>
+                    <a href="#" class="hover:text-white">Terms of Service</a>
+                    <a href="#" class="hover:text-white">Sitemap</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal Backdrop -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div id="modal-content" class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all scale-95 opacity-0">
+            <!-- Modal content injected here -->
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-container" class="fixed bottom-8 right-8 z-[100] flex flex-col gap-3"></div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Mobile Menu Toggle (Simple)
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        mobileMenuBtn.addEventListener('click', () => {
+            showToast('Mobile menu coming soon!', 'info');
+        });
+
+        // Global Search Handler
+        const searchInput = document.getElementById('globalSearch');
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            // This would trigger a filter in app.js
+            if (window.handleGlobalSearch) {
+                window.handleGlobalSearch(term);
+            }
+        });
+
+        // Modal Close on Backdrop Click
+        document.getElementById('modal-overlay').addEventListener('click', (e) => {
+            if (e.target.id === 'modal-overlay') {
+                closeModal();
+            }
+        });
+
+        function closeModal() {
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 200);
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-emerald-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
+            };
+            
+            toast.className = `${colors[type]} text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-bounce-in`;
+            toast.innerHTML = `
+                <i data-lucide="${type === 'success' ? 'check-circle' : 'info'}" class="w-5 h-5"></i>
+                <span class="font-medium">${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-full', 'transition-all', 'duration-500');
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

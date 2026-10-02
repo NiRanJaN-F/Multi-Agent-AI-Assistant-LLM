@@ -1,0 +1,21 @@
+{
+  "name": "dev-hardware-storefront",
+  "version": "1.0.0",
+  "description": "Modern e-commerce storefront for developer hardware and mechanical keyboards",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "keywords": [
+    "ecommerce",
+    "mechanical-keyboards",
+    "developer-hardware",
+    "tailwindcss",
+    "vanilla-js"
+  ],
+  "author": "Principal Software Engineer",
+  "license": "MIT"
+}

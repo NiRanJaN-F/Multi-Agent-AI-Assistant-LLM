@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50 dark:bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter & Verse — Modern Bookstore</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fdf8f6',
+                            100: '#f2e8e5',
+                            500: '#9a3412',
+                            600: '#7c2d12',
+                            700: '#651c0a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom scrollbar & smooth UI touches */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        .dark ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+    <script>
+        // Initialize theme early to avoid flash
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+</head>
+<body class="h-full font-sans text-slate-800 dark:text-slate-100 antialiased selection:bg-brand-100 selection:text-brand-700 dark:selection:bg-brand-900 dark:selection:text-brand-200 flex flex-col justify-between">
+
+    <!-- StoreApp Container -->
+    <div id="store-app" class="min-h-full flex flex-col">
+
+        <!-- Header Component -->
+        <header class="sticky top-0 z-40 glass-panel border-b border-slate-200/80 dark:border-slate-800/80 transition-all duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+                
+                <!-- Brand Badge -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="StoreApp.resetView()">
+                    <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/25">
+                        <i data-lucide="book-open" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="text-lg font-bold tracking-tight text-slate-900 dark:text-white block leading-none">Chapter & Verse</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Curated Literature</span>
+                    </div>
+                </div>
+
+                <!-- Search Input Bar -->
+                <div class="hidden md:flex flex-1 max-w-md relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="searchInput" 
+                        oninput="StoreApp.handleSearch(event)"
+                        placeholder="Search by title, author, or genre..." 
+                        class="w-full pl-10 pr-4 py-2 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-full text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 dark:focus:border-brand-500 transition-all">
+                </div>
+
+                <!-- Action Buttons / Cart Badge / Theme Toggle -->
+                <div class="flex items-center gap-3">
+                    <!-- Dark/Light Mode Toggle Button -->
+                    <button onclick="toggleTheme()" aria-label="Toggle Dark Mode"
+                        class="p-2.5 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all border border-slate-200 dark:border-slate-800">
+                        <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                        <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                    </button>
+
+                    <button onclick="StoreApp.toggleCartDrawer(true)" 
+                        class="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 transition-all shadow-sm group">
+                        <i data-lucide="shopping-bag" class="w-4 h-4 transition-transform group-hover:scale-110"></i>
+                        <span class="text-sm font-medium hidden sm:inline">Cart</span>
+                        <span id="cartBadge" class="absolute -top-1.5 -right-1.5 bg-brand-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm">0</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Search Bar Sub-row -->
+            <div class="px-4 pb-3 md:hidden">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" 
+                        oninput="StoreApp.handleSearch(event)"
+                        placeholder="Search books..." 
+                        class="w-full pl-10 pr-4 py-2 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-full text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 dark:focus:border-brand-500 transition-all">
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Root (Rendered by JS) -->
+        <main id="mainContent" class="flex-1">
+            <!-- App content dynamically populated by app.js / dashboard.jsx -->
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-8 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
+            <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p>&copy; 2025 Chapter & Verse Bookstore. All rights reserved.</p>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Privacy Policy</a>
+                    <a href="#" class="hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Terms of Service</a>
+                    <a href="#" class="hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Contact</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Theme Toggle Script -->
+    <script>
+        function toggleTheme() {
+            const htmlEl = document.documentElement;
+            if (htmlEl.classList.contains('dark')) {
+                htmlEl.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                htmlEl.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+    </script>
+
+    <!-- App Scripts -->
+    <script src="js/app.js"></script>
+</body>
+</html>

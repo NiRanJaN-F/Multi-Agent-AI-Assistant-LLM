@@ -1,0 +1,276 @@
+/* src/styles.css */
+
+/* -------------------------------------------------
+   Global Variables & Reset
+------------------------------------------------- */
+:root {
+  --font-family: 'Inter', system-ui, sans-serif;
+  --color-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1e40af;
+  --color-muted: #6b7280;
+  --color-muted-light: #e5e7eb;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --radius: 0.5rem;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --transition: all 0.2s ease-in-out;
+}
+
+/* Simple reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html, body, #root {
+  height: 100%;
+}
+body {
+  font-family: var(--font-family);
+  background: var(--color-bg);
+  color: #111827;
+  line-height: 1.5;
+}
+
+/* -------------------------------------------------
+   Layout: Sidebar + Main Content
+------------------------------------------------- */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
+}
+.sidebar.collapsed {
+  width: 70px;
+}
+.sidebar .logo {
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid var(--color-muted-light);
+}
+.sidebar nav {
+  flex: 1;
+  padding: 1rem 0;
+}
+.sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  color: var(--color-muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: var(--transition);
+}
+.sidebar nav a:hover,
+.sidebar nav a.active {
+  background: var(--color-muted-light);
+  color: var(--color-primary);
+}
+
+/* Main Content */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.header {
+  height: 64px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header .title {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.header .actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.header .actions button {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.header .actions button:hover {
+  background: var(--color-primary-dark);
+}
+
+/* -------------------------------------------------
+   Dashboard Sections
+------------------------------------------------- */
+
+/* KPI Cards Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+}
+.kpi-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: var(--transition);
+}
+.kpi-card:hover {
+  box-shadow: var(--shadow-md);
+}
+.kpi-card .value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+.kpi-card .label {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+/* Charts Section */
+.charts-section {
+  padding: 1.5rem;
+}
+.chart-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1.5rem;
+}
+.chart-card .chart-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+.chart-card .chart-wrapper {
+  width: 100%;
+  height: 300px;
+}
+
+/* Data Table */
+.table-section {
+  padding: 1.5rem;
+}
+.table-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.table-card .table-header {
+  background: var(--color-muted-light);
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+.table-responsive table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table-responsive th,
+.table-responsive td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-muted-light);
+}
+.table-responsive th {
+  background: var(--color-muted-light);
+  font-weight: 600;
+}
+.table-responsive tr:hover {
+  background: rgba(0,0,0,0.02);
+}
+
+/* -------------------------------------------------
+   Responsive Adjustments
+------------------------------------------------- */
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 20;
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main {
+    margin-left: 0;
+  }
+  .header .menu-toggle {
+    display: block;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+}
+@media (max-width: 640px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .chart-card .chart-wrapper {
+    height: 200px;
+  }
+}
+
+/* -------------------------------------------------
+   Utility Classes
+------------------------------------------------- */
+.text-center { text-align: center; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 0.75rem; }
+.rounded { border-radius: var(--radius); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.bg-primary { background: var(--color-primary); color: #fff; }
+.bg-success { background: var(--color-success); color: #fff; }
+.bg-warning { background: var(--color-warning); color: #fff; }
+.bg-danger { background: var(--color-danger); color: #fff; }

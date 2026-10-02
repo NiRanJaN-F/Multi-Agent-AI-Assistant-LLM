@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUMINA | Premium Essentials Store</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f5f7ff',
+                            100: '#ebf0fe',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    },
+                    animation: {
+                        'slide-in': 'slideIn 0.3s ease-out forwards',
+                        'fade-in': 'fadeIn 0.2s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideIn: {
+                            '0%': { transform: 'translateX(100%)' },
+                            '100%': { transform: 'translateX(0)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [shadow-custom] { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .cart-drawer-open { overflow: hidden; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased">
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Brand -->
+                <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.reload()">
+                    <div class="bg-brand-600 p-1.5 rounded-lg text-white">
+                        <i data-lucide="layers" class="w-6 h-6"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-slate-900">LUMINA</span>
+                </div>
+
+                <!-- Search Bar (Desktop) -->
+                <div class="hidden md:flex flex-1 max-w-md mx-8">
+                    <div class="relative w-full">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                        <input type="text" id="search-input" 
+                            class="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 focus:ring-2 focus:ring-brand-600 transition-all text-sm" 
+                            placeholder="Search premium products...">
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-2 sm:gap-4">
+                    <button class="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors md:hidden">
+                        <i data-lucide="search" class="w-5 h-5"></i>
+                    </button>
+                    <button id="cart-toggle-btn" class="group relative p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                        <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                        <span id="cart-badge" class="absolute top-1 right-1 bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white scale-100 transition-transform group-hover:scale-110">0</span>
+                    </button>
+                    <button class="hidden sm:flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition-all">
+                        <span>Sign In</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="relative overflow-hidden bg-white border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+            <div class="relative z-10 text-center">
+                <span class="inline-block py-1 px-3 rounded-full bg-brand-50 text-brand-700 text-xs font-bold tracking-wider uppercase mb-4">New Collection 2024</span>
+                <h1 class="text-4xl md:text-6xl font-extrabold text-slate-900 mb-6 tracking-tight">
+                    Refined Aesthetics for <br><span class="text-brand-600">Modern Living.</span>
+                </h1>
+                <p class="text-lg text-slate-600 max-w-2xl mx-auto mb-10">
+                    Experience the perfect blend of form and function with our meticulously curated selection of high-end essentials.
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="#catalog" class="bg-brand-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20">Shop Now</a>
+                    <button class="bg-white text-slate-900 border border-slate-200 px-8 py-3 rounded-full font-semibold hover:bg-slate-50 transition-all">View Lookbook</button>
+                </div>
+            </div>
+        </div>
+        <!-- Decorative background element -->
+        <div class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-96 h-96 bg-brand-100 rounded-full blur-3xl opacity-50"></div>
+        <div class="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-96 h-96 bg-indigo-100 rounded-full blur-3xl opacity-50"></div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="catalog" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Filter Bar -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+            <div id="category-filters" class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-2 md:pb-0">
+                <button data-category="all" class="category-btn active px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-brand-600 text-white">All Products</button>
+                <button data-category="Electronics" class="category-btn px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-white text-slate-600 border border-slate-200 hover:border-brand-600">Electronics</button>
+                <button data-category="Fashion" class="category-btn px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-white text-slate-600 border border-slate-200 hover:border-brand-600">Fashion</button>
+                <button data-category="Home" class="category-btn px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-white text-slate-600 border border-slate-200 hover:border-brand-600">Home</button>
+                <button data-category="Accessories" class="category-btn px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-white text-slate-600 border border-slate-200 hover:border-brand-600">Accessories</button>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-sm text-slate-500 font-medium">Sort by:</span>
+                <select id="sort-select" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-600 outline-none">
+                    <option value="featured">Featured</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <!-- Skeleton Loaders (Initial State) -->
+            <div class="animate-pulse bg-white rounded-2xl h-96 border border-slate-100"></div>
+            <div class="animate-pulse bg-white rounded-2xl h-96 border border-slate-100"></div>
+            <div class="animate-pulse bg-white rounded-2xl h-96 border border-slate-100"></div>
+            <div class="animate-pulse bg-white rounded-2xl h-96 border border-slate-100"></div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 pt-16 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+                <div class="col-span-2 md:col-span-1">
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="bg-brand-600 p-1 rounded text-white"><i data-lucide="layers" class="w-5 h-5"></i></div>
+                        <span class="font-bold text-lg tracking-tight">LUMINA</span>
+                    </div>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-6">Crafting the future of retail with a focus on quality, sustainability, and timeless design.</p>
+                    <div class="flex gap-4">
+                        <a href="#" class="text-slate-400 hover:text-brand-600 transition-colors"><i data-lucide="instagram" class="w-5 h-5"></i></a>
+                        <a href="#" class="text-slate-400 hover:text-brand-600 transition-colors"><i data-lucide="twitter" class="w-5 h-5"></i></a>
+                        <a href="#" class="text-slate-400 hover:text-brand-600 transition-colors"><i data-lucide="facebook" class="w-5 h-5"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-6">Shop</h4>
+                    <ul class="space-y-4 text-sm text-slate-500">
+                        <li><a href="#" class="hover:text-brand-600 transition-colors">All Products</a></li>
+                        <li><a href="#" class="hover:text-brand-600 transition-colors">New Arrivals</a></li>
+                        <li><a href="#" class="hover:text-brand-600 transition-colors">Best Sellers</a></li>
+                        <li><a href="#" class="hover:text-brand-600 transition-colors">Discounts</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-6">Support</h4>
+                    <ul class="space-y-4 text-sm text-slate-500">
+                        <li><a href="#" class="hover:text-brand-600 transition-colors">Shipping Policy</a></li>
+                        <li><a href="#" class="hover:text-brand-600 transition-colors">Returns & Exchanges</a></li>
+                        <li><a href="#" class="hover:text-brand-600 transition-colors">FAQs</a></li>
+                        <li><a href="#" class="hover:text-brand-600 transition-colors">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-6">Newsletter</h4>
+                    <p class="text-sm text-slate-500 mb-4">Join our list for exclusive offers and news.</p>
+                    <form class="flex gap-2">
+                        <input type="email" placeholder="Email address" class="flex-1 bg-slate-100 border-none rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-600 outline-none">
+                        <button class="bg-slate-900 text-white p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="border-t border-slate-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400">
+                <p>© 2024 LUMINA Store. All rights reserved.</p>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-slate-600">Privacy Policy</a>
+                    <a href="#" class="hover:text-slate-600">Terms of Service</a>
+                    <a href="#" class="hover:text-slate-600">Cookie Settings</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Drawer -->
+    <div id="cart-drawer" class="fixed inset-0 z-[60] invisible transition-all duration-300">
+        <div id="cart-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity duration-300"></div>
+        <div id="cart-panel" class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 text-brand-600"></i>
+                    <h2 class="text-xl font-bold text-slate-900">Your Cart</h2>
+                </div>
+                <button id="cart-close-btn" class="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                    <i data-lucide="x" class="w-6 h-6 text-slate-400"></i>
+                </button>
+            </div>
+            
+            <div id="cart-items-container" class="flex-1 overflow-y-auto p-6 space-y-6 hide-scrollbar">
+                <!-- Cart items will be injected here -->
+                <div class="flex flex-col items-center justify-center h-full text-center space-y-4">
+                    <div class="bg-slate-50 p-6 rounded-full">
+                        <i data-lucide="shopping-cart" class="w-12 h-12 text-slate-300"></i>
+                    </div>
+                    <p class="text-slate-500 font-medium">Your cart is empty</p>
+                    <button id="start-shopping" class="text-brand-600 font-semibold hover:underline">Start Shopping</button>
+                </div>
+            </div>
+
+            <div id="cart-footer" class="p-6 border-t border-slate-100 bg-slate-50 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-slate-500 font-medium">Subtotal</span>
+                    <span id="cart-subtotal" class="text-xl font-bold text-slate-900">$0.00</span>
+                </div>
+                <p class="text-xs text-slate-400 mb-6 text-center">Shipping and taxes calculated at checkout.</p>
+                <button id="checkout-btn" class="w-full bg-brand-600 text-white py-4 rounded-xl font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2">
+                    <span>Proceed to Checkout</span>
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkout-modal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
+        <div class="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in">
+            <div class="flex flex-col md:flex-row">
+                <!-- Form Side -->
+                <div class="flex-1 p-8">
+                    <div class="flex justify-between items-center mb-8">
+                        <h2 class="text-2xl font-bold text-slate-900">Checkout</h2>
+                        <button id="close-checkout" class="md:hidden p-2 hover:bg-slate-100 rounded-full">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <form id="checkout-form" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-bold text-slate-500 uppercase">First Name</label>
+                                <input type="text" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-600 outline-none">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-bold text-slate-500 uppercase">Last Name</label>
+                                <input type="text" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-600 outline-none">
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase">Email Address</label>
+                            <input type="email" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-600 outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase">Shipping Address</label>
+                            <input type="text" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-600 outline-none">
+                        </div>
+                        <div class="pt-4">
+                            <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="lock" class="w-4 h-4"></i>
+                                <span>Pay Now</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <!-- Summary Side -->
+                <div class="w-full md:w-72 bg-slate-50 p-8 border-l border-slate-100">
+                    <button id="close-checkout-desktop" class="hidden md:flex absolute top-4 right-4 p-2 hover:bg-slate-200 rounded-full transition-colors">
+                        <i data-lucide="x" class="w-5 h-5 text-slate-400"></i>
+                    </button>
+                    <h3 class="font-bold text-slate-900 mb-6">Order Summary</h3>
+                    <div id="checkout-summary-items" class="space-y-4 mb-6 max-h-60 overflow-y-auto hide-scrollbar">
+                        <!-- Summary items injected here -->
+                    </div>
+                    <div class="border-t border-slate-200 pt-4 space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-500">Subtotal</span>
+                            <span id="summary-subtotal" class="font-medium">$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-500">Shipping</span>
+                            <span class="text-green-600 font-medium">Free</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-bold pt-2">
+                            <span>Total</span>
+                            <span id="summary-total" class="text-brand-600">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="fixed inset-0 z-[80] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
+        <div class="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-10 text-center animate-fade-in">
+            <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="check-circle" class="w-10 h-10"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-slate-900 mb-2">Order Confirmed!</h2>
+            <p class="text-slate-500 mb-8">Thank you for your purchase. Your order <span id="order-id-display" class="font-bold text-slate-900">#ORD-12345</span> is being processed.</p>
+            <button id="continue-shopping" class="w-full bg-brand-600 text-white py-4 rounded-xl font-bold hover:bg-brand-700 transition-all">
+                Continue Shopping
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3"></div>
+
+    <!-- Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/checkout.js"></script>
+    <script>
+        // Initialize Lucide Icons
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

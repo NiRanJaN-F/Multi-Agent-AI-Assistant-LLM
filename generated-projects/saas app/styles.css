@@ -1,0 +1,15 @@
+:root {
+     --primary: #6366f1;
+     --primary-dark: #4f46e5;
+     --secondary: #0ea5e9;
+     --accent: #f43f5e;
+     --bg: #0f172a;
+     --bg-light: #1e293b;
+     --text: #f8fafc;
+     --text-muted: #94a3b8;
+     --border: #334155;
+     --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+     --radius: 12px;
+     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+     --font-sans: system-ui, -apple-system, sans-serif;
+   }

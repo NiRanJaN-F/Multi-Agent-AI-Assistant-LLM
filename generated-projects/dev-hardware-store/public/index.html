@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Modern Living — Curated Essentials</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Custom Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom Styling Overrides -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-slate-900 selection:text-white">
+
+    <!-- App Root Container -->
+    <div id="app" class="flex flex-col min-h-screen">
+
+        <!-- 1. Navbar Component -->
+        <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 transition-all duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+                
+                <!-- Brand Badge -->
+                <a href="#" class="flex items-center gap-2 text-slate-900 font-bold tracking-tight text-xl group">
+                    <div class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-md shadow-slate-900/10 group-hover:scale-105 transition-transform">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    </div>
+                    <span>AURA<span class="font-light text-slate-500">.</span></span>
+                </a>
+
+                <!-- Search Input Bar -->
+                <div class="hidden md:flex flex-1 max-w-md relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Search curated products..." 
+                        class="w-full pl-10 pr-4 py-2.5 bg-slate-100/80 border border-transparent rounded-full text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all">
+                </div>
+
+                <!-- Actions / Cart Badge -->
+                <div class="flex items-center gap-3">
+                    <button id="cartBtn" class="relative p-2.5 rounded-full hover:bg-slate-100 text-slate-700 transition-colors flex items-center gap-2 group" aria-label="Shopping Cart">
+                        <div class="relative">
+                            <i data-lucide="shopping-bag" class="w-5 h-5 group-hover:scale-105 transition-transform"></i>
+                            <span id="cartBadge" class="absolute -top-1.5 -right-2 bg-slate-900 text-white text-[10px] font-semibold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">0</span>
+                        </div>
+                        <span class="hidden sm:inline text-sm font-medium pr-1">Cart</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1">
+
+            <!-- Hero Section -->
+            <section class="relative bg-slate-900 text-white overflow-hidden py-16 sm:py-24">
+                <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center max-w-2xl">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 backdrop-blur-sm mb-6">
+                        <i data-lucide="award" class="w-3.5 h-3.5"></i> Curated Autumn Collection
+                    </span>
+                    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight mb-6 leading-tight">
+                        Elevate Your Everyday Space
+                    </h1>
+                    <p class="text-base sm:text-lg text-slate-300 mb-8 font-light leading-relaxed">
+                        Discover minimalist objects, warm lighting, and functional artistry built to stand the test of time.
+                    </p>
+                    <div class="flex flex-wrap justify-center gap-3" id="categoryFilters">
+                        <!-- Category pills dynamically injected or handled via JS -->
+                        <button data-category="all" class="category-btn px-5 py-2 rounded-full text-xs font-medium bg-white text-slate-900 shadow-sm transition-all">All Items</button>
+                        <button data-category="Lighting" class="category-btn px-5 py-2 rounded-full text-xs font-medium bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all">Lighting</button>
+                        <button data-category="Living" class="category-btn px-5 py-2 rounded-full text-xs font-medium bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all">Living</button>
+                        <button data-category="Audio" class="category-btn px-5 py-2 rounded-full text-xs font-medium bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all">Audio</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Product Catalog Section -->
+            <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Catalog Feed</h2>
+                        <p class="text-sm text-slate-500 mt-1">Showing hand-crafted lifestyle elements</p>
+                    </div>
+                    <div class="text-sm text-slate-500 font-medium" id="productCount">Loading products...</div>
+                </div>
+
+                <!-- Product Grid Container -->
+                <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Dynamic Product Cards injected here -->
+                </div>
+
+                <!-- Empty State Message (hidden by default) -->
+                <div id="emptyCatalog" class="hidden text-center py-20">
+                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 mb-4">
+                        <i data-lucide="search-x" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-800">No products found</h3>
+                    <p class="text-sm text-slate-500 mt-1">Try adjusting your search query or category filter.</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer Component -->
+        <footer class="bg-white border-t border-slate-200 mt-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-2 text-slate-900 font-bold tracking-tight">
+                    <div class="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    </div>
+                    <span>AURA LIVING</span>
+                </div>
+                <p class="text-xs text-slate-400">© 2025 Aura Inc. All rights reserved. Built with Node.js & Vanilla JS.</p>
+                <div class="flex items-center gap-4 text-xs text-slate-500 font-medium">
+                    <a href="#" class="hover:text-slate-900 transition-colors">Privacy Policy</a>
+                    <a href="#" class="hover:text-slate-900 transition-colors">Terms of Service</a>
+                    <a href="#" class="hover:text-slate-900 transition-colors">Support</a>
+                </div>
+            </div>
+        </footer>
+
+        <!-- 3. Cart Drawer Component -->
+        <div id="cartDrawer" class="fixed inset-0 z-50 overflow-hidden pointer-events-none opacity-0 transition-opacity duration-300">
+            <!-- Backdrop -->
+            <div id="cartBackdrop" class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity pointer-events-auto"></div>
+
+            <!-- Drawer Panel -->
+            <div class="absolute inset-y-0 right-0 max-w-full flex pl-10">
+                <div id="cartPanel" class="w-screen max-w-md bg-white shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out pointer-events-auto">
+                    
+                    <!-- Drawer Header -->
+                    <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="shopping-bag" class="w-5 h-5 text-slate-900"></i>
+                            <h2 class="text-lg font-bold text-slate-900">Your Shopping Cart</h2>
+                        </div>
+                        <button id="closeCartBtn" class="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Cart Item List Container -->
+                    <div id="cartItemsList" class="flex-1 overflow-y-auto p-6 space-y-4 divide-y divide-slate-100">
+                        <!-- Dynamically populated CartItems -->
+                    </div>
+
+                    <!-- Drawer Footer / Summary -->
+                    <div class="p-6 border-t border-slate-100 bg-slate-50/50">
+                        <div class="space-y-2 mb-4">
+                            <div class="flex justify-between text-sm text-slate-500">
+                                <span>Subtotal</span>
+                                <span id="cartSubtotal" class="font-medium text-slate-800">$0.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm text-slate-500">
+                                <span>Shipping</span>
+                                <span class="text-emerald-600 font-medium">Free</span>
+                            </div>
+                            <div class="flex justify-between text-base font-bold text-slate-900 pt-2 border-t border-slate-200">
+                                <span>Total</span>
+                                <span id="cartTotal">$0.00</span>
+                            </div>
+                        </div>
+                        <button id="checkoutBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg shadow-slate-900/10 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span>Proceed to Checkout</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Checkout Modal Component -->
+        <div id="checkoutModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto pointer-events-none opacity-0 transition-opacity duration-300">
+            <div id="checkoutBackdrop" class="absolute inset-0 bg-slate-900/50 backdrop-blur-xs pointer-events-auto"></div>
+            
+            <div id="checkoutPanel" class="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 transform scale-95 transition-all duration-300 pointer-events-auto">
+                <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+                    <h3 class="text-xl font-bold text-slate-900">Secure Checkout</h3>
+                    <button id="closeCheckoutBtn" class="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form id="checkoutForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Full Name</label>
+                        <input type="text" required placeholder="Jane Doe" value="Alex Morgan"
+                            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-slate-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Shipping Address</label>
+                        <input type="text" required placeholder="123 Artisan Way, Suite 4B" value="742 Evergreen Terrace"
+                            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-slate-400 transition-all">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">City</label>
+                            <input type="text" required placeholder="San Francisco" value="Springfield"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-slate-400 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Postal Code</label>
+                            <input type="text" required placeholder="94107" value="97477"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-slate-400 transition-all">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Payment Method</label>
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-sm text-slate-700">
+                            <span class="flex items-center gap-2 font-medium">
+                                <i data-lucide="credit-card" class="w-4 h-4 text-slate-500"></i> Credit Card (Simulated)
+                            </span>
+                            <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium">Test Mode</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-4">
+                        <button type="submit" id="submitOrderBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg shadow-slate-900/10 transition-all flex items-center justify-center gap-2">
+                            <span>Complete Order</span>
+                            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 5. Order Confirmation Modal Component -->
+        <div id="confirmationModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto pointer-events-none opacity-0 transition-opacity duration-300">
+            <div id="confirmationBackdrop" class="absolute inset-0 bg-slate-900/50 backdrop-blur-xs pointer-events-auto"></div>
+            
+            <div id="confirmationPanel" class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center transform scale-95 transition-all duration-300 pointer-events-auto">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <i data-lucide="check" class="w-8 h-8 stroke-[3]"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-900 mb-2">Order Confirmed!</h3>
+                <p class="text-sm text-slate-500 mb-6">Thank you for your purchase. Your order has been successfully placed and is being prepared.</p>
+                
+                <div class="bg-slate-50 rounded-xl p-4 mb-6 text-left space-y-2 border border-slate-100">
+                    <div class="flex justify-between text-xs text-slate-500">
+                        <span>Order Reference:</span>
+                        <span id="orderIdText" class="font-mono font-bold text-slate-800">ORD-XXXXX</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-500">
+                        <span>Total Paid:</span>
+                        <span id="orderTotalText" class="font-bold text-slate-800">$0.00</span>
+                    </div>
+                </div>
+
+                <button id="closeConfirmationBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-all">
+                    Continue Shopping
+                </button>
+            </div>
+        </div>
+
+        <!-- Toast Notification Notification Bar -->
+        <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    </div>
+
+    <!-- Client-Side Scripts -->
+    <script src="/js/api.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/app.js"></script>
+
+    <!-- Fallback or Initialization Script safety check -->
+    <script>
+        // Ensure Lucide icons render initially
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>
