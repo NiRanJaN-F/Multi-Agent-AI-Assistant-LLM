@@ -141,23 +141,29 @@ async function streamPipeline(endpoint, body, onEvent, signal) {
   const decoder = new TextDecoder();
   let buffer = "";
   let finalResult = null;
+  let completeProjectName = null;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  // SSE messages are delimited by \n\n (double newline).
+  // The `complete` event contains ALL generated file contents and can be many KB.
+  // Splitting on single \n shreds the JSON across lines and causes JSON.parse to fail silently.
+  function processBuffer() {
+    const messages = buffer.split(/\n\n/);
+    buffer = messages.pop() ?? ""; // last element may be a partial incomplete message
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop(); // keep partial trailing line
-
-    for (const line of lines) {
-      const event = parseSseLine(line);
+    for (const message of messages) {
+      // Find the data: line within this SSE message block
+      const dataLine = message.split("\n").find((l) => l.trimStart().startsWith("data:"));
+      if (!dataLine) continue;
+      const event = parseSseLine(dataLine);
       if (!event) continue;
 
       onEvent?.(event);
 
-      if (event.stage === "complete" && event.result) {
-        finalResult = event.result;
+      if (event.stage === "complete") {
+        if (event.result) {
+          finalResult = event.result;
+          completeProjectName = event.result.project_name || event.result.projectName || null;
+        }
       }
       if (event.stage === "error") {
         throw new Error(event.message || "Generation error received from stream");
@@ -165,21 +171,48 @@ async function streamPipeline(endpoint, body, onEvent, signal) {
     }
   }
 
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    processBuffer();
+  }
+
+  // Flush remaining buffer
   if (buffer.trim()) {
-    const event = parseSseLine(buffer);
-    if (event) {
-      onEvent?.(event);
-      if (event.stage === "complete" && event.result) {
-        finalResult = event.result;
-      }
-      if (event.stage === "error") {
-        throw new Error(event.message || "Generation error received from stream");
-      }
+    buffer += "\n\n";
+    processBuffer();
+  }
+
+  // Fallback: if finalResult is still null after stream completion, the complete event JSON
+  // may have been too large and dropped. Fetch the project files directly from the API.
+  if (!finalResult && completeProjectName) {
+    try {
+      const filesData = await getProjectFiles(completeProjectName);
+      finalResult = {
+        status: "completed",
+        project_name: completeProjectName,
+        tech_stack: "",
+        files: filesData.files || {},
+        saved_files: Object.keys(filesData.files || {}),
+        mode: "generate",
+        logs: [],
+      };
+    } catch {
+      finalResult = {
+        status: "completed",
+        project_name: completeProjectName,
+        files: {},
+        saved_files: [],
+        mode: "generate",
+        logs: [],
+      };
     }
   }
 
   return finalResult;
 }
+
 
 export async function generateProjectStream({ prompt, projectName, provider, onEvent, signal }) {
   return streamPipeline(

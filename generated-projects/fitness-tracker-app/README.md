@@ -4,28 +4,36 @@
 
 ## Overview
 
-Build a modern fitness tracker app with daily step counter, calorie log, and workout history.
+build an fitness tracker app
 
 ## Tech Stack
 
-string
+React+Vite+Node+Express+SQLite
 
-The architecture follows a clean MVC-inspired pattern with a Node.js/Express backend handling RESTful API routes and an in-memory data store for simplicity. The frontend uses vanilla JavaScript with a modular component structure to render a responsive dashboard, communicating with the backend via fetch API calls. State management is handled client-side with local storage fallback for offline resilience, while the backend provides structured JSON responses for steps, calories, and workouts. This separation ensures maintainability, scalability, and a smooth user experience across devices.
+This architecture employs a lightweight Node.js Express backend coupled with an SQLite database for persistent local storage of workout logs. The frontend is built using React and Vite, delivering a responsive single-page application communicating via RESTful APIs. Data flows seamlessly from the React dashboard and logging forms through centralized API services directly to the relational SQLite tables.
 
 ## Implementation Plan
 
-- string
+- Initialize Node.js backend with Express and SQLite database setup for workouts.
+- Create REST API endpoints for logging and fetching workout activities.
+- Build React frontend with dashboard, workout logging form, and history list.
+- Integrate frontend with backend APIs and style the application with responsive CSS.
 
 ## Project Structure
 
 ```text
 fitness-tracker-app/
-├── package.json
-├── public/app.js
-├── public/index.html
-├── public/styles.css
-├── routes/api.js
+├── index.html
+├── routes/workouts.js
 ├── server.js
+├── src/App.jsx
+├── src/components/Dashboard.jsx
+├── src/components/Navbar.jsx
+├── src/components/WorkoutForm.jsx
+├── src/components/WorkoutList.jsx
+├── src/index.css
+├── src/main.jsx
+├── src/services/api.js
 ├── tests/app.test.js
 ```
 
@@ -35,8 +43,12 @@ Install dependencies with `npm install`, then start the app with `npm start`.
 
 ## Quality Review
 
-- Static review: 4 open issue(s)
-- File 'public/styles.css' has unbalanced brackets and is probably truncated.
-- File 'routes/api.js' has unbalanced brackets and is probably truncated.
-- JavaScript file 'server.js' lacks interactive event listeners, DOM bindings, or state logic.
-- JavaScript file 'routes/api.js' lacks interactive event listeners, DOM bindings, or state logic.
+- Static review: 8 open issue(s)
+- 'src/services/api.js' line 50: fetch() call without .catch() fallback — unhandled rejections will crash the preview in strict mode.
+- 'src/App.jsx' imports 'getWorkouts' from './services/api', but 'src/services/api.js' does not export 'getWorkouts'.
+- 'src/App.jsx' imports 'createWorkout' from './services/api', but 'src/services/api.js' does not export 'createWorkout'.
+- 'src/App.jsx' imports 'deleteWorkout' from './services/api', but 'src/services/api.js' does not export 'deleteWorkout'.
+- 'src/components/WorkoutForm.jsx' imports 'createWorkout' from '../services/api', but 'src/services/api.js' does not export 'createWorkout'.
+- 'src/components/Dashboard.jsx' imports 'getWorkouts' from '../services/api', but 'src/services/api.js' does not export 'getWorkouts'.
+- 'src/components/Dashboard.jsx' imports 'createWorkout' from '../services/api', but 'src/services/api.js' does not export 'createWorkout'.
+- 'src/components/Dashboard.jsx' imports 'deleteWorkout' from '../services/api', but 'src/services/api.js' does not export 'deleteWorkout'.

@@ -131,8 +131,32 @@ export default function useGeneration() {
       setProgressPercent(100);
       setLiveMessage("Generation completed ✓");
       setCurrentFile(null);
-      setResult(data);
+
       const effectiveName = data?.project_name || data?.projectName || data?.name || projectName;
+
+      if (data && Object.keys(data).length > 0) {
+        setResult(data);
+      } else if (effectiveName) {
+        // Stream complete event was dropped (too large). Fetch files directly.
+        try {
+          const filesData = await getProjectFiles(effectiveName);
+          const syntheticResult = {
+            status: "completed",
+            project_name: effectiveName,
+            tech_stack: "",
+            files: filesData.files || {},
+            saved_files: Object.keys(filesData.files || {}),
+            mode: "generate",
+            logs: [],
+          };
+          setResult(syntheticResult);
+        } catch {
+          setResult({ status: "completed", project_name: effectiveName, files: {}, saved_files: [], mode: "generate", logs: [] });
+        }
+      } else {
+        setResult(data);
+      }
+
       if (effectiveName) {
         setActiveProject(effectiveName);
       }
