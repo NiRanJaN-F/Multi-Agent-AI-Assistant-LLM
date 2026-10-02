@@ -64,7 +64,8 @@ function buildBlobUrl(files) {
 
   // ─── 2. Handling React / JSX Bundling ──────────────────────────────────────
   if (isReact) {
-    // Collect helper/utility JS files (storage.js, api.js, utils)
+    // Collect helper/utility JS files (storage.js, api.js, utils, mockData, etc.)
+    // EXCLUDE build-tool config files — they use 'export default {}' which breaks Babel script mode
     const helperJsFiles = fileKeys.filter(
       (k) =>
         k.endsWith(".js") &&
@@ -72,6 +73,12 @@ function buildBlobUrl(files) {
         !k.includes("test") &&
         !k.includes("vite.config") &&
         !k.includes("tailwind.config") &&
+        !k.includes("postcss.config") &&
+        !k.includes("babel.config") &&
+        !k.includes("jest.config") &&
+        !k.includes("webpack.config") &&
+        !k.includes("eslint.config") &&
+        !k.includes("rollup.config") &&
         !k.includes("main.js")
     );
 
@@ -83,7 +90,10 @@ function buildBlobUrl(files) {
       code = code
         .replace(/import\s+[\s\S]*?from\s+['"][^'"]+['"];?/g, "")
         .replace(/export\s+default\s+function\s+([A-Za-z0-9_]+)/g, "function $1")
-        .replace(/export\s+default\s+([A-Za-z0-9_]+);?/g, "")
+        .replace(/export\s+default\s+class\s+([A-Za-z0-9_]+)/g, "class $1")
+        .replace(/export\s+default\s+([A-Za-z0-9_$][A-Za-z0-9_$]*)\s*;/g, "")
+        // Strip bare 'export default' before object/array literals (postcss-style)
+        .replace(/^export\s+default\s+/gm, "const _moduleExport = ")
         .replace(/export\s+\{[^}]*\};?/g, "")
         .replace(/export\s+(const|let|var|function|class|async\s+function)\s+/g, "$1 ");
 
@@ -155,10 +165,11 @@ function buildBlobUrl(files) {
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script type="text/babel" data-presets="react,env">
-  const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
+  const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext, useReducer, useId } = React;
 
   // Universal Icon Factory for Lucide Icons
   const _icon = (name) => (props) => (
@@ -224,13 +235,64 @@ function buildBlobUrl(files) {
   };
   const formatDuration = formatTime;
 
-  // Mock chart components if imported
-  const Bar = (props) => <div className="mock-chart bar-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>📊 Bar Chart: {props.data?.datasets?.[0]?.label || 'Data'}</div>;
-  const Line = (props) => <div className="mock-chart line-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>📈 Line Chart: {props.data?.datasets?.[0]?.label || 'Trend'}</div>;
-  const Pie = (props) => <div className="mock-chart pie-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>🥧 Pie Chart: {props.data?.labels?.join(', ') || 'Distribution'}</div>;
-  const Doughnut = (props) => <div className="mock-chart doughnut-chart" style={{padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center'}}>🍩 Chart: {props.data?.labels?.join(', ') || 'Distribution'}</div>;
+  // ─── Recharts Component Bindings (real CDN first, stub fallback) ──────────
+  const _R = typeof Recharts !== 'undefined' ? Recharts : {};
+  const _chartPlaceholder = (label, color) => ({ children, data, width, height, ...rest }) => (
+    <div style={{ width: '100%', height: typeof height === 'number' ? height : '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(99,102,241,0.06)', borderRadius: '10px', border: '1px dashed rgba(99,102,241,0.25)', color, fontFamily: 'sans-serif', fontSize: '13px', gap: '6px', padding: '16px', boxSizing: 'border-box' }}>
+      <span>{label}</span>
+      {Array.isArray(data) && <span style={{ opacity: 0.5, fontSize: '11px' }}>{data.length} data points</span>}
+    </div>
+  );
+
+  const ResponsiveContainer = _R.ResponsiveContainer || (({ children, width, height, style }) => (
+    <div style={{ width: width || '100%', height: typeof height === 'number' ? height : 300, position: 'relative', ...style }}>
+      {children}
+    </div>
+  ));
+  const AreaChart     = _R.AreaChart    || _chartPlaceholder('📈 Area Chart',    '#6366f1');
+  const LineChart     = _R.LineChart    || _chartPlaceholder('📉 Line Chart',    '#10b981');
+  const BarChart      = _R.BarChart     || _chartPlaceholder('📊 Bar Chart',     '#3b82f6');
+  const PieChart      = _R.PieChart     || _chartPlaceholder('🥧 Pie Chart',     '#f59e0b');
+  const ComposedChart = _R.ComposedChart|| _chartPlaceholder('📊 Composed Chart','#8b5cf6');
+  const ScatterChart  = _R.ScatterChart || _chartPlaceholder('🔵 Scatter Chart', '#06b6d4');
+  const RadarChart    = _R.RadarChart   || _chartPlaceholder('🕸 Radar Chart',   '#ec4899');
+  const RadialBarChart= _R.RadialBarChart|| _chartPlaceholder('🔴 Radial Chart', '#ef4444');
+  const FunnelChart   = _R.FunnelChart  || _chartPlaceholder('🔺 Funnel Chart',  '#f97316');
+  const Treemap       = _R.Treemap      || _chartPlaceholder('🗂 Treemap',        '#14b8a6');
+  const Sankey        = _R.Sankey       || _chartPlaceholder('〰 Sankey',         '#a78bfa');
+
+  // Recharts child/axis components — real if available, null stub otherwise
+  const Area        = _R.Area        || (() => null);
+  const Bar         = _R.Bar         || ((props) => <div style={{padding:'12px',background:'rgba(255,255,255,0.05)',borderRadius:'6px',textAlign:'center',fontSize:'12px'}}>📊 {props.name || 'Bar'}</div>);
+  const Line        = _R.Line        || (() => null);
+  const Pie         = _R.Pie         || (() => null);
+  const Scatter     = _R.Scatter     || (() => null);
+  const Radar       = _R.Radar       || (() => null);
+  const RadialBar   = _R.RadialBar   || (() => null);
+  const Funnel      = _R.Funnel      || (() => null);
+  const Cell        = _R.Cell        || (() => null);
+  const XAxis       = _R.XAxis       || (() => null);
+  const YAxis       = _R.YAxis       || (() => null);
+  const ZAxis       = _R.ZAxis       || (() => null);
+  const CartesianGrid = _R.CartesianGrid || (() => null);
+  const Tooltip     = _R.Tooltip     || (() => null);
+  const Legend      = _R.Legend      || (() => null);
+  const ReferenceLine = _R.ReferenceLine || (() => null);
+  const ReferenceArea = _R.ReferenceArea || (() => null);
+  const ReferenceDot  = _R.ReferenceDot  || (() => null);
+  const PolarGrid   = _R.PolarGrid   || (() => null);
+  const PolarAngleAxis = _R.PolarAngleAxis || (() => null);
+  const PolarRadiusAxis = _R.PolarRadiusAxis || (() => null);
+  const Label       = _R.Label       || (() => null);
+  const LabelList   = _R.LabelList   || (() => null);
+  const Brush       = _R.Brush       || (() => null);
+  const ErrorBar    = _R.ErrorBar    || (() => null);
+
+  // Chart.js compatibility stubs (for projects using react-chartjs-2)
+  const Doughnut = (props) => <div style={{padding:'16px',background:'rgba(255,255,255,0.05)',borderRadius:'8px',textAlign:'center'}}>🍩 Doughnut: {props.data?.labels?.join(', ') || 'Distribution'}</div>;
   const ChartJS = { register: () => {} };
-  const CategoryScale = {}; const LinearScale = {}; const BarElement = {}; const PointElement = {}; const LineElement = {}; const ArcElement = {}; const Title = {}; const Tooltip = {}; const Legend = {};
+  const CategoryScale = {}; const LinearScale = {}; const BarElement = {}; const PointElement = {};
+  const LineElement = {}; const ArcElement = {}; const Title = {};
 
   // Simple React Error Boundary Component
   class ErrorBoundary extends React.Component {

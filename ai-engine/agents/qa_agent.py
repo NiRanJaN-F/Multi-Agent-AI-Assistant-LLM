@@ -336,6 +336,59 @@ def _check_runtime_smells(files: dict[str, str]) -> list[str]:
                     )
                     break
 
+def _check_missing_exports(files: dict[str, str]) -> list[str]:
+    """Flag named imports from local sibling JS/JSX files where the target file does not export that symbol."""
+    issues = []
+    file_map = {path.replace("\\", "/").lower(): (path, content) for path, content in files.items()}
+
+    import_named_pattern = re.compile(
+        r"""import\s*\{([^}]+)\}\s*from\s*['"](\.[^'"]+)['"]"""
+    )
+
+    for src_path, content in files.items():
+        if not src_path.endswith((".js", ".jsx", ".ts", ".tsx")):
+            continue
+        if any(seg in src_path for seg in ("tests/", "vite.config", "tailwind.config", "postcss.config")):
+            continue
+
+        norm_src = src_path.replace("\\", "/")
+        src_dir = norm_src.rsplit("/", 1)[0] if "/" in norm_src else ""
+
+        for match in import_named_pattern.finditer(content):
+            imported_symbols = [s.strip().split(" as ")[0].strip() for s in match.group(1).split(",") if s.strip()]
+            rel_import = match.group(2)
+
+            # Resolve relative import target path
+            target_base = (src_dir + "/" + rel_import).replace("//", "/").lstrip("/")
+            parts = []
+            for p in target_base.split("/"):
+                if p == "." or not p:
+                    continue
+                elif p == "..":
+                    if parts:
+                        parts.pop()
+                else:
+                    parts.append(p)
+            resolved_base = "/".join(parts).lower()
+
+            target_entry = None
+            for ext in ("", ".js", ".jsx", ".ts", ".tsx", "/index.js", "/index.jsx", "/index.ts", "/index.tsx"):
+                candidate = resolved_base + ext
+                if candidate in file_map:
+                    target_entry = file_map[candidate]
+                    break
+
+            if target_entry:
+                target_actual_path, target_content = target_entry
+                for sym in imported_symbols:
+                    if not sym or sym == "default":
+                        continue
+                    export_pattern = rf"\bexport\s+(?:const|let|var|function|class|async\s+function)\s+{re.escape(sym)}\b|\bexport\s*\{{[^}}]*\b{re.escape(sym)}\b[^}}]*\}}"
+                    if not re.search(export_pattern, target_content):
+                        issues.append(
+                            f"'{src_path}' imports '{sym}' from '{rel_import}', but '{target_actual_path}' does not export '{sym}'."
+                        )
+
     return issues
 
 
@@ -357,6 +410,7 @@ def qa_agent(state: AgentState) -> dict:
         issues.extend(_check_interactivity(files))
         issues.extend(_check_contract_alignment(files, api_contract))
         issues.extend(_check_runtime_smells(files))
+        issues.extend(_check_missing_exports(files))
 
         if not any(path.startswith("tests/") for path in files):
             recommendations.append("Add an automated test suite under tests/.")
