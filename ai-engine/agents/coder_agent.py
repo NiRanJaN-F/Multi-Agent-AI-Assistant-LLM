@@ -109,7 +109,7 @@ CRITICAL RULES for {file_path}:
 - If writing React / JSX (.jsx):
   * Ensure 100% prop alignment with sibling components. If a component expects tracks, lyrics, or favorites, ensure App.jsx passes matching types and functions.
   * Use defensive access: e.g. `(Array.isArray(track?.lyrics) ? track.lyrics : (track?.lyrics || '').split('\\n'))`.
-  * Pass real handler functions (not just booleans) for toggle/action props (e.g. `isFavorite={(id) => favorites.includes(id)}`).
+  * Pass real handler functions (not just booleans) for toggle/action props (e.g. `isFavorite={{(id) => favorites.includes(id)}}`).
   * MANDATORY NULL-SAFETY — violation will cause runtime crash:
     1. Optional chaining for any function that may return null/undefined:
        WRONG: `checkWinner(board).winner`   RIGHT: `checkWinner(board)?.winner ?? null`
@@ -118,7 +118,7 @@ CRITICAL RULES for {file_path}:
     3. Array vs String guard before calling string methods on unknown props:
        Pattern: `Array.isArray(val) ? val.join('\\n') : (typeof val === 'string' ? val : String(val ?? ''))`
     4. Always wrap `JSON.parse(localStorage.getItem(...))` in try/catch:
-       `let data; try { data = JSON.parse(localStorage.getItem('key')) ?? []; } catch { data = []; }`
+       `let data; try {{ data = JSON.parse(localStorage.getItem('key')) ?? []; }} catch {{ data = []; }}`
     5. Guard `.find()` result before accessing its properties:
        WRONG: `items.find(x => x.id === id).name`   RIGHT: `items.find(x => x.id === id)?.name ?? ''`
 - If writing CSS: provide sleek glassmorphism effects, modern scrollbars, and keyframe animations.
