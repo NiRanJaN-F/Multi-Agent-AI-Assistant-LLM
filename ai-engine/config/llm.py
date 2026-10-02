@@ -298,7 +298,11 @@ class FallbackLLM:
         return self._stats["calls"]
 
     def _try(self, provider: str, model: str, prompt: str) -> Any:
-        if settings.enable_prompt_cache and "pytest" not in sys.modules:
+        if (
+            settings.enable_prompt_cache
+            and "pytest" not in sys.modules
+            and "unittest" not in sys.modules
+        ):
             normalized = _normalize_prompt_for_cache(prompt)
 
             if normalized:

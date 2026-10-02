@@ -20,8 +20,26 @@ logger = logging.getLogger(__name__)
 MAX_CONTEXT_CHARS_PER_FILE = 5000
 MAX_SIBLING_CHARS = 3000
 
-REFINE_PLANNER_PROMPT_TEMPLATE = """You are a Principal Software Architect planning an incremental modification to an existing codebase.
+REFINE_PLANNER_PROMPT_TEMPLATE = """=== SYSTEM ROLE & REFINEMENT STANDARDS ===
+You are a Principal Software Architect planning an incremental modification to an existing codebase.
 
+CRITICAL RULES:
+1. Analyze the existing codebase thoroughly before planning. Identify exact files, functions, DOM IDs, and styles that need adjustment.
+2. Minimize changes: only modify files that directly require updates to implement the change request.
+3. If new files are strictly necessary, list them under "new_files". Otherwise, prefer editing existing files.
+4. DO NOT modify any files marked as PROTECTED.
+5. Never break existing features, UI elements, or event bindings.
+
+FORMAT: Return ONLY a valid JSON object matching this schema:
+{{
+  "summary": "One concise sentence describing the exact technical change",
+  "tasks": ["Step 1: description", "Step 2: description"],
+  "modify_files": ["existing/path/to/file.ext"],
+  "new_files": ["new/path/to/file.ext"]
+}}
+Only list files under "modify_files" that exist in the project below.
+
+=== PROJECT SPECIFICATION & CONTEXT ===
 Change Request: "{change_request}"
 Project Name: "{project_name}"
 Tech Stack: "{tech_stack}"
@@ -29,34 +47,10 @@ Refinement Intent: {intent_summary}
 
 Existing Project Context & Structure:
 {files_summary}
-
-CRITICAL RULES:
-1. Analyze the existing codebase thoroughly before planning. Identify exact files, functions, DOM IDs, and styles that need adjustment.
-2. Minimize changes: only modify files that directly require updates to implement the change request.
-3. If new files are strictly necessary (e.g. new utility or component), list them under "new_files". Otherwise, prefer editing existing files.
-4. DO NOT modify any files marked as PROTECTED.
-5. Never break existing features, UI elements, or event bindings.
-
-Return ONLY a valid JSON object matching this schema:
-{{
-  "summary": "One concise sentence describing the exact technical change",
-  "tasks": ["Step 1: description", "Step 2: description"],
-  "modify_files": ["existing/path/to/file.ext"],
-  "new_files": ["new/path/to/file.ext"]
-}}
-Only list files under "modify_files" that exist in the project above.
 """
 
-REFINE_CODER_PROMPT_TEMPLATE = """You are a Principal Software Engineer editing an existing project.
-
-{qa_header}
-Change Request: "{change_request}"
-Tech Stack: "{tech_stack}"
-All Files In Project: {file_paths}
-Files To Rewrite: {targets}
-
-Current content of the files to rewrite:
-{current_contents}
+REFINE_CODER_PROMPT_TEMPLATE = """=== SYSTEM ROLE & REFINEMENT STANDARDS ===
+You are a Principal Software Engineer editing an existing project.
 
 CRITICAL REQUIREMENTS:
 1. PRESERVE ALL EXISTING FUNCTIONALITY: Do NOT remove, break, or omit existing working features, mock datasets, or DOM bindings.
@@ -67,18 +61,38 @@ CRITICAL REQUIREMENTS:
    - Maintain exact DOM element IDs and call `lucide.createIcons();` after dynamic UI updates.
 4. STYLING: Maintain clean Tailwind CSS styling, responsive grid layouts, and smooth transitions.
 
-Format the response exactly like this, once per file and nothing else:
-
+FORMAT — EVERY file prefixed like this (no other text):
 FILE: path/of/file
 ```
 <complete new file content>
 ```
+
+=== PROJECT SPECIFICATION & CONTEXT ===
+{qa_header}Change Request: "{change_request}"
+Tech Stack: "{tech_stack}"
+All Files In Project: {file_paths}
+Files To Rewrite: {targets}
+
+Current content of the files to rewrite:
+{current_contents}
 """
 
-REFINE_SINGLE_FILE_PROMPT_TEMPLATE = """You are a Principal Software Engineer incrementally updating an existing file.
+REFINE_SINGLE_FILE_PROMPT_TEMPLATE = """=== SYSTEM ROLE & REFINEMENT STANDARDS ===
+You are a Principal Software Engineer incrementally updating an existing file.
 
-{qa_header}
-Change Request: "{change_request}"
+CRITICAL RULES FOR UPDATING {file_path}:
+1. PRESERVE EXISTING FUNCTIONALITY: Do NOT delete, break, or omit existing features, mock data, DOM IDs, or event handlers unless the change request specifically asks to replace them.
+2. COMPLETE OUTPUT: Return the COMPLETE, updated file content. Do NOT use snippets, placeholders, `// ... rest of code`, or truncated code.
+3. DEFENSIVE BROWSER JS & CROSS-FILE SYNC:
+   - If writing JavaScript for the browser, attach shared data, state, or utility objects to `window` (e.g., `window.PRODUCTS`, `window.Cart`, `window.ThemeManager`).
+   - Do NOT use ES module `export` or `import` statements in plain browser scripts.
+   - Guard DOM selections with `if (el) ...` and call `lucide.createIcons();` after rendering dynamic UI.
+4. STYLING: Preserve Tailwind CSS classes, responsive layouts, dark mode classes, and clean visual structure.
+
+FORMAT: Return ONLY the complete updated file content inside a single markdown code fence (```...```), with no commentary.
+
+=== PROJECT SPECIFICATION & FILE CONTEXT ===
+{qa_header}Change Request: "{change_request}"
 Tech Stack: "{tech_stack}"
 File To Update: {file_path}
 All Project Files: {file_paths}
@@ -90,29 +104,10 @@ CURRENT CONTENT OF {file_path}:
 
 SIBLING FILES CONTEXT:
 {sibling_context}
-
-CRITICAL RULES FOR UPDATING {file_path}:
-1. PRESERVE EXISTING FUNCTIONALITY: Do NOT delete, break, or omit existing features, mock data, DOM IDs, or event handlers unless the change request specifically asks to replace them.
-2. COMPLETE OUTPUT: Return the COMPLETE, updated file content. Do NOT use snippets, placeholders, `// ... rest of code`, or truncated code.
-3. DEFENSIVE BROWSER JS & CROSS-FILE SYNC:
-   - If writing JavaScript for the browser, attach shared data, state, or utility objects to `window` (e.g., `window.PRODUCTS`, `window.Cart`, `window.ThemeManager`).
-   - Do NOT use ES module `export` or `import` statements in plain browser scripts.
-   - Guard DOM selections with `if (el) ...` and call `lucide.createIcons();` after rendering dynamic UI.
-4. STYLING: Preserve Tailwind CSS classes, responsive layouts, dark mode classes, and clean visual structure.
-
-Return ONLY the complete updated file content inside a single markdown code fence (```...```), with no commentary.
 """
 
-REFINE_NEW_FILE_PROMPT_TEMPLATE = """You are a Principal Software Engineer creating a NEW file for an existing codebase.
-
-{qa_header}
-Change Request: "{change_request}"
-Tech Stack: "{tech_stack}"
-New File Path To Create: {file_path}
-All Project Files: {file_paths}
-
-EXISTING SIBLING FILES IN PROJECT:
-{sibling_context}
+REFINE_NEW_FILE_PROMPT_TEMPLATE = """=== SYSTEM ROLE & REFINEMENT STANDARDS ===
+You are a Principal Software Engineer creating a NEW file for an existing codebase.
 
 CRITICAL RULES:
 - Implement the COMPLETE, 100% functional content for {file_path}. No placeholders or TODOs.
@@ -120,7 +115,16 @@ CRITICAL RULES:
 - If writing browser JavaScript: attach any shared classes or objects to `window` (e.g., `window.ThemeManager = ...`) so other scripts can access them without `import`/`export`.
 - Never throw ReferenceErrors between scripts.
 
-Return ONLY the raw source code for {file_path} inside a single markdown code fence (```...```), with no commentary.
+FORMAT: Return ONLY the raw source code for {file_path} inside a single markdown code fence (```...```), with no commentary.
+
+=== PROJECT SPECIFICATION & CONTEXT ===
+{qa_header}Change Request: "{change_request}"
+Tech Stack: "{tech_stack}"
+New File Path To Create: {file_path}
+All Project Files: {file_paths}
+
+EXISTING SIBLING FILES IN PROJECT:
+{sibling_context}
 """
 
 
@@ -154,13 +158,14 @@ def _format_sibling_context(files: dict[str, str], exclude_path: str) -> str:
     """Provide compact sibling context for cross-file consistency."""
     snippets = []
     total = 0
+    from agents.coder_agent import _extract_file_contract
     for path, content in sorted(files.items()):
         if path == exclude_path:
             continue
         if total >= MAX_SIBLING_CHARS:
             break
-        head = content[:800]
-        snippet = f"--- {path} ---\n{head}\n"
+        contract = _extract_file_contract(path, content)
+        snippet = f"--- SIBLING CONTRACT: {path} ---\n{contract}\n"
         snippets.append(snippet)
         total += len(snippet)
     return "\n".join(snippets) if snippets else "(no sibling files)"
@@ -261,6 +266,30 @@ def _rewrite_file_by_file(
     return rewritten, last_error
 
 
+DISALLOWED_PLACEHOLDERS = {
+    "new/path/to/file.ext",
+    "existing/path/to/file.ext",
+    "path/to/file.ext",
+    "path/to/file.js",
+    "path/of/file",
+    "path/of/file.ext",
+    "path/of/file/to/create.js",
+    "path/to/new_file.js",
+    "path/to/file",
+    "file.ext",
+    "file.js",
+}
+
+
+def _is_placeholder_path(path: str) -> bool:
+    clean = path.lower().strip()
+    if clean in DISALLOWED_PLACEHOLDERS:
+        return True
+    if clean.startswith("path/of/file") or clean.startswith("path/to/file") or clean.startswith("new/path"):
+        return True
+    return False
+
+
 def resolve_target_path(candidate: str, existing_files: dict[str, str]) -> str | None:
     """Resolve a candidate file path against existing files.
     
@@ -272,7 +301,7 @@ def resolve_target_path(candidate: str, existing_files: dict[str, str]) -> str |
     5. Basename match (e.g. 'app.js' -> 'public/js/app.js')
     """
     clean = candidate.strip().replace("\\", "/").lstrip("./").lstrip("/")
-    if not clean:
+    if not clean or _is_placeholder_path(clean):
         return None
     if clean in existing_files:
         return clean
@@ -380,7 +409,7 @@ def refine_planner_agent(state: AgentState) -> dict:
                     resolved_modify.append(existing_match)
             else:
                 clean_p = p.strip().replace("\\", "/").lstrip("./").lstrip("/")
-                if clean_p and clean_p not in protected_files and clean_p not in resolved_new:
+                if clean_p and not _is_placeholder_path(clean_p) and clean_p not in protected_files and clean_p not in resolved_new:
                     resolved_new.append(clean_p)
 
         modify_files = resolved_modify

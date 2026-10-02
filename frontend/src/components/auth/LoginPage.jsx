@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { Lock, Mail, User, ArrowRight, Zap, ShieldCheck, Sparkles } from "lucide-react";
+import { Zap, ShieldCheck, Sparkles, ArrowRight } from "lucide-react";
+import loginIllustration from "../../assets/login-illustration.png";
 
 export default function LoginPage() {
   const { login, register, demoLogin } = useAuth();
@@ -43,294 +44,384 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      width: "100vw",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "radial-gradient(ellipse at 50% 0%, #181926 0%, #0d0f14 60%, #090a0f 100%)",
-      color: "#e2e4f0",
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      padding: "20px",
-      boxSizing: "border-box",
-      position: "relative",
-      overflow: "hidden",
-    }}>
-      {/* Background ambient lighting */}
-      <div style={{
-        position: "absolute",
-        top: "15%",
-        left: "50%",
-        transform: "translateX(-50%)",
-        width: "500px",
-        height: "300px",
-        background: "radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
+    <div className="login-root">
+      <style>{`
+        .login-root {
+          min-height: 100vh;
+          width: 100vw;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #08090b;
+          color: #e2e4f0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          padding: 20px;
+          box-sizing: border-box;
+          position: relative;
+          overflow-x: hidden;
+        }
 
-      {/* Main Auth Card */}
-      <div style={{
-        width: "100%",
-        maxWidth: "420px",
-        background: "#12141c",
-        border: "1px solid #232635",
-        borderRadius: "16px",
-        padding: "32px",
-        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05)",
-        position: "relative",
-        zIndex: 1,
-      }}>
-        {/* App Logo & Title */}
-        <div style={{ textAlign: "center", marginBottom: "28px" }}>
-          <div style={{
-            width: "44px",
-            height: "44px",
-            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-            borderRadius: "12px",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "22px",
-            color: "#fff",
-            marginBottom: "14px",
-            boxShadow: "0 8px 20px -4px rgba(99, 102, 241, 0.5)",
-          }}>
-            ⬡
-          </div>
-          <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#f4f4f6", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
-            Multi-Agent AI Assistant
-          </h1>
-          <p style={{ fontSize: "13px", color: "#8b8fa8", margin: 0 }}>
-            Sign in to access your autonomous software engineering workspace
-          </p>
+        .login-card {
+          width: 100%;
+          max-width: 860px;
+          min-height: 530px;
+          background: #16181d;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 26px;
+          padding: 28px 28px 28px 36px;
+          box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.03);
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
+        }
+
+        .login-dots {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin-bottom: 24px;
+        }
+
+        .login-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #3c404b;
+          transition: background 0.2s ease;
+        }
+
+        .login-layout {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 32px;
+          flex: 1;
+          align-items: center;
+        }
+
+        .login-form-pane {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          max-width: 360px;
+          width: 100%;
+          margin: 0 auto;
+        }
+
+        .login-title {
+          font-size: 26px;
+          font-weight: 600;
+          color: #ffffff;
+          margin: 0 0 6px 0;
+          letter-spacing: -0.02em;
+        }
+
+        .login-subtitle {
+          font-size: 13px;
+          color: #727786;
+          margin: 0 0 24px 0;
+          font-weight: 400;
+        }
+
+        .login-input {
+          width: 100%;
+          padding: 13px 18px;
+          background: #21242b;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 12px;
+          color: #ffffff;
+          font-size: 13.5px;
+          outline: none;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+          margin-bottom: 14px;
+        }
+
+        .login-input::placeholder {
+          color: #5b6070;
+        }
+
+        .login-input:focus {
+          border-color: rgba(255, 255, 255, 0.22);
+          background: #242730;
+          box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.03);
+        }
+
+        .login-btn-primary {
+          width: 100%;
+          padding: 12px 18px;
+          background: linear-gradient(180deg, #818693 0%, #595e69 100%);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          border-radius: 12px;
+          color: #ffffff;
+          font-size: 13.5px;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+          transition: all 0.15s ease;
+          margin-top: 4px;
+        }
+
+        .login-btn-primary:hover:not(:disabled) {
+          opacity: 0.94;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .login-btn-primary:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .login-btn-primary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .login-mode-toggle {
+          margin-top: 14px;
+          text-align: center;
+          font-size: 12.5px;
+          color: #727786;
+        }
+
+        .login-mode-toggle button {
+          background: none;
+          border: none;
+          color: #9ea3b2;
+          font-weight: 600;
+          cursor: pointer;
+          padding: 0;
+          margin-left: 5px;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+          transition: color 0.15s ease;
+        }
+
+        .login-mode-toggle button:hover {
+          color: #ffffff;
+        }
+
+        .login-demo-btn {
+          width: 100%;
+          margin-top: 12px;
+          padding: 10px 14px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 11px;
+          color: #9499aa;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          transition: all 0.15s ease;
+        }
+
+        .login-demo-btn:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba(255, 255, 255, 0.15);
+          color: #ffffff;
+        }
+
+        .login-visual-pane {
+          width: 100%;
+          height: 100%;
+          min-height: 440px;
+          max-height: 480px;
+          background: #0d0f13;
+          border-radius: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+
+        .login-visual-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .login-error-box {
+          padding: 9px 13px;
+          background: rgba(239, 68, 68, 0.12);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          border-radius: 10px;
+          color: #fca5a5;
+          font-size: 12px;
+          margin-bottom: 14px;
+        }
+
+        .login-footer-badges {
+          margin-top: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          font-size: 11px;
+          color: #535766;
+        }
+
+        @media (max-width: 768px) {
+          .login-card {
+            padding: 24px 20px;
+          }
+          .login-layout {
+            grid-template-columns: 1fr;
+          }
+          .login-visual-pane {
+            display: none;
+          }
+        }
+      `}</style>
+
+      {/* Main Container Card */}
+      <div className="login-card">
+        {/* Top-left window control dots */}
+        <div className="login-dots">
+          <div className="login-dot" />
+          <div className="login-dot" />
+          <div className="login-dot" />
         </div>
 
-        {/* 1-Click Demo Login Banner (Perfect for Demo Day) */}
-        <div style={{ marginBottom: "20px" }}>
-          <button
-            type="button"
-            onClick={handleDemoLogin}
-            disabled={demoLoading || loading}
-            style={{
-              width: "100%",
-              padding: "11px 16px",
-              background: "linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
-              border: "1px solid rgba(99, 102, 241, 0.4)",
-              borderRadius: "10px",
-              color: "#a5b4fc",
-              fontSize: "13px",
-              fontWeight: 600,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <Zap size={16} color="#818cf8" />
-            {demoLoading ? "Accessing Demo..." : "Continue with Demo Account (Instant Access)"}
-          </button>
-        </div>
+        {/* 2-Column Layout */}
+        <div className="login-layout">
+          {/* Left Column: Form */}
+          <div className="login-form-pane">
+            <h1 className="login-title">
+              {mode === "login" ? "Welcome Back!" : "Get Started"}
+            </h1>
+            <p className="login-subtitle">
+              {mode === "login"
+                ? "Enter your info to Sign In"
+                : "Enter your info to create an account"}
+            </p>
 
-        {/* Divider */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-          <div style={{ flex: 1, height: "1px", background: "#232635" }} />
-          <span style={{ fontSize: "11px", color: "#5a5e73", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
-            or use credentials
-          </span>
-          <div style={{ flex: 1, height: "1px", background: "#232635" }} />
-        </div>
+            {error && (
+              <div className="login-error-box">
+                {error}
+              </div>
+            )}
 
-        {/* Mode Switcher Tabs */}
-        <div style={{
-          display: "flex",
-          background: "#181a24",
-          padding: "3px",
-          borderRadius: "8px",
-          border: "1px solid #232635",
-          marginBottom: "20px",
-        }}>
-          <button
-            type="button"
-            onClick={() => { setMode("login"); setError(null); }}
-            style={{
-              flex: 1,
-              padding: "7px 0",
-              border: "none",
-              borderRadius: "6px",
-              background: mode === "login" ? "#6366f1" : "transparent",
-              color: mode === "login" ? "#fff" : "#8b8fa8",
-              fontSize: "12px",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-          >
-            Log In
-          </button>
-          <button
-            type="button"
-            onClick={() => { setMode("register"); setError(null); }}
-            style={{
-              flex: 1,
-              padding: "7px 0",
-              border: "none",
-              borderRadius: "6px",
-              background: mode === "register" ? "#6366f1" : "transparent",
-              color: mode === "register" ? "#fff" : "#8b8fa8",
-              fontSize: "12px",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-          >
-            Create Account
-          </button>
-        </div>
-
-        {/* Error Alert */}
-        {error && (
-          <div style={{
-            padding: "10px 14px",
-            background: "rgba(239, 68, 68, 0.1)",
-            border: "1px solid rgba(239, 68, 68, 0.3)",
-            borderRadius: "8px",
-            color: "#fca5a5",
-            fontSize: "12px",
-            marginBottom: "16px",
-          }}>
-            {error}
-          </div>
-        )}
-
-        {/* Form Fields */}
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          {mode === "register" && (
-            <div>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "#8b8fa8", marginBottom: "6px" }}>
-                Username
-              </label>
-              <div style={{ position: "relative" }}>
-                <User size={15} color="#5a5e73" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+            <form onSubmit={handleSubmit}>
+              {mode === "register" && (
                 <input
                   type="text"
                   required
-                  placeholder="Niranjan"
+                  placeholder="Username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px 10px 36px",
-                    background: "#181a24",
-                    border: "1px solid #232635",
-                    borderRadius: "8px",
-                    color: "#f4f4f6",
-                    fontSize: "13px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
+                  className="login-input"
+                  autoComplete="username"
                 />
-              </div>
-            </div>
-          )}
+              )}
 
-          <div>
-            <label style={{ display: "block", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "#8b8fa8", marginBottom: "6px" }}>
-              Email Address
-            </label>
-            <div style={{ position: "relative" }}>
-              <Mail size={15} color="#5a5e73" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
               <input
                 type="email"
                 required
-                placeholder="developer@example.com"
+                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px 10px 36px",
-                  background: "#181a24",
-                  border: "1px solid #232635",
-                  borderRadius: "8px",
-                  color: "#f4f4f6",
-                  fontSize: "13px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
+                className="login-input"
+                autoComplete="email"
               />
-            </div>
-          </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "#8b8fa8", marginBottom: "6px" }}>
-              Password
-            </label>
-            <div style={{ position: "relative" }}>
-              <Lock size={15} color="#5a5e73" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
               <input
                 type="password"
                 required
-                placeholder="••••••••"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px 10px 36px",
-                  background: "#181a24",
-                  border: "1px solid #232635",
-                  borderRadius: "8px",
-                  color: "#f4f4f6",
-                  fontSize: "13px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
+                className="login-input"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
               />
+
+              <button
+                type="submit"
+                disabled={loading || demoLoading}
+                className="login-btn-primary"
+              >
+                {loading
+                  ? "Please wait..."
+                  : mode === "login"
+                  ? "Sign In"
+                  : "Create Account"}
+              </button>
+            </form>
+
+            {/* 1-Click Demo Login button */}
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={demoLoading || loading}
+              className="login-demo-btn"
+            >
+              <Zap size={13} color="#a5b4fc" />
+              {demoLoading ? "Accessing Demo Account..." : "Instant Demo Access"}
+            </button>
+
+            {/* Mode Switcher */}
+            <div className="login-mode-toggle">
+              {mode === "login" ? (
+                <>
+                  Don't have an account?
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("register");
+                      setError(null);
+                    }}
+                  >
+                    Sign up
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("login");
+                      setError(null);
+                    }}
+                  >
+                    Sign in
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Subtle security/status badges */}
+            <div className="login-footer-badges">
+              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <ShieldCheck size={12} color="#10b981" /> JWT Secure
+              </span>
+              <span>•</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <Sparkles size={12} color="#818cf8" /> Multi-Agent AI
+              </span>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading || demoLoading}
-            style={{
-              marginTop: "8px",
-              padding: "11px",
-              background: "#6366f1",
-              border: "none",
-              borderRadius: "8px",
-              color: "#fff",
-              fontSize: "13px",
-              fontWeight: 600,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              transition: "background 0.15s ease",
-            }}
-          >
-            {loading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
-            <ArrowRight size={15} />
-          </button>
-        </form>
-
-        {/* Security & Feature Badges Footer */}
-        <div style={{
-          marginTop: "24px",
-          paddingTop: "16px",
-          borderTop: "1px solid #232635",
-          display: "flex",
-          justifyContent: "space-around",
-          fontSize: "11px",
-          color: "#5a5e73",
-        }}>
-          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <ShieldCheck size={13} color="#10b981" /> JWT Secure
-          </span>
-          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <Sparkles size={13} color="#6366f1" /> 7 AI Specialists
-          </span>
+          {/* Right Column: Visual Artwork */}
+          <div className="login-visual-pane">
+            <img
+              src={loginIllustration}
+              alt="Multi Agent AI Visual"
+              className="login-visual-img"
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -336,6 +336,9 @@ def _check_runtime_smells(files: dict[str, str]) -> list[str]:
                     )
                     break
 
+    return issues
+
+
 def _check_missing_exports(files: dict[str, str]) -> list[str]:
     """Flag named imports from local sibling JS/JSX files where the target file does not export that symbol."""
     issues = []

@@ -48,14 +48,30 @@ def _resolve_file_path(output_dir: Path, rel_path: str) -> Path:
     return candidate
 
 
-def save_project_files(project_name: str, files: Dict[str, str]) -> Dict[str, str | List[str]]:
+import shutil
+
+def save_project_files(project_name: str, files: Dict[str, str], clean: bool = False) -> Dict[str, str | List[str]]:
     """Save generated dictionary of files into generated-projects/<project_name>/.
 
     :param project_name: Target folder name slug.
     :param files: Dict mapping relative file path -> code content.
+    :param clean: If True, remove previous files in the project folder before saving (used on new project generation).
     :return: Summary dict with status, output_dir, and saved_files.
     """
     output_dir = resolve_project_dir(project_name)
+
+    if clean and output_dir.is_dir():
+        for child in output_dir.iterdir():
+            if any(part in SKIPPED_DIRS for part in (child.name,)):
+                continue
+            if child.is_dir():
+                shutil.rmtree(child, ignore_errors=True)
+            elif child.is_file():
+                try:
+                    child.unlink()
+                except OSError:
+                    pass
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     saved_files = []

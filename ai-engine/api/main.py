@@ -195,7 +195,7 @@ def generate_project(req: GenerateRequest) -> dict:
 
         project_name = final_state.get("project_name", "generated-app")
         generated_files = final_state.get("files", {})
-        save_result = save_project_files(project_name, generated_files)
+        save_result = save_project_files(project_name, generated_files, clean=True)
 
         return {
             "status": "completed",
@@ -289,7 +289,7 @@ def generate_project_stream(req: GenerateRequest):
 
             project_name = accumulated_state.get("project_name", "generated-app")
             generated_files = accumulated_state.get("files", {})
-            save_result = save_project_files(project_name, generated_files)
+            save_result = save_project_files(project_name, generated_files, clean=True)
 
             final_response = {
                 "status": "completed",

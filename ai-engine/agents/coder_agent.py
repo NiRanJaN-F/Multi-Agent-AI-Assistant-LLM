@@ -106,21 +106,6 @@ CRITICAL RULES for {file_path}:
   * Pre-populate realistic mock data that MATCHES THE APP TYPE (not generic products with Unsplash images unless it's a store).
   * Implement ALL event handlers the app needs: the exact interactions the user requested.
   * Call `lucide.createIcons();` after updating DOM elements. Guard every selector safely.
-- If writing React / JSX (.jsx):
-  * Ensure 100% prop alignment with sibling components. If a component expects tracks, lyrics, or favorites, ensure App.jsx passes matching types and functions.
-  * Use defensive access: e.g. `(Array.isArray(track?.lyrics) ? track.lyrics : (track?.lyrics || '').split('\\n'))`.
-  * Pass real handler functions (not just booleans) for toggle/action props (e.g. `isFavorite={{(id) => favorites.includes(id)}}`).
-  * MANDATORY NULL-SAFETY — violation will cause runtime crash:
-    1. Optional chaining for any function that may return null/undefined:
-       WRONG: `checkWinner(board).winner`   RIGHT: `checkWinner(board)?.winner ?? null`
-    2. Safe state initialisation — never use null/undefined for state that gets iterable methods:
-       WRONG: `useState(null)` for arrays/strings   RIGHT: `useState([])` or `useState('')`
-    3. Array vs String guard before calling string methods on unknown props:
-       Pattern: `Array.isArray(val) ? val.join('\\n') : (typeof val === 'string' ? val : String(val ?? ''))`
-    4. Always wrap `JSON.parse(localStorage.getItem(...))` in try/catch:
-       `let data; try {{ data = JSON.parse(localStorage.getItem('key')) ?? []; }} catch {{ data = []; }}`
-    5. Guard `.find()` result before accessing its properties:
-       WRONG: `items.find(x => x.id === id).name`   RIGHT: `items.find(x => x.id === id)?.name ?? ''`
 - If writing CSS: provide sleek glassmorphism effects, modern scrollbars, and keyframe animations.
 
 Return ONLY the raw source code inside a SINGLE markdown code fence (```...```), no commentary.
@@ -187,6 +172,22 @@ def one_call_per_file(llm: FallbackLLM) -> bool:
     return llm.candidates[0][0] in LOCAL_PROVIDERS
 
 
+def _extract_file_contract(path: str, content: str) -> str:
+    """Extract key exported symbols, DOM elements, and structural contract lines from a file."""
+    lines = content.splitlines()
+    kept: list[str] = []
+    for idx, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        is_hv = bool(HIGH_VALUE_LINE_PATTERN.search(line))
+        is_near_top = idx < 12
+        is_near_bottom = idx >= max(0, len(lines) - 5)
+        if is_hv or is_near_top or is_near_bottom:
+            kept.append(f"  L{idx+1}: {stripped[:160]}")
+    return "\n".join(kept) if kept else f"  (content: {len(lines)} lines)"
+
+
 def _format_sibling_context(written_so_far: dict[str, str]) -> tuple[str, int]:
     """Format already-written files into a compact context block, prioritizing high-value lines. Hard cap at MAX_SIBLING_CONTEXT_CHARS."""
     if not written_so_far:
@@ -201,18 +202,8 @@ def _format_sibling_context(written_so_far: dict[str, str]) -> tuple[str, int]:
         if total_chars >= budget:
             truncated_files.append(path)
             continue
+        snippet = _extract_file_contract(path, content)
         lines = content.splitlines()
-        kept: list[str] = []
-        for idx, line in enumerate(lines):
-            stripped = line.strip()
-            if not stripped:
-                continue
-            is_hv = bool(HIGH_VALUE_LINE_PATTERN.search(line))
-            is_near_top = idx < 12
-            is_near_bottom = idx >= max(0, len(lines) - 5)
-            if is_hv or is_near_top or is_near_bottom:
-                kept.append(f"  L{idx+1}: {stripped[:160]}")
-        snippet = "\n".join(kept) if kept else f"  (content: {len(lines)} lines)"
         header = f"--- SIBLING FILE: {path} ({len(lines)} lines, key lines shown) ---\n{snippet}"
         header_chars = len(header) + 1
         if total_chars + header_chars > budget:

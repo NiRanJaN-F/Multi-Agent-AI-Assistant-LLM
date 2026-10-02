@@ -33,11 +33,8 @@ ai-engine/.venv/
 htmlcov/
 
 # Generated / temporary
-generated-projects/**/node_modules/
-generated-projects/**/.venv/
-generated-projects/**/__pycache__/
-generated-projects/**/dist/
-generated-projects/**/.next/
+generated-projects/*
+!generated-projects/.gitkeep
 tmp/
 temp/
 *.tmp

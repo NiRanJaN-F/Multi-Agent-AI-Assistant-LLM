@@ -60,7 +60,9 @@ class Settings(BaseSettings):
     deepseek_api_key: str | None = Field(default=None, alias="DEEPSEEK_API_KEY")
     deepseek_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_MODEL")
     deepseek_reasoner_model: str = Field(default="deepseek-reasoner", alias="DEEPSEEK_REASONER_MODEL")
-    deepseek_fallback_models: str = Field(default="", alias="DEEPSEEK_FALLBACK_MODELS")
+    deepseek_fallback_models: str = Field(
+        default="deepseek-v4-pro,deepseek-flash,deepseek-reasoner,deepseek-chat", alias="DEEPSEEK_FALLBACK_MODELS"
+    )
 
     # --- Per-agent provider routing ---
     # Each falls back to llm_provider when unset.

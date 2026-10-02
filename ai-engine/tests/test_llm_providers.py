@@ -101,7 +101,7 @@ class TestCandidateOrdering(unittest.TestCase):
 
         self.assertEqual(
             providers,
-            ["gemini", "deepseek", "groq", "groq", "openrouter", "ollama", "openai"],
+            ["gemini", "groq", "groq", "openrouter", "deepseek", "ollama", "openai"],
         )
 
     def test_requested_provider_is_tried_first(self):
@@ -110,7 +110,7 @@ class TestCandidateOrdering(unittest.TestCase):
 
         self.assertEqual(candidates[0], ("groq", "llama-3.3-70b-versatile"))
         self.assertEqual(candidates[1], ("groq", "llama-3.1-8b-instant"))
-        self.assertEqual(candidates[2][0], "deepseek")
+        self.assertEqual(candidates[2][0], "gemini")
 
     def test_unconfigured_provider_falls_through_to_the_configured_ones(self):
         with patch.multiple(settings, **{**NO_PROVIDERS, "groq_api_key": "groq-key"}):
