@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import LoginPage from "./components/auth/LoginPage";
 import IDENavbar from "./components/IDENavbar";
 import CommandCenter from "./components/CommandCenter";
 import DevWorkspace from "./components/DevWorkspace";
-import HistoryDrawer from "./components/HistoryDrawer";
 import useGeneration from "./hooks/useGeneration";
 import "./styles/ide.css";
 
 function MainIDE() {
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-
   const {
     loading,
     error,
@@ -24,28 +21,12 @@ function MainIDE() {
     refine,
     stopGeneration,
     loadProject,
-    hydrateFromHistory,
     reset,
   } = useGeneration();
 
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "h") {
-        e.preventDefault();
-        setIsHistoryOpen((prev) => !prev);
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   return (
     <div className="ide-shell">
-      <IDENavbar
-        activeProject={activeProject}
-        result={result}
-        onOpenHistory={() => setIsHistoryOpen(true)}
-      />
+      <IDENavbar activeProject={activeProject} result={result} />
 
       {error && (
         <div style={{
@@ -81,29 +62,16 @@ function MainIDE() {
           onReset={reset}
           onAutoFix={(errorMessage) => {
             const effectiveName = activeProject || result?.project_name || result?.projectName;
-            if (!effectiveName) {
-              console.warn("Auto-Fix: no active project, skipping.");
-              return Promise.resolve();
-            }
-            if (loading) {
-              console.warn("Auto-Fix: pipeline already running, skipping.");
-              return Promise.resolve();
-            }
-            return refine({
+            if (!effectiveName) return;
+            refine({
               projectName: effectiveName,
-              prompt: `Fix the following runtime preview error in the project:\n${errorMessage}\nEnsure all props, null-checks, types, and event handlers are robustly guarded.`,
+              prompt: `Fix the following runtime preview error in the project:\n${errorMessage}\nEnsure all props, null-checks, types, and event handlers are robustly guarded.`
+            }).catch((err) => {
+              console.error("Auto-fix refinement failed:", err);
             });
           }}
         />
       </div>
-
-      <HistoryDrawer
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        onSelectGeneration={(gen) => {
-          hydrateFromHistory(gen);
-        }}
-      />
     </div>
   );
 }

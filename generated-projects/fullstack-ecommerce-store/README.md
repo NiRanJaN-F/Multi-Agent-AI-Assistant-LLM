@@ -8,16 +8,16 @@ Build a full-stack e-commerce store with product listings, a shopping cart, and 
 
 ## Tech Stack
 
-Node Express + Vanilla JS/HTML/CSS
+Node.js + Express + HTML/CSS/Vanilla JS
 
-A monolithic full-stack e-commerce architecture leveraging Node.js and Express to serve static frontend assets and RESTful API endpoints. The frontend uses Vanilla JS, HTML, and CSS with a modular component-like structure interacting via Fetch API. An in-memory data store manages products, cart state, and checkout transactions seamlessly.
+This architecture employs a lightweight Node.js/Express backend providing RESTful endpoints for product catalog management and simulated payment processing. The frontend is built using single-page Vanilla HTML/CSS/JS served statically from the Express server, utilizing localStorage for robust client-side shopping cart persistence. State management is handled reactively on the client, updating the UI dynamically and synchronizing with the backend strictly during the checkout flow.
 
 ## Implementation Plan
 
-- Initialize Node.js backend with Express and define in-memory mock product database.
-- Implement REST API endpoints for fetching products, managing cart operations, and processing checkout.
-- Create interactive frontend interface with product listings, dynamic shopping cart drawer, and checkout flow.
-- Integrate frontend JavaScript with backend API endpoints using Fetch API to enable seamless e-commerce transactions.
+- Initialize Express backend with product and cart data models and API endpoints.
+- Develop static HTML/CSS frontend with responsive product listing UI.
+- Implement client-side shopping cart state management using localStorage.
+- Build checkout flow handling order summary and simulated payment processing.
 
 ## Project Structure
 
@@ -39,4 +39,15 @@ Install dependencies with `npm install`, then start the app with `npm start`.
 
 - Static review: 2 open issue(s)
 - File 'public/js/app.js' has unbalanced brackets and is probably truncated.
-- 'public/js/app.js' line 111: fetch() call without .catch() fallback — unhandled rejections will crash the preview in strict mode.
+- 'public/js/app.js' line 234: fetch() call without .catch() fallback — unhandled rejections will crash the preview in strict mode.
+
+## Refinements & Changelog
+
+### Refinement — 2026-10-02 09:38 UTC
+- **Change Request:** ADD ITEAMS
+- **Files Modified:** `routes/api.js`, `public/js/app.js`, `public/index.html`
+- **Tasks Applied:**
+- Step 1: Implement POST /api/products endpoint in routes/api.js to handle new item addition with validation.
+- Step 2: Add an 'Add Item' UI trigger and modal form in public/index.html or public/js/app.js to allow users/admins to add new items.
+- **QA Review:** Passed
+

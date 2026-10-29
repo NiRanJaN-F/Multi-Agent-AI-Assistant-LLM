@@ -13,7 +13,6 @@
  */
 
 import { env } from "../config/env.js";
-import { Generation } from "../models/Generation.js";
 import {
   deleteGenerationById,
   getGenerationById,
@@ -60,14 +59,8 @@ function parseSseLine(line) {
  * response, buffering SSE lines to detect the final "complete" event.
  *
  * Returns the parsed payload of the "complete" event (or null on failure).
- *
- * IMPORTANT: accepts an optional `pauseKeepAlive` callback so the caller can
- * temporarily stop the keep-alive heartbeat while writing the (potentially
- * huge) complete-event JSON.  This prevents the heartbeat comment bytes from
- * interleaving with the complete payload and corrupting the SSE message on
- * the browser side.
  */
-async function proxyAiStream(aiUrl, body, res, abortSignal, pauseKeepAlive) {
+async function proxyAiStream(aiUrl, body, res, abortSignal) {
   const aiResponse = await fetch(aiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
@@ -115,15 +108,12 @@ async function proxyAiStream(aiUrl, body, res, abortSignal, pauseKeepAlive) {
       const parsed = parseSseLine(line);
       if (!parsed) continue;
 
-      if (parsed.stage === "complete") {
-        // Pause the keep-alive heartbeat so it cannot interleave bytes
-        // with the large complete-event JSON payload.
-        pauseKeepAlive?.();
-        completePayload = parsed;
-      }
-
       // Forward every event to the browser
       if (!res.writableEnded) sseWrite(res, parsed);
+
+      if (parsed.stage === "complete") {
+        completePayload = parsed;
+      }
     }
   }
 
@@ -131,11 +121,8 @@ async function proxyAiStream(aiUrl, body, res, abortSignal, pauseKeepAlive) {
   if (lineBuffer.trim()) {
     const parsed = parseSseLine(lineBuffer);
     if (parsed) {
-      if (parsed.stage === "complete") {
-        pauseKeepAlive?.();
-        completePayload = parsed;
-      }
       if (!res.writableEnded) sseWrite(res, parsed);
+      if (parsed.stage === "complete") completePayload = parsed;
     }
   }
 
@@ -184,22 +171,10 @@ export async function postGenerate(req, res, next) {
   // Setup SSE
   sseInit(res);
 
-  // Keep-alive heartbeat ping every 3 seconds to prevent Vercel/Render proxy timeouts.
-  // keepAlivePaused flag lets proxyAiStream stop the heartbeat before writing the
-  // large complete-event JSON payload, preventing byte-level interleaving corruption.
-  let keepAlivePaused = false;
-  const keepAlive = setInterval(() => {
-    if (!keepAlivePaused && !res.writableEnded) {
-      res.write(": keep-alive\n\n");
-    }
-  }, 3000);
-  const pauseKeepAlive = () => { keepAlivePaused = true; };
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
 
   const handleClientClose = () => {
-    clearInterval(keepAlive);
     if (!res.writableEnded) {
       controller.abort();
     }
@@ -220,7 +195,6 @@ export async function postGenerate(req, res, next) {
       },
       res,
       controller.signal,
-      pauseKeepAlive,
     );
 
     const durationMs = Date.now() - startedAt;
@@ -250,7 +224,6 @@ export async function postGenerate(req, res, next) {
       });
     }
   } finally {
-    clearInterval(keepAlive);
     clearTimeout(timeout);
     res.off("close", handleClientClose);
     if (!res.writableEnded) res.end();
@@ -268,39 +241,12 @@ export async function postRefine(req, res, next) {
     return res.status(400).json({ status: "error", message: "projectName is required to refine an existing project" });
   }
 
-  // Retrieve project file tree from MongoDB to ensure cloud ephemeral disk restarts never cause 404
-  let filesSnapshot = undefined;
-  if (isDatabaseReady()) {
-    try {
-      const query = { projectName: String(projectName).trim(), status: "completed" };
-      if (userId) query.userId = userId;
-      const gen = await Generation.findOne(query).sort({ createdAt: -1 }).lean();
-      if (gen && gen.files && Object.keys(gen.files).length > 0) {
-        filesSnapshot = gen.files;
-      }
-    } catch {
-      // ignore
-    }
-  }
-
   sseInit(res);
-
-  // Keep-alive heartbeat ping every 3 seconds to prevent Vercel/Render proxy timeouts.
-  // keepAlivePaused flag lets proxyAiStream stop the heartbeat before writing the
-  // large complete-event JSON payload, preventing byte-level interleaving corruption.
-  let keepAlivePaused = false;
-  const keepAlive = setInterval(() => {
-    if (!keepAlivePaused && !res.writableEnded) {
-      res.write(": keep-alive\n\n");
-    }
-  }, 3000);
-  const pauseKeepAlive = () => { keepAlivePaused = true; };
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
 
   const handleClientClose = () => {
-    clearInterval(keepAlive);
     if (!res.writableEnded) {
       controller.abort();
     }
@@ -318,11 +264,9 @@ export async function postRefine(req, res, next) {
         prompt: String(prompt).trim(),
         project_name: String(projectName).trim(),
         provider: provider?.trim() || undefined,
-        files: filesSnapshot,
       },
       res,
       controller.signal,
-      pauseKeepAlive,
     );
 
     const durationMs = Date.now() - startedAt;
@@ -352,7 +296,6 @@ export async function postRefine(req, res, next) {
       });
     }
   } finally {
-    clearInterval(keepAlive);
     clearTimeout(timeout);
     res.off("close", handleClientClose);
     if (!res.writableEnded) res.end();

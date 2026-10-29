@@ -1,43 +1,39 @@
-const express = require('express');
-const path = require('path');
-const apiRoutes = require('./routes/api');
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import apiRoutes from './routes/api.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Middleware for parsing JSON and URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static frontend files from a 'public' directory if present
+// Serve static frontend files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Mount API routes
 app.use('/api', apiRoutes);
 
-// Fallback route to serve index.html for SPA behavior if needed, or basic 404
+// Fallback to index.html for SPA routing if needed
 app.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, 'public', 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.status(404).json({ error: 'Not Found' });
-    }
-  });
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Global Error Handling Middleware
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('Unhandled Server Error:', err);
-  res.status(500).json({ 
-    success: false, 
-    error: 'Internal Server Error',
-    message: err.message 
+  console.error('Unhandled Server Error:', err.stack);
+  res.status(500).json({
+    success: false,
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'production' ? undefined : err.message
   });
 });
 
-// Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
-
-module.exports = app;

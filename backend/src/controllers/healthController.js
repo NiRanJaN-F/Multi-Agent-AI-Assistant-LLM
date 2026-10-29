@@ -54,27 +54,26 @@ export async function getLlmVerify(req, res) {
 import { Generation } from "../models/Generation.js";
 import { isDatabaseReady } from "../services/generationService.js";
 
-export async function getProjectsList(req, res) {
-  const userId = req.user?.id;
-
-  if (!userId) {
-    // Anonymous users do not see authenticated users' projects
-    return res.json({ projects: [] });
+export async function getProjectsList(_req, res) {
+  let diskProjects = [];
+  try {
+    const result = await fetchProjectsList();
+    diskProjects = result?.projects || [];
+  } catch {
+    diskProjects = [];
   }
 
   let dbProjects = [];
   if (isDatabaseReady()) {
     try {
-      dbProjects = await Generation.distinct("projectName", {
-        userId,
-        status: "completed",
-      });
+      dbProjects = await Generation.distinct("projectName", { status: "completed" });
     } catch {
       dbProjects = [];
     }
   }
 
-  res.json({ projects: dbProjects.sort() });
+  const allProjects = Array.from(new Set([...diskProjects, ...dbProjects])).sort();
+  res.json({ projects: allProjects });
 }
 
 export async function getProjectFiles(req, res) {
